@@ -6,6 +6,7 @@
 //#include <argos3/core/utility/math/ray3.h>
 #include <argos3/core/utility/logging/argos_log.h>
 #include "Pheromone.h"
+#include "Food.h"       // Ryan Luna 11/10/22
 using namespace argos;
 using namespace std;
 
@@ -22,7 +23,7 @@ class Nest {
 		      vector<Pheromone> PheromoneList;
         map<string, argos::CVector2> FidelityList; //qilu 09/10/2016
         map<string, size_t> DensityOnFidelity; //qilu 09/11/2016
-        vector<CVector2> FoodList;
+        vector<Food> FoodList;
         size_t num_collected_tags;
         size_t visited_time_point_in_minute;
         /* constructor function */

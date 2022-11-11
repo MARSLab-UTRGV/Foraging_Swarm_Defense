@@ -6,6 +6,7 @@
 #include <argos3/core/simulator/entity/floor_entity.h>
 #include <source/CPFA/CPFA_controller.h>
 #include <argos3/plugins/simulator/entities/cylinder_entity.h>
+#include <source/Base/Food.h>	// Ryan Luna 11/10/22
 
 using namespace argos;
 using namespace std;
@@ -113,14 +114,16 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		argos::Real SearchRadiusSquared;
 
 		/* list variables for food & pheromones */
-		std::vector<argos::CVector2> FoodList;
-		std::vector<argos::CColor>   FoodColoringList;
-		vector<argos::CVector2> CollectedFoodList;
-                map<string, argos::CVector2> FidelityList; 
-		std::vector<Pheromone>   PheromoneList; 
-		std::vector<argos::CRay3>    TargetRayList;
-		argos::CRange<argos::Real>   ForageRangeX;
-		argos::CRange<argos::Real>   ForageRangeY;
+
+		// std::vector<argos::CVector2> FoodList;				//
+		// std::vector<argos::CColor>   FoodColoringList;		//
+		std::vector<Food>				FoodList;				// Ryan Luna 11/10/22
+		vector<Food> 					CollectedFoodList;		// Ryan Luna 11/10/22
+        map<string, argos::CVector2> 	FidelityList; 
+		std::vector<Pheromone>  	 	PheromoneList; 
+		std::vector<argos::CRay3>    	TargetRayList;
+		argos::CRange<argos::Real>   	ForageRangeX;
+		argos::CRange<argos::Real>   	ForageRangeY;
   
                 Real   CollisionTime;
                 size_t currCollisionTime; 

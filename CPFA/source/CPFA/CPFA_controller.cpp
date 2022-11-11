@@ -189,26 +189,29 @@ void CPFA_controller::SetLoopFunctions(CPFA_loop_functions* lf) {
 	// Create the output file here because it needs LoopFunctions
 		
 	// Name the results file with the current time and date
-	time_t t = time(0);   // get time now
-	struct tm * now = localtime(&t);
-	stringstream ss;
 
-	char hostname[1024];                                                   
-	hostname[1023] = '\0';                    
-	gethostname(hostname, 1023);  
+	// Quite sure this isn't needed here, defined in CPFA_loop_functions::PostExperiment() ** Ryan Luna 11/11/22
 
-	ss << "CPFA-"<<GIT_BRANCH<<"-"<<GIT_COMMIT_HASH<<"-"
-		<< hostname << '-'
-		<< getpid() << '-'
-		<< (now->tm_year) << '-'
-		<< (now->tm_mon + 1) << '-'
-		<<  now->tm_mday << '-'
-		<<  now->tm_hour << '-'
-		<<  now->tm_min << '-'
-		<<  now->tm_sec << ".csv";
+	// time_t t = time(0);   // get time now
+	// struct tm * now = localtime(&t);
+	// stringstream ss;
 
-		string results_file_name = ss.str();
-		results_full_path = results_path+"/"+results_file_name;
+	// char hostname[1024];                                                   
+	// hostname[1023] = '\0';                    
+	// gethostname(hostname, 1023);  
+
+	// ss << "CPFA-"<<GIT_BRANCH<<"-"<<GIT_COMMIT_HASH<<"-"
+	// 	<< hostname << '-'
+	// 	<< getpid() << '-'
+	// 	<< (now->tm_year) << '-'
+	// 	<< (now->tm_mon + 1) << '-'
+	// 	<<  now->tm_mday << '-'
+	// 	<<  now->tm_hour << '-'
+	// 	<<  now->tm_min << '-'
+	// 	<<  now->tm_sec << ".csv";
+
+	// 	string results_file_name = ss.str();
+	// 	results_full_path = results_path+"/"+results_file_name;
 
 	// Only the first robot should do this:	 
 	if (GetId().compare("CPFA_0") == 0) {
@@ -500,7 +503,8 @@ void CPFA_controller::Returning() {
           while((placementPosition-LoopFunctions->NestPosition).SquareLength()>pow(LoopFunctions->NestRadius/2.0-LoopFunctions->FoodRadius, 2))
               placementPosition.Set(LoopFunctions->NestPosition.GetX()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5), LoopFunctions->NestPosition.GetY()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5));
      
-          LoopFunctions->CollectedFoodList.push_back(placementPosition);
+          //LoopFunctions->CollectedFoodList.push_back(placementPosition); // not needed i think ** Ryan Luna 11/11/22
+
           //Update the location of the nest qilu 09/10
           num_targets_collected++;
 		  LoopFunctions->currNumCollectedFood++;
@@ -612,52 +616,65 @@ void CPFA_controller::SetHoldingFood() {
 		// No, the iAnt isn't holding food. Check if we have found food at our
 		// current position and update the food list if we have.
 
-		    std::vector<argos::CVector2> newFoodList;
-		    std::vector<argos::CColor> newFoodColoringList;
+		    //std::vector<argos::CVector2> newFoodList;
+		    //std::vector<argos::CColor> newFoodColoringList;
 		    size_t i = 0, j = 0;
       //if(CPFA_state != RETURNING){
 		         for(i = 0; i < LoopFunctions->FoodList.size(); i++) {
-			            if((GetPosition() - LoopFunctions->FoodList[i]).SquareLength() < FoodDistanceTolerance ) {
-		          // We found food! Calculate the nearby food density.
-	        	             isHoldingFood = true;
-		                     CPFA_state = SURVEYING;
-	        	             j = i + 1;
-                                     searchingTime+=SimulationTick()-startTime;
-                                     startTime = SimulationTick();
-				   //distribute a new food 
-			         argos::CVector2 placementPosition;
-			         placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+			            if((GetPosition() - LoopFunctions->FoodList[i].GetLocation()).SquareLength() < FoodDistanceTolerance ) {
+		          		// We found food! Calculate the nearby food density.
+	        	            isHoldingFood = true;
+		                    CPFA_state = SURVEYING;
+	        	            j = i + 1;
+							searchingTime+=SimulationTick()-startTime;
+                            startTime = SimulationTick();
+							break;
+						}
+
+				/**
+				 * Used to maintain density of resources. Not needed for DoS Attack Simulation. ** Ryan Luna 11/11/22
+				*/
+
+				//    //distribute a new food 
+			    //      argos::CVector2 placementPosition;
+			    //      placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
 			          
-			         while(LoopFunctions->IsOutOfBounds(placementPosition, 1, 1)){
-			             placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
-			         }
-			         newFoodList.push_back(placementPosition);
-					 newFoodColoringList.push_back(LoopFunctions->FoodColoringList[i]);
-                    LoopFunctions->increaseNumDistributedFoodByOne(); //the total number of cubes in the arena should be updated. qilu 11/15/2018
-					 //end
-                                     break;
-			             } else {
-                      //Return this unfound-food position to the list
-                            newFoodList.push_back(LoopFunctions->FoodList[i]);
-                            newFoodColoringList.push_back(LoopFunctions->FoodColoringList[i]);
-                         }
-                 }
+			    //      while(LoopFunctions->IsOutOfBounds(placementPosition, 1, 1)){
+			    //          placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+			    //      }
+			    //      newFoodList.push_back(placementPosition);
+				// 	 newFoodColoringList.push_back(LoopFunctions->FoodColoringList[i]);
+                //     LoopFunctions->increaseNumDistributedFoodByOne(); //the total number of cubes in the arena should be updated. qilu 11/15/2018
+				// 	 //end
+                //                      break;
+			    //          } else {
+                //       //Return this unfound-food position to the list
+                //             newFoodList.push_back(LoopFunctions->FoodList[i]);
+                //             newFoodColoringList.push_back(LoopFunctions->FoodColoringList[i]);
+                //          }
+                }
       //}
-      if(j>0){
-          for(; j < LoopFunctions->FoodList.size(); j++) {
-              newFoodList.push_back(LoopFunctions->FoodList[j]);
-              newFoodColoringList.push_back(LoopFunctions->FoodColoringList[j]);
-          }
-      }
+    //   if(j>0){
+    //       for(; j < LoopFunctions->FoodList.size(); j++) {
+    //           newFoodList.push_back(LoopFunctions->FoodList[j]);
+    //           newFoodColoringList.push_back(LoopFunctions->FoodColoringList[j]);
+    //       }
+    //   }
    
       // We picked up food. Update the food list minus what we picked up.
-      if(IsHoldingFood()) {
-         //SetIsHeadingToNest(true);
-         //SetTarget(LoopFunctions->NestPosition);
-         LoopFunctions->FoodList = newFoodList;
-         LoopFunctions->FoodColoringList = newFoodColoringList; //qilu 09/12/2016
-         SetLocalResourceDensity();
-      }
+    //   if(IsHoldingFood()) {
+    //      //SetIsHeadingToNest(true);
+    //      //SetTarget(LoopFunctions->NestPosition);
+    //      LoopFunctions->FoodList = newFoodList;
+    //      LoopFunctions->FoodColoringList = newFoodColoringList; //qilu 09/12/2016
+    //      SetLocalResourceDensity();
+    //   }
+
+		// We picked up food. Erase the food we picked up from the food list. ** Ryan Luna 11/11/22
+		if(IsHoldingFood()){
+			LoopFunctions->FoodList.erase(LoopFunctions->FoodList.begin() + i);
+			SetLocalResourceDensity();
+		}
 	}
 		
 	// This shouldn't be checked here ---
@@ -697,11 +714,11 @@ void CPFA_controller::SetLocalResourceDensity() {
 
 	/* Calculate resource density based on the global food list positions. */
 	for(size_t i = 0; i < LoopFunctions->FoodList.size(); i++) {
-		   distance = GetPosition() - LoopFunctions->FoodList[i];
+		   distance = GetPosition() - LoopFunctions->FoodList[i].GetLocation();	// modified ** Ryan Luna 11/11/22
 
 		   if(distance.SquareLength() < LoopFunctions->SearchRadiusSquared*2) {
 			      ResourceDensity++;
-			      LoopFunctions->FoodColoringList[i] = argos::CColor::ORANGE;
+			      LoopFunctions->FoodList[i].SetColor(argos::CColor::ORANGE);	// modified ** Ryan Luna 11/11/22
 			      LoopFunctions->ResourceDensityDelay = SimulationTick() + SimulationTicksPerSecond() * 10;
 		   }
 	}

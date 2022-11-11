@@ -79,19 +79,22 @@ void CPFA_qt_user_functions::DrawFood() {
 
 	Real x, y;
 
+	// modified ** Ryan Luna 11/11/22
 	for(size_t i = 0; i < loopFunctions.FoodList.size(); i++) {
-		x = loopFunctions.FoodList[i].GetX();
-		y = loopFunctions.FoodList[i].GetY();
-		DrawCylinder(CVector3(x, y, 0.002), CQuaternion(), loopFunctions.FoodRadius, 0.025, loopFunctions.FoodColoringList[i]);
+		x = loopFunctions.FoodList[i].GetLocation().GetX();
+		y = loopFunctions.FoodList[i].GetLocation().GetY();
+		DrawCylinder(CVector3(x, y, 0.002), CQuaternion(), loopFunctions.FoodRadius, 0.025, loopFunctions.FoodList[i].GetColor());
 	}
+
+	// shouldn't need the following loop as CollectedFoodList is not maintained anyway ** Ryan Luna 11/11/22
  
-	 //draw food in nests
-	 for (size_t i=0; i< loopFunctions.CollectedFoodList.size(); i++)
-	 { 
-	        x = loopFunctions.CollectedFoodList[i].GetX();
-	        y = loopFunctions.CollectedFoodList[i].GetY();
-	        DrawCylinder(CVector3(x, y, 0.002), CQuaternion(), loopFunctions.FoodRadius, 0.025, CColor::BLACK);
-	  } 
+	//draw food in nests
+	// for (size_t i=0; i< loopFunctions.CollectedFoodList.size(); i++)
+	// { 
+	//         x = loopFunctions.CollectedFoodList[i].GetX();
+	//         y = loopFunctions.CollectedFoodList[i].GetY();
+	//         DrawCylinder(CVector3(x, y, 0.002), CQuaternion(), loopFunctions.FoodRadius, 0.025, CColor::BLACK);
+	// }
 }
 
 void CPFA_qt_user_functions::DrawFidelity() {
