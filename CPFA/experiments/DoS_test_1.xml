@@ -55,7 +55,7 @@
                     NumberOfClusters="4" ClusterWidthX="8" ClusterWidthY="8"  
 
                     UseFakeFoodDoS="true"
-                    FakeFoodDistribution="2" NumFakeFood="64" PowerlawFakeFoodUnitCount="64" 
+                    FakeFoodDistribution="2" NumFakeFood="48" PowerlawFakeFoodUnitCount="48" 
                     NumFakeClusters="2" FakeClusterWidthX="8" FakeClusterWidthY="8" />
 
   </loop_functions>

@@ -99,7 +99,6 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t FakeClusterWidthX;		// Ryan Luna 11/12/22
 		size_t FakeClusterWidthY;		// Ryan Luna 11/12/22
 		size_t PowerRank;
-		size_t FakePowerRank;			// Ryan Luna 11/13/22
                 size_t ArenaWidth;
                 size_t SimTime; 
                 Real curr_time_in_minutes; 

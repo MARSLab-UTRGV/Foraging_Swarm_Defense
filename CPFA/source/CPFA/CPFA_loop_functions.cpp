@@ -27,7 +27,6 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	ClusterWidthX(8),
 	ClusterWidthY(8),
 	PowerRank(4),
-	FakePowerRank(2),
 	ProbabilityOfSwitchingToSearching(0.0),
 	ProbabilityOfReturningToNest(0.0),
 	UninformedSearchVariation(0.0),
@@ -529,6 +528,9 @@ void CPFA_loop_functions::PowerLawFoodDistribution() {
     size_t singleClusterCount = 0;
     size_t otherClusterCount = 0;
     size_t modDiff = 0;
+
+	// use local variable for power rank value not global ** Ryan Luna 11/13/22
+	size_t localPowerRank = PowerRank;
     
     //Wayne: priorPowerRank is determined by what power of 4
     //plus a multiple of power4 increases the food count passed required count
@@ -541,29 +543,29 @@ void CPFA_loop_functions::PowerLawFoodDistribution() {
     }
     
     //Wayne: Actual powerRank is prior + 1
-    PowerRank = priorPowerRank + 1;
+    localPowerRank = priorPowerRank + 1;
     
     //Wayne: Equalizes out the amount of food in each group, with the 1 cluster group taking the
     //largest loss if not equal, when the powerrank is not a perfect fit with the amount of food.
     diffFoodCount = FoodCount - NumRealFood;
-    modDiff = diffFoodCount % PowerRank;
+    modDiff = diffFoodCount % localPowerRank;
     
-    if (NumRealFood % PowerRank == 0){
-        singleClusterCount = NumRealFood / PowerRank;
+    if (NumRealFood % localPowerRank == 0){
+        singleClusterCount = NumRealFood / localPowerRank;
         otherClusterCount = singleClusterCount;
     }
     else {
-        otherClusterCount = NumRealFood / PowerRank + 1;
+        otherClusterCount = NumRealFood / localPowerRank + 1;
         singleClusterCount = otherClusterCount - modDiff;
     }
     //-----Wayne: End of PowerRank and food per PowerRank group
     
-	for(size_t i = 0; i < PowerRank; i++) {
+	for(size_t i = 0; i < localPowerRank; i++) {
 		powerLawClusters.push_back(powerLawLength * powerLawLength);
 		powerLawLength *= 2;
 	}
 
-	for(size_t i = 0; i < PowerRank; i++) {
+	for(size_t i = 0; i < localPowerRank; i++) {
 		powerLawLength /= 2;
 		clusterSides.push_back(powerLawLength);
 	}
@@ -609,101 +611,106 @@ void CPFA_loop_functions::PowerLawFoodDistribution() {
 }
 
 void CPFA_loop_functions::PowerLawFakeFoodDistribution() {
-	argos::Real foodOffset     = 3.0 * FoodRadius;
-	size_t      fakefoodPlaced     = 0;
-	size_t      powerLawLength = 1;
-	size_t      maxTrials      = 200;
-	size_t      trialCount     = 0;
 
-	std::vector<size_t> powerLawFakeClusters;
-	std::vector<size_t> fakeClusterSides;
-	argos::CVector2     placementPosition;
+	// variable name modification 'L_' to denote a local function variable ** Ryan Luna 11/13/22
+
+	argos::Real L_foodOffset     = 3.0 * FoodRadius;
+	size_t      L_fakefoodPlaced     = 0;
+	size_t      L_powerLawLength = 1;
+	size_t      L_maxTrials      = 200;
+	size_t      L_trialCount     = 0;
+
+	std::vector<size_t> L_powerLawFakeClusters;
+	std::vector<size_t> L_fakeClusterSides;
+	argos::CVector2     L_placementPosition;
 
     //-----Wayne: Dertermine PowerRank and food per PowerRank group
-    size_t priorPowerRank = 0;
-    size_t power4 = 0;
-    size_t FakeFoodCount = 0;
-    size_t diffFakeFoodCount = 0;
-    size_t singleFakeClusterCount = 0;
-    size_t otherFakeClusterCount = 0;
-    size_t modDiff = 0;
+    size_t L_priorPowerRank = 0;
+    size_t L_power4 = 0;
+    size_t L_FakeFoodCount = 0;
+    size_t L_diffFakeFoodCount = 0;
+    size_t L_singleFakeClusterCount = 0;
+    size_t L_otherFakeClusterCount = 0;
+    size_t L_modDiff = 0;
+
+	size_t localPowerRank = PowerRank;
     
-    //Wayne: priorPowerRank is determined by what power of 4
-    //plus a multiple of power4 increases the food count passed required count
+    //Wayne: L_priorPowerRank is determined by what power of 4
+    //plus a multiple of L_power4 increases the food count passed required count
     //this is how powerlaw works to divide up food into groups
     //the number of groups is the powerrank
-    while (FakeFoodCount < NumFakeFood){
-        priorPowerRank++;
-        power4 = pow (4.0, priorPowerRank);
-        FakeFoodCount = power4 + priorPowerRank * power4;
+    while (L_FakeFoodCount < NumFakeFood){
+        L_priorPowerRank++;
+        L_power4 = pow (4.0, L_priorPowerRank);
+        L_FakeFoodCount = L_power4 + L_priorPowerRank * L_power4;
     }
     
     //Wayne: Actual powerRank is prior + 1
-    FakePowerRank = priorPowerRank + 1;
+    localPowerRank = L_priorPowerRank + 1;
     
     //Wayne: Equalizes out the amount of food in each group, with the 1 cluster group taking the
     //largest loss if not equal, when the powerrank is not a perfect fit with the amount of food.
-    diffFakeFoodCount = FakeFoodCount - NumRealFood;
-    modDiff = diffFakeFoodCount % FakePowerRank;
+    L_diffFakeFoodCount = L_FakeFoodCount - NumFakeFood;
+    L_modDiff = L_diffFakeFoodCount % localPowerRank;
     
-    if (NumRealFood % FakePowerRank == 0){
-        singleFakeClusterCount = NumRealFood / FakePowerRank;
-        otherFakeClusterCount = singleFakeClusterCount;
+    if (NumFakeFood % localPowerRank == 0){
+        L_singleFakeClusterCount = NumFakeFood / localPowerRank;
+        L_otherFakeClusterCount = L_singleFakeClusterCount;
     }
     else {
-        otherFakeClusterCount = NumRealFood / FakePowerRank + 1;
-        singleFakeClusterCount = otherFakeClusterCount - modDiff;
+        L_otherFakeClusterCount = NumFakeFood / localPowerRank + 1;
+        L_singleFakeClusterCount = L_otherFakeClusterCount - L_modDiff;
     }
     //-----Wayne: End of PowerRank and food per PowerRank group
     
-	for(size_t i = 0; i < FakePowerRank; i++) {
-		powerLawFakeClusters.push_back(powerLawLength * powerLawLength);
-		powerLawLength *= 2;
+	for(size_t i = 0; i < localPowerRank; i++) {
+		L_powerLawFakeClusters.push_back(L_powerLawLength * L_powerLawLength);
+		L_powerLawLength *= 2;
 	}
 
-	for(size_t i = 0; i < FakePowerRank; i++) {
-		powerLawLength /= 2;
-		fakeClusterSides.push_back(powerLawLength);
+	for(size_t i = 0; i < localPowerRank; i++) {
+		L_powerLawLength /= 2;
+		L_fakeClusterSides.push_back(L_powerLawLength);
 	}
     /*Wayne: Modified to break from loops if food count reached.
      Provides support for unequal clusters and odd food numbers.
      Necessary for DustUp and Jumble Distribution changes. */
     
-	for(size_t h = 0; h < powerLawFakeClusters.size(); h++) {
-		for(size_t i = 0; i < powerLawFakeClusters[h]; i++) {
-			placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+	for(size_t h = 0; h < L_powerLawFakeClusters.size(); h++) {
+		for(size_t i = 0; i < L_powerLawFakeClusters[h]; i++) {
+			L_placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
 
-			while(IsOutOfBounds(placementPosition, fakeClusterSides[h], fakeClusterSides[h])) {
-				trialCount++;
-				placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+			while(IsOutOfBounds(L_placementPosition, L_fakeClusterSides[h], L_fakeClusterSides[h])) {
+				L_trialCount++;
+				L_placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
 
-				if(trialCount > maxTrials) {
+				if(L_trialCount > L_maxTrials) {
 					argos::LOGERR << "PowerLawDistribution(): Max trials exceeded!\n";
 					break;
 				}
 			}
 
-            trialCount = 0;
-			for(size_t j = 0; j < fakeClusterSides[h]; j++) {
-				for(size_t k = 0; k < fakeClusterSides[h]; k++) {
-					fakefoodPlaced++;
-					// FoodList.push_back(placementPosition);
+            L_trialCount = 0;
+			for(size_t j = 0; j < L_fakeClusterSides[h]; j++) {
+				for(size_t k = 0; k < L_fakeClusterSides[h]; k++) {
+					L_fakefoodPlaced++;
+					// FoodList.push_back(L_placementPosition);
 					// FoodColoringList.push_back(argos::CColor::BLACK);
 
-					Food tmp(placementPosition, Food::FoodType::FAKE);
+					Food tmp(L_placementPosition, Food::FoodType::FAKE);
 					FoodList.push_back(tmp);							
-					placementPosition.SetX(placementPosition.GetX() + foodOffset);
-                    if (fakefoodPlaced == singleFakeClusterCount + h * otherFakeClusterCount) break;
+					L_placementPosition.SetX(L_placementPosition.GetX() + L_foodOffset);
+                    if (L_fakefoodPlaced == L_singleFakeClusterCount + h * L_otherFakeClusterCount) break;
 				}
 
-				placementPosition.SetX(placementPosition.GetX() - (fakeClusterSides[h] * foodOffset));
-				placementPosition.SetY(placementPosition.GetY() + foodOffset);
-                if (fakefoodPlaced == singleFakeClusterCount + h * otherFakeClusterCount) break;
+				L_placementPosition.SetX(L_placementPosition.GetX() - (L_fakeClusterSides[h] * L_foodOffset));
+				L_placementPosition.SetY(L_placementPosition.GetY() + L_foodOffset);
+                if (L_fakefoodPlaced == L_singleFakeClusterCount + h * L_otherFakeClusterCount) break;
 			}
-            if (fakefoodPlaced == singleFakeClusterCount + h * otherFakeClusterCount) break;
+            if (L_fakefoodPlaced == L_singleFakeClusterCount + h * L_otherFakeClusterCount) break;
 			}
 		}
-	NumRealFood = fakefoodPlaced;
+	NumFakeFood = L_fakefoodPlaced;
 }
 
 bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t width) {
