@@ -26,6 +26,7 @@ class CPFA_controller : public BaseController {
 		void Reset();
 
 		bool IsHoldingFood();
+		bool IsHoldingFakeFood();	// Ryan Luna 11/12/22
 		bool IsUsingSiteFidelity();
 		bool IsInTheNest();
 
@@ -59,6 +60,7 @@ class CPFA_controller : public BaseController {
 
 		bool isInformed;
 		bool isHoldingFood;
+		bool isHoldingFakeFood;		// Ryan Luna 11/12/22
 		bool isUsingSiteFidelity;
 		bool isGivingUpSearch;
   

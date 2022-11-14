@@ -20,7 +20,8 @@ add_library(CPFA_controller     SHARED CPFA_controller.h
 target_link_libraries(CPFA_controller
                       BaseController
                       Pheromone
-                      Nest)
+                      Nest
+                      Food)
 
 target_link_libraries(CPFA_loop_functions
                       CPFA_controller

@@ -19,12 +19,15 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	DrawTrails(1),
 	DrawTargetRays(1),
 	FoodDistribution(2),
-	FoodItemCount(256),
+	FakeFoodDistribution(2),
+	NumRealFood(256),			// name modified ** Ryan Luna 11/12/22
+	NumFakeFood(0),			// Ryan Luna 11/12/22
 	PowerlawFoodUnitCount(256),
 	NumberOfClusters(4),
 	ClusterWidthX(8),
 	ClusterWidthY(8),
 	PowerRank(4),
+	FakePowerRank(2),
 	ProbabilityOfSwitchingToSearching(0.0),
 	ProbabilityOfReturningToNest(0.0),
 	UninformedSearchVariation(0.0),
@@ -39,9 +42,12 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	NestElevation(0.01),
 	// We are looking at a 4 by 4 square (3 targets + 2*1/2 target gaps)
 	SearchRadiusSquared((4.0 * FoodRadius) * (4.0 * FoodRadius)),
-	NumDistributedFood(0),
+	NumDistributedRealFood(0),	// name modified ** Ryan Luna 11/12/22
+	NumDistributedFakeFood(0),	// Ryan Luna 11/12/22
+	TotalDistributedFood(0),	// name modified ** Ryan Luna 11/12/22
 	score(0),
-	PrintFinalScore(0)
+	PrintFinalScore(0),
+	UseFakeFoodDoS(false)		// Ryan Luna 11/13/22
 {}
 
 void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {	
@@ -65,30 +71,52 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 
 	MaxSimTime *= GetSimulator().GetPhysicsEngine("dyn2d").GetInverseSimulationClockTick();//qilu 02/05/2021 dyn2d error
 
-	argos::GetNodeAttribute(settings_node, "MaxSimCounter", MaxSimCounter);
-	argos::GetNodeAttribute(settings_node, "VariableFoodPlacement", VariableFoodPlacement);
-	argos::GetNodeAttribute(settings_node, "OutputData", OutputData);
-	argos::GetNodeAttribute(settings_node, "DrawIDs", DrawIDs);
-	argos::GetNodeAttribute(settings_node, "DrawTrails", DrawTrails);
-	argos::GetNodeAttribute(settings_node, "DrawTargetRays", DrawTargetRays);
-	argos::GetNodeAttribute(settings_node, "FoodDistribution", FoodDistribution);
-	argos::GetNodeAttribute(settings_node, "FoodItemCount", FoodItemCount);
-	argos::GetNodeAttribute(settings_node, "PowerlawFoodUnitCount", PowerlawFoodUnitCount);
-	argos::GetNodeAttribute(settings_node, "NumberOfClusters", NumberOfClusters);
-	argos::GetNodeAttribute(settings_node, "ClusterWidthX", ClusterWidthX);
-	argos::GetNodeAttribute(settings_node, "ClusterWidthY", ClusterWidthY);
-	argos::GetNodeAttribute(settings_node, "FoodRadius", FoodRadius);
-    argos::GetNodeAttribute(settings_node, "NestRadius", NestRadius);
-	argos::GetNodeAttribute(settings_node, "NestElevation", NestElevation);
-    argos::GetNodeAttribute(settings_node, "NestPosition", NestPosition);
+	argos::GetNodeAttribute(settings_node, "MaxSimCounter", 				MaxSimCounter);
+	argos::GetNodeAttribute(settings_node, "VariableFoodPlacement", 		VariableFoodPlacement);
+	argos::GetNodeAttribute(settings_node, "OutputData", 					OutputData);
+	argos::GetNodeAttribute(settings_node, "DrawIDs", 						DrawIDs);
+	argos::GetNodeAttribute(settings_node, "DrawTrails", 					DrawTrails);
+	argos::GetNodeAttribute(settings_node, "DrawTargetRays", 				DrawTargetRays);
+	argos::GetNodeAttribute(settings_node, "FoodDistribution", 				FoodDistribution);
+	argos::GetNodeAttribute(settings_node, "FakeFoodDistribution", 			FakeFoodDistribution);
+	argos::GetNodeAttribute(settings_node, "NumRealFood", 					NumRealFood);					// name modified ** Ryan Luna 11/13/22
+	argos::GetNodeAttribute(settings_node, "NumFakeFood", 					NumFakeFood);					// Ryan Luna 11/12/22
+	argos::GetNodeAttribute(settings_node, "PowerlawFoodUnitCount", 		PowerlawFoodUnitCount);
+	argos::GetNodeAttribute(settings_node, "PowerlawFakeFoodUnitCount", 	PowerlawFakeFoodUnitCount);		// Ryan Luna 11/12/22
+	argos::GetNodeAttribute(settings_node, "NumberOfClusters", 				NumberOfClusters);
+	argos::GetNodeAttribute(settings_node, "ClusterWidthX", 				ClusterWidthX);
+	argos::GetNodeAttribute(settings_node, "ClusterWidthY", 				ClusterWidthY);
+	argos::GetNodeAttribute(settings_node, "NumFakeClusters", 				NumFakeClusters);				// Ryan Luna 11/12/22
+	argos::GetNodeAttribute(settings_node, "FakeClusterWidthX", 			FakeClusterWidthX);				// Ryan Luna 11/12/22
+	argos::GetNodeAttribute(settings_node, "FakeClusterWidthY", 			FakeClusterWidthY);				// Ryan Luna 11/12/22
+	argos::GetNodeAttribute(settings_node, "FoodRadius", 					FoodRadius);
+    argos::GetNodeAttribute(settings_node, "NestRadius", 					NestRadius);
+	argos::GetNodeAttribute(settings_node, "NestElevation", 				NestElevation);
+    argos::GetNodeAttribute(settings_node, "NestPosition", 					NestPosition);
+	argos::GetNodeAttribute(settings_node, "UseFakeFoodDoS",				UseFakeFoodDoS);				// Ryan Luna 11/13/22
     FoodRadiusSquared = FoodRadius*FoodRadius;
 
-    //Number of distributed foods
+    //Number of distributed foods ** modified ** Ryan Luna 11/13/22
     if (FoodDistribution == 1){
-        NumDistributedFood = ClusterWidthX*ClusterWidthY*NumberOfClusters;
-    }
-    else{
-        NumDistributedFood = FoodItemCount;  
+		if (UseFakeFoodDoS){
+			NumDistributedRealFood = ClusterWidthX*ClusterWidthY*NumberOfClusters;
+			NumDistributedFakeFood = FakeClusterWidthX*FakeClusterWidthY*NumFakeClusters;
+        	TotalDistributedFood = NumDistributedFakeFood+NumDistributedRealFood;
+		} else {
+			NumDistributedFakeFood = 0;
+			NumDistributedRealFood = ClusterWidthX*ClusterWidthY*NumberOfClusters;
+			TotalDistributedFood = NumDistributedRealFood;
+		}
+    } else {
+		if (UseFakeFoodDoS){
+        	NumDistributedRealFood = NumRealFood;
+			NumDistributedFakeFood = NumFakeFood;
+			TotalDistributedFood = NumRealFood+NumFakeFood;
+		} else {
+			NumDistributedRealFood = NumRealFood;
+			NumDistributedFakeFood = 0;
+			TotalDistributedFood = NumDistributedRealFood;
+		}
     }
     
 
@@ -188,7 +216,12 @@ void CPFA_loop_functions::PreStep() {
 	// Ryan Luna 11/10/22
 	if(GetSpace().GetSimulationClock() > ResourceDensityDelay) {
     	for(size_t i = 0; i < FoodList.size(); i++) {
-            FoodList[i].SetColor(CColor::BLACK);
+			if (FoodList[i].GetType() == Food::REAL){
+				FoodList[i].SetColor(CColor::BLACK);
+			} else {
+				FoodList[i].SetColor(CColor::PURPLE);
+			}
+            
         }
 	}
  
@@ -210,7 +243,7 @@ bool CPFA_loop_functions::IsExperimentFinished() {
 		isFinished = true;
 	}
     //set to collected 88% food and then stop
-    if(score >= NumDistributedFood){
+    if(score >= NumDistributedRealFood){
 		isFinished = true;
 		}
          
@@ -243,7 +276,7 @@ void CPFA_loop_functions::PostExperiment() {
         else type = "powerlaw";
             
         ostringstream num_tag;
-        num_tag << FoodItemCount; 
+        num_tag << NumRealFood; 
               
         ostringstream num_robots;
         num_robots <<  Num_robots;
@@ -338,6 +371,8 @@ void CPFA_loop_functions::UpdatePheromoneList() {
      	PheromoneList = new_p_list;
 	new_p_list.clear();
 }
+
+// modified to include FakeFoodDistribution ** Ryan Luna 11/13/22
 void CPFA_loop_functions::SetFoodDistribution() {
 	switch(FoodDistribution) {
 		case 0:
@@ -352,6 +387,22 @@ void CPFA_loop_functions::SetFoodDistribution() {
 		default:
 			argos::LOGERR << "ERROR: Invalid food distribution in XML file.\n";
 	}
+
+	if (UseFakeFoodDoS){
+		switch(FakeFoodDistribution) {
+			case 0:
+				RandomFakeFoodDistribution();
+				break;
+			case 1:
+				ClusterFakeFoodDistribution();
+				break;
+			case 2:
+				PowerLawFakeFoodDistribution();
+				break;
+			default:
+				argos::LOGERR << "ERROR: Invalid food distribution in XML file.\n";
+		}
+	}
 }
 
 void CPFA_loop_functions::RandomFoodDistribution() {
@@ -359,7 +410,7 @@ void CPFA_loop_functions::RandomFoodDistribution() {
 // 	FoodColoringList.clear();
 	argos::CVector2 placementPosition;
 
-	for(size_t i = 0; i < FoodItemCount; i++) {
+	for(size_t i = 0; i < NumRealFood; i++) {
 		placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
 
 		while(IsOutOfBounds(placementPosition, 1, 1)) {
@@ -374,6 +425,24 @@ void CPFA_loop_functions::RandomFoodDistribution() {
 	}
 }
 
+// Ryan Luna 11/13/22
+void CPFA_loop_functions::RandomFakeFoodDistribution(){
+
+	CVector2 placementPosition;
+
+	// distribute fake food 
+	for(size_t i = 0; i < NumFakeFood; i++){
+		placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+
+		while(IsOutOfBounds(placementPosition, 1, 1) || IsCollidingWithFood(placementPosition)) {
+			placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+		}
+
+		Food tmp(placementPosition, Food::FoodType::FAKE);
+		FoodList.push_back(tmp);
+	}
+}
+
  
 void CPFA_loop_functions::ClusterFoodDistribution() {
     FoodList.clear();
@@ -382,7 +451,7 @@ void CPFA_loop_functions::ClusterFoodDistribution() {
 	size_t          foodPlaced = 0;
 	argos::CVector2 placementPosition;
 
-	FoodItemCount = foodToPlace;
+	NumRealFood = foodToPlace;
 
 	for(size_t i = 0; i < NumberOfClusters; i++) {
 		placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
@@ -394,23 +463,8 @@ void CPFA_loop_functions::ClusterFoodDistribution() {
 		for(size_t j = 0; j < ClusterWidthY; j++) {
 			for(size_t k = 0; k < ClusterWidthX; k++) {
 				foodPlaced++;
-				/*
-				#include <argos3/plugins/simulator/entities/box_entity.h>
 
-				string label("my_box_");
-				label.push_back('0' + foodPlaced++);
-
-				CBoxEntity *b = new CBoxEntity(label,
-					CVector3(placementPosition.GetX(),
-					placementPosition.GetY(), 0.0), CQuaternion(), true,
-					CVector3(0.1, 0.1, 0.001), 1.0);
-				AddEntity(*b);
-				*/
-
-				// FoodList.push_back(placementPosition);
-				// FoodColoringList.push_back(argos::CColor::BLACK);
-
-				Food tmp(placementPosition, Food::FoodType::REAL);
+				Food tmp(placementPosition, Food::FoodType::REAL);	// Ryan Luna 11/10/22
 				FoodList.push_back(tmp);							// Ryan Luna 11/10/22
 
 				placementPosition.SetX(placementPosition.GetX() + foodOffset);
@@ -422,10 +476,41 @@ void CPFA_loop_functions::ClusterFoodDistribution() {
 	}
 }
 
+// Ryan Luna 11/13/22
+void CPFA_loop_functions::ClusterFakeFoodDistribution(){
+	
+	argos::Real     foodOffset  = 3.0 * FoodRadius;
+	size_t			fakefoodToPlace = NumFakeClusters * FakeClusterWidthX * FakeClusterWidthY;
+	size_t			fakefoodPlaced = 0;
+	CVector2		placementPosition;
+
+	NumFakeFood = fakefoodToPlace;
+
+	for(size_t i = 0; i < NumFakeClusters; i++) {
+		placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+
+		while(IsOutOfBounds(placementPosition, FakeClusterWidthY, FakeClusterWidthX)) {
+			placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+		}
+
+		for(size_t j = 0; j < FakeClusterWidthY; j++) {
+			for(size_t k = 0; k < FakeClusterWidthX; k++) {
+				fakefoodPlaced++;
+
+				Food tmp(placementPosition, Food::FoodType::FAKE);
+				FoodList.push_back(tmp);
+
+				placementPosition.SetX(placementPosition.GetX() + foodOffset);
+			}
+
+			placementPosition.SetX(placementPosition.GetX() - (FakeClusterWidthX * foodOffset));
+			placementPosition.SetY(placementPosition.GetY() + foodOffset);
+		}
+	}
+}
 
 void CPFA_loop_functions::PowerLawFoodDistribution() {
  	FoodList.clear();
-    // FoodColoringList.clear();
 	argos::Real foodOffset     = 3.0 * FoodRadius;
 	size_t      foodPlaced     = 0;
 	size_t      powerLawLength = 1;
@@ -449,7 +534,7 @@ void CPFA_loop_functions::PowerLawFoodDistribution() {
     //plus a multiple of power4 increases the food count passed required count
     //this is how powerlaw works to divide up food into groups
     //the number of groups is the powerrank
-    while (FoodCount < FoodItemCount){
+    while (FoodCount < NumRealFood){
         priorPowerRank++;
         power4 = pow (4.0, priorPowerRank);
         FoodCount = power4 + priorPowerRank * power4;
@@ -460,15 +545,15 @@ void CPFA_loop_functions::PowerLawFoodDistribution() {
     
     //Wayne: Equalizes out the amount of food in each group, with the 1 cluster group taking the
     //largest loss if not equal, when the powerrank is not a perfect fit with the amount of food.
-    diffFoodCount = FoodCount - FoodItemCount;
+    diffFoodCount = FoodCount - NumRealFood;
     modDiff = diffFoodCount % PowerRank;
     
-    if (FoodItemCount % PowerRank == 0){
-        singleClusterCount = FoodItemCount / PowerRank;
+    if (NumRealFood % PowerRank == 0){
+        singleClusterCount = NumRealFood / PowerRank;
         otherClusterCount = singleClusterCount;
     }
     else {
-        otherClusterCount = FoodItemCount / PowerRank + 1;
+        otherClusterCount = NumRealFood / PowerRank + 1;
         singleClusterCount = otherClusterCount - modDiff;
     }
     //-----Wayne: End of PowerRank and food per PowerRank group
@@ -520,9 +605,107 @@ void CPFA_loop_functions::PowerLawFoodDistribution() {
             if (foodPlaced == singleClusterCount + h * otherClusterCount) break;
 			}
 		}
-	FoodItemCount = foodPlaced;
+	NumRealFood = foodPlaced;
 }
- 
+
+void CPFA_loop_functions::PowerLawFakeFoodDistribution() {
+	argos::Real foodOffset     = 3.0 * FoodRadius;
+	size_t      fakefoodPlaced     = 0;
+	size_t      powerLawLength = 1;
+	size_t      maxTrials      = 200;
+	size_t      trialCount     = 0;
+
+	std::vector<size_t> powerLawFakeClusters;
+	std::vector<size_t> fakeClusterSides;
+	argos::CVector2     placementPosition;
+
+    //-----Wayne: Dertermine PowerRank and food per PowerRank group
+    size_t priorPowerRank = 0;
+    size_t power4 = 0;
+    size_t FakeFoodCount = 0;
+    size_t diffFakeFoodCount = 0;
+    size_t singleFakeClusterCount = 0;
+    size_t otherFakeClusterCount = 0;
+    size_t modDiff = 0;
+    
+    //Wayne: priorPowerRank is determined by what power of 4
+    //plus a multiple of power4 increases the food count passed required count
+    //this is how powerlaw works to divide up food into groups
+    //the number of groups is the powerrank
+    while (FakeFoodCount < NumFakeFood){
+        priorPowerRank++;
+        power4 = pow (4.0, priorPowerRank);
+        FakeFoodCount = power4 + priorPowerRank * power4;
+    }
+    
+    //Wayne: Actual powerRank is prior + 1
+    FakePowerRank = priorPowerRank + 1;
+    
+    //Wayne: Equalizes out the amount of food in each group, with the 1 cluster group taking the
+    //largest loss if not equal, when the powerrank is not a perfect fit with the amount of food.
+    diffFakeFoodCount = FakeFoodCount - NumRealFood;
+    modDiff = diffFakeFoodCount % FakePowerRank;
+    
+    if (NumRealFood % FakePowerRank == 0){
+        singleFakeClusterCount = NumRealFood / FakePowerRank;
+        otherFakeClusterCount = singleFakeClusterCount;
+    }
+    else {
+        otherFakeClusterCount = NumRealFood / FakePowerRank + 1;
+        singleFakeClusterCount = otherFakeClusterCount - modDiff;
+    }
+    //-----Wayne: End of PowerRank and food per PowerRank group
+    
+	for(size_t i = 0; i < FakePowerRank; i++) {
+		powerLawFakeClusters.push_back(powerLawLength * powerLawLength);
+		powerLawLength *= 2;
+	}
+
+	for(size_t i = 0; i < FakePowerRank; i++) {
+		powerLawLength /= 2;
+		fakeClusterSides.push_back(powerLawLength);
+	}
+    /*Wayne: Modified to break from loops if food count reached.
+     Provides support for unequal clusters and odd food numbers.
+     Necessary for DustUp and Jumble Distribution changes. */
+    
+	for(size_t h = 0; h < powerLawFakeClusters.size(); h++) {
+		for(size_t i = 0; i < powerLawFakeClusters[h]; i++) {
+			placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+
+			while(IsOutOfBounds(placementPosition, fakeClusterSides[h], fakeClusterSides[h])) {
+				trialCount++;
+				placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+
+				if(trialCount > maxTrials) {
+					argos::LOGERR << "PowerLawDistribution(): Max trials exceeded!\n";
+					break;
+				}
+			}
+
+            trialCount = 0;
+			for(size_t j = 0; j < fakeClusterSides[h]; j++) {
+				for(size_t k = 0; k < fakeClusterSides[h]; k++) {
+					fakefoodPlaced++;
+					// FoodList.push_back(placementPosition);
+					// FoodColoringList.push_back(argos::CColor::BLACK);
+
+					Food tmp(placementPosition, Food::FoodType::FAKE);
+					FoodList.push_back(tmp);							
+					placementPosition.SetX(placementPosition.GetX() + foodOffset);
+                    if (fakefoodPlaced == singleFakeClusterCount + h * otherFakeClusterCount) break;
+				}
+
+				placementPosition.SetX(placementPosition.GetX() - (fakeClusterSides[h] * foodOffset));
+				placementPosition.SetY(placementPosition.GetY() + foodOffset);
+                if (fakefoodPlaced == singleFakeClusterCount + h * otherFakeClusterCount) break;
+			}
+            if (fakefoodPlaced == singleFakeClusterCount + h * otherFakeClusterCount) break;
+			}
+		}
+	NumRealFood = fakefoodPlaced;
+}
+
 bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t width) {
 	argos::CVector2 placementPosition = p;
 
@@ -622,7 +805,7 @@ void CPFA_loop_functions::SetTrial(unsigned int v) {
 void CPFA_loop_functions::setScore(double s) {
 	score = s;
     
-	if (score >= NumDistributedFood) {
+	if (score >= NumDistributedRealFood) {
 		PostExperiment();
 	}
 }
@@ -631,8 +814,10 @@ double CPFA_loop_functions::Score() {
 	return score;
 }
 
+// modified ** Ryan Luna 11/12/22
 void CPFA_loop_functions::increaseNumDistributedFoodByOne(){
-    NumDistributedFood++;
+    NumDistributedRealFood++;
+	TotalDistributedFood++;
 }
 
 void CPFA_loop_functions::ConfigureFromGenome(Real* g)
