@@ -8,6 +8,9 @@ CPFA_loop_functions::CPFA_loop_functions() :
         CollisionTime(0), 
         lastNumCollectedFood(0),
         currNumCollectedFood(0),
+	TotalFoodCollected(0),		// Ryan Luna 11/17/22
+	RealFoodCollected(0),		// Ryan Luna 11/17/22
+	FakeFoodCollected(0),		// Ryan Luna 11/17/22
 	ResourceDensityDelay(0),
 	RandomSeed(GetSimulator().GetRandomSeed()),
 	SimCounter(0),
@@ -203,8 +206,7 @@ void CPFA_loop_functions::PreStep() {
         last_time_in_minutes++;
     }
 
-
-	   UpdatePheromoneList();
+	UpdatePheromoneList();
 
 	//    if(GetSpace().GetSimulationClock() > ResourceDensityDelay) {
     //     for(size_t i = 0; i < FoodColoringList.size(); i++) {
@@ -330,7 +332,7 @@ void CPFA_loop_functions::PostExperiment() {
     
         //dataOutput <<data.CollisionTime/16.0<<", "<< time_in_minutes << ", " << data.RandomSeed << endl;
         //dataOutput << Score() << ", "<<(CollisionTime-16*Score())/(2*ticks_per_second)<< ", "<< curr_time_in_minutes <<", "<<RandomSeed<<endl;
-        dataOutput << Score() << ", "<<CollisionTime/(2*ticks_per_second)<< ", "<< curr_time_in_minutes <<", "<<RandomSeed<<endl;
+        dataOutput << Score() << ", "<<CollisionTime/(2*ticks_per_second)<< ", "<< curr_time_in_minutes << ", " << RandomSeed << endl;
         dataOutput.close();
     
         ofstream forageDataOutput((header+"ForageData.txt").c_str(), ios::app);
@@ -338,9 +340,22 @@ void CPFA_loop_functions::PostExperiment() {
         for(size_t i=1; i< ForageList.size(); i++) forageDataOutput<<", "<<ForageList[i];
         forageDataOutput<<"\n";
         forageDataOutput.close();
-        
-      }  
 
+		// Write to file ** Ryan Luna 11/17/22
+		ofstream DoSDataOutput((header+"DoSData.txt").c_str(), ios::app);
+		if (DoSDataOutput.tellp() == 0){
+
+			DoSDataOutput 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
+							<< "Real Food Collected, Real Food Collection Rate (per second), "
+							<< "Fake Food Collected, Fake Food Collection Rate (per second)" << endl;
+		}
+
+		TotalFoodCollected = RealFoodCollected + FakeFoodCollected;
+
+		DoSDataOutput 	<< getSimTimeInSeconds() << ',' << TotalFoodCollected << ',' << TotalFoodCollected/getSimTimeInSeconds() << ','
+						<< RealFoodCollected << ',' << RealFoodCollected/getSimTimeInSeconds() << ','
+						<< FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << endl;
+      }
 }
 
 

@@ -47,7 +47,7 @@
 
 	                  MaxSimCounter="1" MaxSimTimeInSeconds="1800" OutputData="0"
 
-	                  NestElevation="0.001" NestPosition="0,0" NestRadius="0.5" 
+	                  NestElevation="0.001" NestPosition="0,0" NestRadius="0.25" 
 
 	                  VariableFoodPlacement="0" FoodRadius="0.05"
 
@@ -55,7 +55,7 @@
                     NumberOfClusters="4" ClusterWidthX="8" ClusterWidthY="8"  
 
                     UseFakeFoodDoS="true"
-                    FakeFoodDistribution="2" NumFakeFood="48" PowerlawFakeFoodUnitCount="48" 
+                    FakeFoodDistribution="1" NumFakeFood="16" PowerlawFakeFoodUnitCount="48" 
                     NumFakeClusters="2" FakeClusterWidthX="8" FakeClusterWidthY="8" />
 
   </loop_functions>
@@ -147,9 +147,9 @@
   <!-- ****************** -->
 
 
-<visualization>
+  <visualization>
 
-<qt-opengl>
+    <qt-opengl>
       <camera>
         <placement index="1" position="0,0,13" look_at="0,0,0" up="1,0,0" lens_focal_length="35"/>
       </camera>

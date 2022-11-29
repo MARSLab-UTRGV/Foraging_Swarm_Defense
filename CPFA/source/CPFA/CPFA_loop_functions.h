@@ -141,6 +141,10 @@ class CPFA_loop_functions : public argos::CLoopFunctions
                 size_t lastNumCollectedFood;
                 size_t currNumCollectedFood;
                 size_t Num_robots;
+
+		size_t TotalFoodCollected;		// Ryan Luna 11/17/22
+		size_t RealFoodCollected;		// Ryan Luna 11/17/22
+		size_t FakeFoodCollected;		// Ryan Luna 11/17/22
       
                 vector<size_t>		ForageList;
 		argos::CVector2 NestPosition;

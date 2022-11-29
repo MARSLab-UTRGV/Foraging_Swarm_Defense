@@ -474,12 +474,14 @@ void CPFA_controller::Returning() {
 
 			// only count it if the food is real ** Ryan Luna 11/12/22
 			if (!isHoldingFakeFood){
-				argos::LOG << "Real Food Aquired" << endl;
+				//argos::LOG << "Real Food Aquired" << endl;
 				num_targets_collected++;
 				LoopFunctions->currNumCollectedFood++;
+				LoopFunctions->RealFoodCollected++;
 				LoopFunctions->setScore(num_targets_collected);
 			} else {
-				argos::LOG << "Fake Food Aquired" << endl;
+				//argos::LOG << "Fake Food Aquired" << endl;
+				LoopFunctions->FakeFoodCollected++;
 			}
           //LoopFunctions->CollectedFoodList.push_back(placementPosition); // not needed i think ** Ryan Luna 11/11/22
 
