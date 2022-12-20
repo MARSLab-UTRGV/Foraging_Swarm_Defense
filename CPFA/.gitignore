@@ -1,7 +1,7 @@
 *~
 \#*#
-build
-results
+build/
+results/*
 launch
 **/CMakeLists.txt.user*
 *.swp
