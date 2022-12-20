@@ -11,6 +11,8 @@ add_library(Pheromone      SHARED Pheromone.h
 
 add_library(Nest      SHARED Nest.h
                                   Nest.cpp)
+
+add_library(Food SHARED Food.h Food.cpp)
                                   
 ###############################################
 # link shared object files to dependencies
@@ -19,9 +21,11 @@ add_library(Nest      SHARED Nest.h
 target_link_libraries(BaseController
                       argos3core_simulator
                       argos3plugin_simulator_footbot
-                      argos3plugin_simulator_genericrobot)
+                      argos3plugin_simulator_genericrobot
+                      argos3plugin_simulator_entities)
 target_link_libraries(Nest)
 target_link_libraries(Pheromone)
+target_link_libraries(Food)
 
 ###############################################
 # some notes...

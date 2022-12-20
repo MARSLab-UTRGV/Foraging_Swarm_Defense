@@ -5,6 +5,7 @@ CPFA_controller::CPFA_controller() :
 	RNG(argos::CRandom::CreateRNG("argos")),
 	isInformed(false),
 	isHoldingFood(false),
+	isHoldingFakeFood(false),	// Ryan Luna 11/12/22
 	isUsingSiteFidelity(false),
 	isGivingUpSearch(false),
 	ResourceDensity(0),
@@ -29,17 +30,17 @@ void CPFA_controller::Init(argos::TConfigurationNode &node) {
 	proximitySensor = GetSensor<argos::CCI_FootBotProximitySensor>("footbot_proximity");
 	argos::TConfigurationNode settings = argos::GetNode(node, "settings");
 
-	argos::GetNodeAttribute(settings, "FoodDistanceTolerance",   FoodDistanceTolerance);
-	argos::GetNodeAttribute(settings, "TargetDistanceTolerance", TargetDistanceTolerance);
-	argos::GetNodeAttribute(settings, "NestDistanceTolerance", NestDistanceTolerance);
-	argos::GetNodeAttribute(settings, "NestAngleTolerance",    NestAngleTolerance);
-	argos::GetNodeAttribute(settings, "TargetAngleTolerance",    TargetAngleTolerance);
-	argos::GetNodeAttribute(settings, "SearchStepSize",          SearchStepSize);
-	argos::GetNodeAttribute(settings, "RobotForwardSpeed",       RobotForwardSpeed);
-	argos::GetNodeAttribute(settings, "RobotRotationSpeed",      RobotRotationSpeed);
-	argos::GetNodeAttribute(settings, "ResultsDirectoryPath",      results_path);
+	argos::GetNodeAttribute(settings, "FoodDistanceTolerance",   	FoodDistanceTolerance);
+	argos::GetNodeAttribute(settings, "TargetDistanceTolerance", 	TargetDistanceTolerance);
+	argos::GetNodeAttribute(settings, "NestDistanceTolerance", 		NestDistanceTolerance);
+	argos::GetNodeAttribute(settings, "NestAngleTolerance",    		NestAngleTolerance);
+	argos::GetNodeAttribute(settings, "TargetAngleTolerance",    	TargetAngleTolerance);
+	argos::GetNodeAttribute(settings, "SearchStepSize",          	SearchStepSize);
+	argos::GetNodeAttribute(settings, "RobotForwardSpeed",       	RobotForwardSpeed);
+	argos::GetNodeAttribute(settings, "RobotRotationSpeed",      	RobotRotationSpeed);
+	argos::GetNodeAttribute(settings, "ResultsDirectoryPath",      	results_path);
 	argos::GetNodeAttribute(settings, "DestinationNoiseStdev",      DestinationNoiseStdev);
-	argos::GetNodeAttribute(settings, "PositionNoiseStdev",      PositionNoiseStdev);
+	argos::GetNodeAttribute(settings, "PositionNoiseStdev",      	PositionNoiseStdev);
 
 	argos::CVector2 p(GetPosition());
 	SetStartPosition(argos::CVector3(p.GetX(), p.GetY(), 0.0));
@@ -55,43 +56,6 @@ void CPFA_controller::Init(argos::TConfigurationNode &node) {
 }
 
 void CPFA_controller::ControlStep() {
-	/*
-	ofstream log_output_stream;
-	log_output_stream.open("cpfa_log.txt", ios::app);
-
-	// depart from nest after food drop off or simulation start
-	if (isHoldingFood) log_output_stream << "(Carrying) ";
-	
-	switch(CPFA_state)  {
-		case DEPARTING:
-			if (isUsingSiteFidelity) {
-				log_output_stream << "DEPARTING (Fidelity): "
-					<< GetTarget().GetX() << ", " << GetTarget().GetY()
-					<< endl;
-			} else if (isInformed) {
-				log_output_stream << "DEPARTING (Waypoint): "
-				<< GetTarget().GetX() << ", " << GetTarget().GetY() << endl;
-			} else {
-				log_output_stream << "DEPARTING (Searching): "
-				<< GetTarget().GetX() << ", " << GetTarget().GetY() << endl;
-			}
-			break;
-		// after departing(), once conditions are met, begin searching()
-		case SEARCHING:
-			if (isInformed) log_output_stream << "SEARCHING: Informed" << endl;     
-			else log_output_stream << "SEARCHING: UnInformed" << endl;
-			break;
-		// return to nest after food pick up or giving up searching()
-		case RETURNING:
-			log_output_stream << "RETURNING" << endl;
-			break;
-		case SURVEYING:
-			log_output_stream << "SURVEYING" << endl;
-			break;
-		default:
-			log_output_stream << "Unknown state" << endl;
-	}
-	*/
 
 	// Add line so we can draw the trail
 
@@ -138,6 +102,11 @@ void CPFA_controller::Reset() {
 
 bool CPFA_controller::IsHoldingFood() {
 		return isHoldingFood;
+}
+
+// Ryan Luna 11/12/22
+bool CPFA_controller::IsHoldingFakeFood(){
+	return isHoldingFakeFood;
 }
 
 bool CPFA_controller::IsUsingSiteFidelity() {
@@ -497,18 +466,27 @@ void CPFA_controller::Returning() {
 	    argos::Real r2 = RNG->Uniform(argos::CRange<argos::Real>(0.0, 1.0));
 	    if (isHoldingFood) { 
           //drop off the food and display in the nest 
-          argos::CVector2 placementPosition;
-          placementPosition.Set(LoopFunctions->NestPosition.GetX()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5), LoopFunctions->NestPosition.GetY()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5));
+			argos::CVector2 placementPosition;
+			placementPosition.Set(LoopFunctions->NestPosition.GetX()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5), LoopFunctions->NestPosition.GetY()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5));
           
-          while((placementPosition-LoopFunctions->NestPosition).SquareLength()>pow(LoopFunctions->NestRadius/2.0-LoopFunctions->FoodRadius, 2))
-              placementPosition.Set(LoopFunctions->NestPosition.GetX()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5), LoopFunctions->NestPosition.GetY()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5));
-     
+          	while((placementPosition-LoopFunctions->NestPosition).SquareLength()>pow(LoopFunctions->NestRadius/2.0-LoopFunctions->FoodRadius, 2))
+              	placementPosition.Set(LoopFunctions->NestPosition.GetX()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5), LoopFunctions->NestPosition.GetY()+RNG->Gaussian(LoopFunctions->NestRadius/1.2, 0.5));
+
+			// only count it if the food is real ** Ryan Luna 11/12/22
+			if (!isHoldingFakeFood){
+				//argos::LOG << "Real Food Aquired" << endl;
+				num_targets_collected++;
+				LoopFunctions->currNumCollectedFood++;
+				LoopFunctions->RealFoodCollected++;
+				LoopFunctions->setScore(num_targets_collected);
+			} else {
+				//argos::LOG << "Fake Food Aquired" << endl;
+				LoopFunctions->FakeFoodCollected++;
+			}
           //LoopFunctions->CollectedFoodList.push_back(placementPosition); // not needed i think ** Ryan Luna 11/11/22
 
           //Update the location of the nest qilu 09/10
-          num_targets_collected++;
-		  LoopFunctions->currNumCollectedFood++;
-          LoopFunctions->setScore(num_targets_collected);
+
           if(poissonCDF_pLayRate > r1 && updateFidelity) {
 	            TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
                 argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
@@ -548,7 +526,8 @@ void CPFA_controller::Returning() {
 
 	isGivingUpSearch = false;
 	CPFA_state = DEPARTING;   
-        isHoldingFood = false; 
+        isHoldingFood = false;
+		isHoldingFakeFood = false;	// Ryan Luna 11/12/22 
         travelingTime+=SimulationTick()-startTime;//qilu 10/22
         startTime = SimulationTick();//qilu 10/22
                 
@@ -622,8 +601,12 @@ void CPFA_controller::SetHoldingFood() {
       //if(CPFA_state != RETURNING){
 		         for(i = 0; i < LoopFunctions->FoodList.size(); i++) {
 			            if((GetPosition() - LoopFunctions->FoodList[i].GetLocation()).SquareLength() < FoodDistanceTolerance ) {
-		          		// We found food! Calculate the nearby food density.
+		          			// We found food!
 	        	            isHoldingFood = true;
+							// Check if the food is fake
+							if (LoopFunctions->FoodList[i].GetType() == Food::FAKE){	// Ryan Luna 11/12/22
+								isHoldingFakeFood = true;
+							}
 		                    CPFA_state = SURVEYING;
 	        	            j = i + 1;
 							searchingTime+=SimulationTick()-startTime;

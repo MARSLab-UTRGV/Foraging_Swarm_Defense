@@ -7,7 +7,7 @@ Food::Food(CVector2 location, FoodType type):
     Type(type)
 {
     if(type == FAKE){
-        Color = CColor::PURPLE;
+        Color = CColor::MAGENTA;
     } else {
         Color = CColor::BLACK;
     }

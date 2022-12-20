@@ -72,7 +72,9 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		void setScore(double s);
 
 		argos::CRandom::CRNG* RNG;
-                size_t NumDistributedFood;
+        size_t NumDistributedRealFood;		// modified name ** Ryan Luna 11/12/22
+		size_t NumDistributedFakeFood;		// Ryan Luna 11/12/22
+		size_t TotalDistributedFood;		// Ryan Luna 11/12/22
 		size_t MaxSimTime;
 		size_t ResourceDensityDelay;
 		size_t RandomSeed;
@@ -85,16 +87,27 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t DrawTrails;
 		size_t DrawTargetRays;
 		size_t FoodDistribution;
-		size_t FoodItemCount;
+		size_t FakeFoodDistribution;	// Ryan Luna 11/13/22
+		size_t NumRealFood;			// modified name ** Ryan Luna 11/12/22
+		size_t NumFakeFood;			// Ryan Luna 11/12/22
 		size_t PowerlawFoodUnitCount;
+		size_t PowerlawFakeFoodUnitCount;	// Ryan Luna 11/12/22
 		size_t NumberOfClusters;
 		size_t ClusterWidthX;
 		size_t ClusterWidthY;
+		size_t NumFakeClusters;			// Ryan Luna 11/12/22
+		size_t FakeClusterWidthX;		// Ryan Luna 11/12/22
+		size_t FakeClusterWidthY;		// Ryan Luna 11/12/22
 		size_t PowerRank;
-                size_t ArenaWidth;
-                size_t SimTime; 
-                Real curr_time_in_minutes; 
-                Real last_time_in_minutes; 
+		size_t ArenaWidth;
+		size_t SimTime; 
+		Real curr_time_in_minutes; 
+		Real last_time_in_minutes; 
+
+		bool UseFakeFoodDoS;	// Ryan Luna 11/13/22
+
+		/* Result Collection */
+		string FilenameHeader;	// Ryan Luna 12/09/22
   
 		/* CPFA variables */
 		argos::Real ProbabilityOfSwitchingToSearching;
@@ -114,9 +127,6 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		argos::Real SearchRadiusSquared;
 
 		/* list variables for food & pheromones */
-
-		// std::vector<argos::CVector2> FoodList;				//
-		// std::vector<argos::CColor>   FoodColoringList;		//
 		std::vector<Food>				FoodList;				// Ryan Luna 11/10/22
 		vector<Food> 					CollectedFoodList;		// Ryan Luna 11/10/22
         map<string, argos::CVector2> 	FidelityList; 
@@ -131,6 +141,10 @@ class CPFA_loop_functions : public argos::CLoopFunctions
                 size_t lastNumCollectedFood;
                 size_t currNumCollectedFood;
                 size_t Num_robots;
+
+		size_t TotalFoodCollected;		// Ryan Luna 11/17/22
+		size_t RealFoodCollected;		// Ryan Luna 11/17/22
+		size_t FakeFoodCollected;		// Ryan Luna 11/17/22
       
                 vector<size_t>		ForageList;
 		argos::CVector2 NestPosition;
@@ -140,7 +154,10 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		void RandomFoodDistribution();
 		void ClusterFoodDistribution();
 		void PowerLawFoodDistribution();
-                bool IsOutOfBounds(argos::CVector2 p, size_t length, size_t width);
+		void RandomFakeFoodDistribution();		// Ryan Luna 11/13/22
+		void ClusterFakeFoodDistribution();		// Ryan Luna 11/13/22	
+		void PowerLawFakeFoodDistribution();	// Ryan Luna 11/13/22
+        bool IsOutOfBounds(argos::CVector2 p, size_t length, size_t width);
 		bool IsCollidingWithNest(argos::CVector2 p);
 		bool IsCollidingWithFood(argos::CVector2 p);
 		double score;
