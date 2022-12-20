@@ -30,12 +30,13 @@ BaseController::BaseController() :
 {
 	// calculate the forage range and compensate for the robot's radius of 0.085m
 	argos::CVector3 ArenaSize = LF.GetSpace().GetArenaSize();
-	argos::Real rangeX = (ArenaSize.GetX() / 2.0) - 0.085;
-	argos::Real rangeY = (ArenaSize.GetY() / 2.0) - 0.085;
+	argos::Real rangeX = (ArenaSize.GetX() / 2.0) - 0.085 - 0.1; //ryan luna 12/08/22 ** add -0.1 to avoid robots getting too close to wall
+	argos::Real rangeY = (ArenaSize.GetY() / 2.0) - 0.085 - 0.1;
 	ForageRangeX.Set(-rangeX, rangeX);
 	ForageRangeY.Set(-rangeY, rangeY);
-	//GoStraightAngleRangeInDegrees.Set(-37.5, 37.5);//does not work when collides with walls
 	GoStraightAngleRangeInDegrees.Set(-80, 80);
+
+	//GoStraightAngleRangeInDegrees.Set(-37.5, 37.5);	//does not work when collides with walls
 }
 
 argos::CRadians BaseController::GetHeading() {
@@ -84,30 +85,13 @@ void BaseController::SetTarget(argos::CVector2 t) {
 
 	argos::Real x(t.GetX()), y(t.GetY());
 
-	//if(x > ForageRangeX.GetMax()) x = ForageRangeX.GetMax();
-	//else if(x < ForageRangeX.GetMin()) x = ForageRangeX.GetMin();
-	
-	//if(y > ForageRangeY.GetMax()) y = ForageRangeY.GetMax();
-	//else if(y < ForageRangeY.GetMin()) y = ForageRangeY.GetMin();
-	
-	//argos::LOG << "<<Updating Target Position>>" << std::endl;
-
-	//argos::LOG << "x: "<< x << std::endl;
-	//argos::LOG << "y:" << y << std::endl;
-
 	if (!heading_to_nest) {
 		argos::Real distanceToTarget = (TargetPosition - GetPosition()).Length();
 		argos::Real noise_x = RNG->Gaussian(DestinationNoiseStdev*distanceToTarget);
 		argos::Real noise_y = RNG->Gaussian(DestinationNoiseStdev*distanceToTarget);
 		x += noise_x;
 		y += noise_y;
-
-		//argos::LOG << "Not Heading to Nest " << std::endl;
-		//argos::LOG << "Noise x: "<< noise_x << std::endl;
-		//argos::LOG << "Noise y:" << noise_y << std::endl;
-	} else {
-		//argos::LOG << "Heading to Nest " << std::endl;
-	}
+	} 
 
 	if(y > ForageRangeY.GetMax() || y < ForageRangeY.GetMin() ||
 			x > ForageRangeX.GetMax() || x < ForageRangeX.GetMin()) {
@@ -116,14 +100,9 @@ void BaseController::SetTarget(argos::CVector2 t) {
 		SetRightTurn(37.5);
 	}
 
-	//argos::LOG << "New Target x: "<< x << std::endl;
-	//argos::LOG << "New Target y:" << y << std::endl;
-
 	TargetPosition = argos::CVector2(x, y);
 	argos::Real distanceToTarget = (TargetPosition - GetPosition()).Length();
 	
-	//argos::LOG << "Distance: " << distanceToTarget << std::endl;
-	//argos::LOG << "<<New Target Set>>" << std::endl;
 }
 
 void BaseController::SetStartPosition(argos::CVector3 sp) {
@@ -163,24 +142,12 @@ void BaseController::SetNextMovement() {
 		argos::CRadians headingToTarget = (TargetPosition - GetPosition()).Angle();
 		argos::CRadians headingToTargetError = (GetHeading() - headingToTarget).SignedNormalize();
 
-		//argos::LOG << "Heading to target error: " << headingToTarget <<", Tol:" << AngleTol <<", Angle Tol:" << TargetAngleTolerance << "\n";
-
-		//cout << "headingToTarget: " << headingToTarget << endl;
-		//cout << "headingToTargetError: " << headingToTargetError << endl;
-
-		//cout << "TargetAngleTolerance: " << TargetAngleTolerance << endl;
-		//cout << "TargetDistanceTolerance: " << TargetDistanceTolerance << endl;
-
-
 		if(!IsAtTarget()) {
 			if(headingToTargetError > AngleTol) {
-				//cout << "Turn Left " << endl;
 				PushMovement(LEFT, -ToDegrees(headingToTargetError).GetValue());
 			} else if(headingToTargetError < -AngleTol) {
-				//cout << "Turn Right " << endl;
 				PushMovement(RIGHT, ToDegrees(headingToTargetError).GetValue());
 			} else {
-				//cout << "Move Forward " << endl;
 				PushMovement(FORWARD, distanceToTarget);
 			}
 		} else {
@@ -192,7 +159,6 @@ void BaseController::SetNextMovement() {
 }
 
 void BaseController::SetTargetAngleDistance(argos::Real newAngleToTurnInDegrees) {
-	// s = arc_length = robot_radius * turning_angle
 	// NOTE: the footbot robot has a radius of 0.085 m... or 8.5 cm...
 	// adjusting with + 0.02 m, or + 2 cm, increases accuracy...
 	
@@ -325,7 +291,7 @@ bool BaseController::CollisionDetection() {
 			//argos::LOG << collisionAngle << std::endl << collisionVector << std::endl << std::endl;
 			SetRightTurn(collisionAngle); //qilu 09/24/2016
 		}
-		Real randomNumber = RNG->Uniform(CRange<Real>(0.0, 1.0)); // Ryan Luna 11/29/22 ** previously (0.5, 1.0)
+		Real randomNumber = RNG->Uniform(CRange<Real>(0.5, 1.0)); // Ryan Luna 11/29/22 ** previously (0.5, 1.0)
         collisionDelay = SimulationTick() + (size_t)(randomNumber*SimulationTicksPerSecond());//qilu 10/26/2016
 	}
 

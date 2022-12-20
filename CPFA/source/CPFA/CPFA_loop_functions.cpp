@@ -2,12 +2,11 @@
 
 CPFA_loop_functions::CPFA_loop_functions() :
 	RNG(argos::CRandom::CreateRNG("argos")),
-        SimTime(0),
-	//MaxSimTime(3600 * GetSimulator().GetPhysicsEngine("dyn2d").GetInverseSimulationClockTick()),
-    MaxSimTime(0),//qilu 02/05/2021
-        CollisionTime(0), 
-        lastNumCollectedFood(0),
-        currNumCollectedFood(0),
+	SimTime(0),
+    MaxSimTime(0),	//qilu 02/05/2021
+	CollisionTime(0), 
+	lastNumCollectedFood(0),
+	currNumCollectedFood(0),
 	TotalFoodCollected(0),		// Ryan Luna 11/17/22
 	RealFoodCollected(0),		// Ryan Luna 11/17/22
 	FakeFoodCollected(0),		// Ryan Luna 11/17/22
@@ -49,7 +48,8 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	TotalDistributedFood(0),	// name modified ** Ryan Luna 11/12/22
 	score(0),
 	PrintFinalScore(0),
-	UseFakeFoodDoS(false)		// Ryan Luna 11/13/22
+	UseFakeFoodDoS(false),		// Ryan Luna 11/13/22
+	FilenameHeader("\0")			// Ryan Luna 12/09/22
 {}
 
 void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {	
@@ -96,6 +96,7 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "NestElevation", 				NestElevation);
     argos::GetNodeAttribute(settings_node, "NestPosition", 					NestPosition);
 	argos::GetNodeAttribute(settings_node, "UseFakeFoodDoS",				UseFakeFoodDoS);				// Ryan Luna 11/13/22
+	argos::GetNodeAttribute(settings_node, "FilenameHeader",				FilenameHeader);				// Ryan Luna 12/06/22
     FoodRadiusSquared = FoodRadius*FoodRadius;
 
     //Number of distributed foods ** modified ** Ryan Luna 11/13/22
@@ -124,50 +125,47 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 
 	// calculate the forage range and compensate for the robot's radius of 0.085m
 	argos::CVector3 ArenaSize = GetSpace().GetArenaSize();
-	argos::Real rangeX = (ArenaSize.GetX() / 2.0) - 0.085;
-	argos::Real rangeY = (ArenaSize.GetY() / 2.0) - 0.085;
+	argos::Real rangeX = (ArenaSize.GetX() / 2.0) - 0.085 - 0.1; // ryan luna 12/08/22 ** take away 0.1 so robots avoid getting to close to the wall
+	argos::Real rangeY = (ArenaSize.GetY() / 2.0) - 0.085 - 0.1;
 	ForageRangeX.Set(-rangeX, rangeX);
 	ForageRangeY.Set(-rangeY, rangeY);
 
-        ArenaWidth = ArenaSize[0];
-        
-        if(abs(NestPosition.GetX()) < -1) //quad arena
-        {
-            NestRadius *= sqrt(1 + log(ArenaWidth)/log(2));
-        }
-        else
-        {
-            NestRadius *= sqrt(log(ArenaWidth)/log(2));
-        }
-        argos::LOG<<"NestRadius="<<NestRadius<<endl;
-	   // Send a pointer to this loop functions object to each controller.
-	   argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
-	   argos::CSpace::TMapPerType::iterator it;
+	ArenaWidth = ArenaSize[0];
+	
+	if(abs(NestPosition.GetX()) < -1){ //quad arena
+		NestRadius *= sqrt(1 + log(ArenaWidth)/log(2));
+	}else{
+		NestRadius *= sqrt(log(ArenaWidth)/log(2));
+	}
+	argos::LOG<<"NestRadius="<<NestRadius<<endl;
+
+	// Send a pointer to this loop functions object to each controller.
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+	argos::CSpace::TMapPerType::iterator it;
     
     Num_robots = footbots.size();
     argos::LOG<<"Number of robots="<<Num_robots<<endl;
-	   for(it = footbots.begin(); it != footbots.end(); it++) {
-   	   	argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
-		      BaseController& c = dynamic_cast<BaseController&>(footBot.GetControllableEntity().GetController());
-		      CPFA_controller& c2 = dynamic_cast<CPFA_controller&>(c);
-        c2.SetLoopFunctions(this);
-	    }
+
+	for(it = footbots.begin(); it != footbots.end(); it++) {
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		BaseController& c = dynamic_cast<BaseController&>(footBot.GetControllableEntity().GetController());
+		CPFA_controller& c2 = dynamic_cast<CPFA_controller&>(c);
+		c2.SetLoopFunctions(this);
+	}
      
-     
-   NestRadiusSquared = NestRadius*NestRadius;
+   	NestRadiusSquared = NestRadius*NestRadius;
 	
     SetFoodDistribution();
   
- ForageList.clear(); 
- last_time_in_minutes=0;
- 
+	ForageList.clear(); 
+	last_time_in_minutes=0;
 }
 
 
 void CPFA_loop_functions::Reset() {
-	   if(VariableFoodPlacement == 0) {
-		      RNG->Reset();
-	   }
+	if(VariableFoodPlacement == 0) {
+			RNG->Reset();
+	}
 
     GetSpace().Reset();
     GetSpace().GetFloorEntity().Reset();
@@ -176,11 +174,14 @@ void CPFA_loop_functions::Reset() {
     score = 0;
    
     FoodList.clear();
-    CollectedFoodList.clear();
-    //FoodColoringList.clear();		
+    CollectedFoodList.clear();	
 	PheromoneList.clear();
 	FidelityList.clear();
     TargetRayList.clear();
+
+	RealFoodCollected = 0;
+	FakeFoodCollected = 0;
+	TotalFoodCollected = 0;
     
     SetFoodDistribution();
     
@@ -192,7 +193,7 @@ void CPFA_loop_functions::Reset() {
         BaseController& c = dynamic_cast<BaseController&>(footBot.GetControllableEntity().GetController());
         CPFA_controller& c2 = dynamic_cast<CPFA_controller&>(c);
         MoveEntity(footBot.GetEmbodiedEntity(), c2.GetStartPosition(), argos::CQuaternion(), false);
-    c2.Reset();
+    	c2.Reset();
     }
 }
 
@@ -200,19 +201,12 @@ void CPFA_loop_functions::PreStep() {
     SimTime++;
     curr_time_in_minutes = getSimTimeInSeconds()/60.0;
     if(curr_time_in_minutes - last_time_in_minutes==1){
-		      
         ForageList.push_back(currNumCollectedFood - lastNumCollectedFood);
         lastNumCollectedFood = currNumCollectedFood;
         last_time_in_minutes++;
     }
 
 	UpdatePheromoneList();
-
-	//    if(GetSpace().GetSimulationClock() > ResourceDensityDelay) {
-    //     for(size_t i = 0; i < FoodColoringList.size(); i++) {
-    //         FoodColoringList[i] = argos::CColor::BLACK;
-    //     }
-	//    }
 
 	// Ryan Luna 11/10/22
 	if(GetSpace().GetSimulationClock() > ResourceDensityDelay) {
@@ -227,14 +221,14 @@ void CPFA_loop_functions::PreStep() {
 	}
  
     if(FoodList.size() == 0) {
-	FidelityList.clear();
-	PheromoneList.clear();
+		FidelityList.clear();
+		PheromoneList.clear();
         TargetRayList.clear();
     }
 }
 
 void CPFA_loop_functions::PostStep() {
-	// nothing... yet...
+	// do nothing
 }
 
 bool CPFA_loop_functions::IsExperimentFinished() {
@@ -243,19 +237,18 @@ bool CPFA_loop_functions::IsExperimentFinished() {
 	if(FoodList.size() == 0 || GetSpace().GetSimulationClock() >= MaxSimTime) {
 		isFinished = true;
 	}
+
     //set to collected 88% food and then stop
-    if(score >= NumDistributedRealFood){
-		isFinished = true;
-		}
-         
-         
-    
+    // if(score >= NumDistributedRealFood){
+	// 	isFinished = true;
+	// }
+
 	if(isFinished == true && MaxSimCounter > 1) {
 		size_t newSimCounter = SimCounter + 1;
 		size_t newMaxSimCounter = MaxSimCounter - 1;
         argos::LOG<< "time out..."<<endl; 
 		PostExperiment();
-		Reset();
+		// Reset();
 
 		SimCounter    = newSimCounter;
 		MaxSimCounter = newMaxSimCounter;
@@ -267,7 +260,7 @@ bool CPFA_loop_functions::IsExperimentFinished() {
 
 void CPFA_loop_functions::PostExperiment() {
 	  
-     printf("%f, %f, %lu\n", score, getSimTimeInSeconds(), RandomSeed);
+	printf("%f, %f, %lu\n", score, getSimTimeInSeconds(), RandomSeed);
        
                   
     if (PrintFinalScore == 1) {
@@ -288,21 +281,15 @@ void CPFA_loop_functions::PostExperiment() {
         ostringstream quardArena;
         if(abs(NestPosition.GetX())>=1){ //the central nest is not in the center, this is a quard arena
              quardArena << 1;
-         }
+        }
          else{
              quardArena << 0;
         }
         
-        string header = "./results/"+ type+"_CPFA_r"+num_robots.str()+"_tag"+num_tag.str()+"_"+arena_width.str()+"by"+arena_width.str()+"_quard_arena_" + quardArena.str() +"_";
-       
-        //unsigned int ticks_per_second = GetSimulator().GetPhysicsEngine("Default").GetInverseSimulationClockTick();
+		// Now using FilenameHeader defined through the XML ** Ryan Luna 12/09/22
+        // header = "./results/"+ type+"_CPFA_r"+num_robots.str()+"_tag"+num_tag.str()+"_"+arena_width.str()+"by"+arena_width.str()+"_quard_arena_" + quardArena.str() +"_";
+
         unsigned int ticks_per_second = GetSimulator().GetPhysicsEngine("dyn2d").GetInverseSimulationClockTick();//qilu 02/06/2021
-       
-        /* Real total_travel_time=0;
-        Real total_search_time=0;
-        ofstream travelSearchTimeDataOutput((header+"TravelSearchTimeData.txt").c_str(), ios::app);
-        */
-        
         
         argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
          
@@ -311,38 +298,25 @@ void CPFA_loop_functions::PostExperiment() {
             BaseController& c = dynamic_cast<BaseController&>(footBot.GetControllableEntity().GetController());
             CPFA_controller& c2 = dynamic_cast<CPFA_controller&>(c);
             CollisionTime += c2.GetCollisionTime();
-            
-            /*if(c2.GetStatus() == "SEARCHING"){
-                total_search_time += SimTime-c2.GetTravelingTime();
-                total_travel_time += c2.GetTravelingTime();
-	    }
-            else {
-		total_search_time += c2.GetSearchingTime();
-		total_travel_time += SimTime-c2.GetSearchingTime();
-            } */        
         }
-        //travelSearchTimeDataOutput<< total_travel_time/ticks_per_second<<", "<<total_search_time/ticks_per_second<<endl;
-        //travelSearchTimeDataOutput.close();   
              
-        ofstream dataOutput( (header+ "iAntTagData.txt").c_str(), ios::app);
+        ofstream dataOutput( (FilenameHeader+ "iAntTagData.txt").c_str(), ios::app);
         // output to file
         if(dataOutput.tellp() == 0) {
             dataOutput << "tags_collected, collisions_in_seconds, time_in_minutes, random_seed\n";//qilu 08/18
         }
     
-        //dataOutput <<data.CollisionTime/16.0<<", "<< time_in_minutes << ", " << data.RandomSeed << endl;
-        //dataOutput << Score() << ", "<<(CollisionTime-16*Score())/(2*ticks_per_second)<< ", "<< curr_time_in_minutes <<", "<<RandomSeed<<endl;
         dataOutput << Score() << ", "<<CollisionTime/(2*ticks_per_second)<< ", "<< curr_time_in_minutes << ", " << RandomSeed << endl;
         dataOutput.close();
     
-        ofstream forageDataOutput((header+"ForageData.txt").c_str(), ios::app);
+        ofstream forageDataOutput((FilenameHeader+"ForageData.txt").c_str(), ios::app);
         if(ForageList.size()!=0) forageDataOutput<<"Forage: "<< ForageList[0];
         for(size_t i=1; i< ForageList.size(); i++) forageDataOutput<<", "<<ForageList[i];
         forageDataOutput<<"\n";
         forageDataOutput.close();
 
 		// Write to file ** Ryan Luna 11/17/22
-		ofstream DoSDataOutput((header+"DoSData.txt").c_str(), ios::app);
+		ofstream DoSDataOutput((FilenameHeader+"DoSData.txt").c_str(), ios::app);
 		if (DoSDataOutput.tellp() == 0){
 
 			DoSDataOutput 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
@@ -371,18 +345,15 @@ void CPFA_loop_functions::UpdatePheromoneList() {
 
 	argos::Real t = GetSpace().GetSimulationClock() / GetSimulator().GetPhysicsEngine("dyn2d").GetInverseSimulationClockTick();
 
-	//ofstream log_output_stream;
-	//log_output_stream.open("time.txt", ios::app);
-	//log_output_stream << t << ", " << GetSpace().GetSimulationClock() << ", " << GetSimulator().GetPhysicsEngine("default").GetInverseSimulationClockTick() << endl;
-	//log_output_stream.close();
-	    for(size_t i = 0; i < PheromoneList.size(); i++) {
+	for(size_t i = 0; i < PheromoneList.size(); i++) {
 
 		PheromoneList[i].Update(t);
 		if(PheromoneList[i].IsActive()) {
 			new_p_list.push_back(PheromoneList[i]);
 		}
-      }
-     	PheromoneList = new_p_list;
+	}
+
+	PheromoneList = new_p_list;
 	new_p_list.clear();
 }
 
@@ -430,9 +401,6 @@ void CPFA_loop_functions::RandomFoodDistribution() {
 		while(IsOutOfBounds(placementPosition, 1, 1)) {
 			placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
 		}
-
-		// FoodList.push_back(placementPosition);
-		// FoodColoringList.push_back(argos::CColor::BLACK);
 
 		Food tmp(placementPosition, Food::FoodType::REAL);
 		FoodList.push_back(tmp);							// Ryan Luna 11/10/22

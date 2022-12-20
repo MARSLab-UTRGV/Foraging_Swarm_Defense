@@ -99,12 +99,15 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t FakeClusterWidthX;		// Ryan Luna 11/12/22
 		size_t FakeClusterWidthY;		// Ryan Luna 11/12/22
 		size_t PowerRank;
-                size_t ArenaWidth;
-                size_t SimTime; 
-                Real curr_time_in_minutes; 
-                Real last_time_in_minutes; 
+		size_t ArenaWidth;
+		size_t SimTime; 
+		Real curr_time_in_minutes; 
+		Real last_time_in_minutes; 
 
 		bool UseFakeFoodDoS;	// Ryan Luna 11/13/22
+
+		/* Result Collection */
+		string FilenameHeader;	// Ryan Luna 12/09/22
   
 		/* CPFA variables */
 		argos::Real ProbabilityOfSwitchingToSearching;
@@ -124,9 +127,6 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		argos::Real SearchRadiusSquared;
 
 		/* list variables for food & pheromones */
-
-		// std::vector<argos::CVector2> FoodList;				//
-		// std::vector<argos::CColor>   FoodColoringList;		//
 		std::vector<Food>				FoodList;				// Ryan Luna 11/10/22
 		vector<Food> 					CollectedFoodList;		// Ryan Luna 11/10/22
         map<string, argos::CVector2> 	FidelityList; 

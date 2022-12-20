@@ -9,37 +9,32 @@ H_C = 0.288699733
 
 class C_XML_CONFIG:
     
-    def __init__ (self):
+    def __init__ (self, iterations):
 
         self.PFS = "1"                           # Print Final Score
 
-        # self.PRN = "0.0147598869881"             # Probability Of Returning To Nest
-        # self.PSS = "0.723128706375"              # Probability Of Switching To Searching
-        # self.RISD = "0.205799848158"             # Rate Of Informed Search Decay
-        # self.RLP = "14.7027566005"               # Rate of Laying Pheromone
-        # self.RPD = "0.0245057227138"             # Rate Of Pheromone Decay
-        # self.RSF = "14.1514206414"               # Rate Of Site Fidelity
-        # self.USV = "2.81939731297"               # Uninformed Search Variation
 
-        # Cluster CPFA 10x10 from /experiments/15mins/Cluster_CPFA_10by10.xml
+        # Default distribution parameters are for Random Distribution
+        # Use setDistribution() to use the correct parameters for the
+        # desirred distribution mode.
 
-        self.PSS     = "0.3637176255"
-        self.PRN     = "0.00297618325581"
-        self.USV     = "2.67338576954"
-        self.RISD    = "0.253110502082"
-        self.RSF     = "1.42036207003"
-        self.RLP     = "8.98846470854"
-        self.RPD     = "0.063119269938"
+        self.PRN    = "0.0147598869881"             # Probability Of Returning To Nest
+        self.PSS    = "0.723128706375"              # Probability Of Switching To Searching
+        self.RISD   = "0.205799848158"              # Rate Of Informed Search Decay
+        self.RLP    = "14.7027566005"               # Rate of Laying Pheromone
+        self.RPD    = "0.0245057227138"             # Rate Of Pheromone Decay
+        self.RSF    = "14.1514206414"               # Rate Of Site Fidelity
+        self.USV    = "2.81939731297"               # Uninformed Search Variation
 
 
         ####### CONFIGURATION #######
 
         self.BOT_DEFAULT_DIST =  True                    # Use default distribution found in original CPFA tests
-                                                    # If this method is used, self.BOT_COUNT is ignored and 24 bots
-                                                    # will be used instead in grid distribution mode
+                                                        # If this method is used, self.BOT_COUNT is ignored and 24 bots
+                                                        # will be used instead in grid distribution mode
 
-        # NOT YET IMPLEMENTED
-        self.BOT_COUNT =         20                      # total bot count
+        # NOT YET IMPLEMENTED **********************************
+        self.BOT_COUNT =         24                      # total bot count
         self.BOT_DIST_RAD =      1.5                     # Bot distribution radius (uniform distribution in central area)
 
         self.ARENA_SIZE =        (10,10,1)               # (x,y,z)
@@ -72,20 +67,20 @@ class C_XML_CONFIG:
 
         # Fake Food Loop Function Settings **
         self.USE_FF_DOS =        "true"                  # Turn on/off fake_food DoS
-        self.FFD =               1                       # Fake Food Distribution Mode (0=Random, 1=Cluster, 2=PowerLaw)
-        self.NUM_FF =            256                      # Number of fake food to distribute for random distribution
-        self.NUM_FCL =           2                       # Number of fake food clusters for cluster distribution
+        self.FFD =               0                       # Fake Food Distribution Mode (0=Random, 1=Cluster, 2=PowerLaw) (default = Random)
+        self.NUM_FF =            64                      # Number of fake food to distribute for random distribution
+        self.NUM_FCL =           1                       # Number of fake food clusters for cluster distribution
         self.FCL_X =             8                       # Fake cluster width X for cluster distribution
         self.FCL_Y =             8                       # Fake cluster width Y for cluster distribution
-        self.NUM_PLAW_FF =       128                     # Number of fake food to distribute for power law distribution
+        self.NUM_PLAW_FF =       64                     # Number of fake food to distribute for power law distribution
 
         # Real Food Loop Function Settings
-        self.RFD =               1                       # Real Food Distribution Mode (0=Random, 1=Cluster, 2=PowerLaw)
-        self.NUM_RF =            256                      # Number of real food to distribute for random distribution
-        self.NUM_RCL =           4                       # Number of real food clusters for cluster distribution
+        self.RFD =               0                       # Real Food Distribution Mode (0=Random, 1=Cluster, 2=PowerLaw) (default = Random)
+        self.NUM_RF =            192                      # Number of real food to distribute for random distribution
+        self.NUM_RCL =           2                       # Number of real food clusters for cluster distribution
         self.RCL_X =             8                       # Real cluster width X for cluster distribution
         self.RCL_Y =             8                       # Real cluster width Y for cluster distribution
-        self.NUM_PLAW_RF =       256                     # Number of real food to distribute for power law distribution
+        self.NUM_PLAW_RF =       192                     # Number of real food to distribute for power law distribution
 
         # Other Loop Function Settings
         self.DRAW_ID =           1                       # Draw bot IDs
@@ -101,6 +96,47 @@ class C_XML_CONFIG:
         self.VFP =               0                       # Variable food placement
         self.FOOD_RAD =          0.05                    # Food radius
 
+        self.fname_header = "\0"                         # Filename Header
+        self.num_iterations = iterations                 # Number of Experiment Iterations
+
+    def setDistribution(self, distribution):
+        if distribution == 0:   # random
+            self.PRN    = "0.0147598869881"             # Probability Of Returning To Nest
+            self.PSS    = "0.723128706375"              # Probability Of Switching To Searching
+            self.RISD   = "0.205799848158"              # Rate Of Informed Search Decay
+            self.RLP    = "14.7027566005"               # Rate of Laying Pheromone
+            self.RPD    = "0.0245057227138"             # Rate Of Pheromone Decay
+            self.RSF    = "14.1514206414"               # Rate Of Site Fidelity
+            self.USV    = "2.81939731297"               # Uninformed Search Variation
+
+            self.RFD    = 0                             # Real Food Distribution Mode
+            self.FFD    = 0                             # Fake Food Distribution Mode
+
+        elif distribution == 1:  # cluster
+            self.PSS     = "0.3637176255"
+            self.PRN     = "0.00297618325581"
+            self.USV     = "2.67338576954"
+            self.RISD    = "0.253110502082"
+            self.RSF     = "1.42036207003"
+            self.RLP     = "8.98846470854"
+            self.RPD     = "0.063119269938"
+
+            self.RFD     = 1
+            self.FFD     = 1
+
+        elif distribution == 2:  # powerlaw
+            self.PSS     = "0.3637176255"
+            self.PRN     = "0.00297618325581"
+            self.USV     = "2.67338576954"
+            self.RISD    = "0.253110502082"
+            self.RSF     = "1.42036207003"
+            self.RLP     = "15.976929417"
+            self.PRD     = "0.063119269938"
+
+            self.RFD     = 2
+            self.FFD     = 2
+        else:
+            raise Exception("ERROR: A valid distribution mode was not given...")
 
     # generates arena size string for xml based on self.ARENA_SIZE
     def arenaSize(self):
@@ -135,9 +171,67 @@ class C_XML_CONFIG:
         elif limit.lower() == 'max':
             return str(self.ARENA_SIZE[0]/2)+','+str(self.ARENA_SIZE[1]/2)+',0'
         else:
-            raise Exception("ERROR: limit name unidentified for botUPosition()")
+            raise Exception("ERROR: limit name unidentified for botUPosition()\n")
+
+    def setFname(self):
+
+        dist = ''
+        num_real_food = 0
+        num_fake_food = 0
+        
+        if self.RFD == 0 and self.FFD == 0:
+            dist = 'R-rand_F-rand'
+            num_real_food = self.NUM_RF
+            num_fake_food = self.NUM_FF
+
+        elif self.RFD == 0 and self.FFD == 1:
+            dist = 'R-rand_F-cl'
+            num_real_food = self.NUM_RF
+            num_fake_food = self.FCL_X * self.FCL_Y * self.NUM_FCL
+        
+        elif self.RFD == 0 and self.FFD == 2:
+            dist = 'R-rand_F-pl'
+            num_real_food = self.NUM_RF
+            num_fake_food = self.NUM_PLAW_FF
+        
+        elif self.RFD == 1 and self.FFD == 0:
+            dist = 'R-cl_F-rand'
+            num_real_food = self.RCL_X * self.RCL_Y * self.NUM_RCL
+            num_fake_food = self.NUM_FF
+        
+        elif self.RFD == 1 and self.FFD == 1:
+            dist = 'R-cl_F-cl'
+            num_real_food = self.RCL_X * self.RCL_Y * self.NUM_RCL
+            num_fake_food = self.FCL_X * self.FCL_Y * self.NUM_FCL
+        
+        elif self.RFD == 1 and self.FFD == 2:
+            dist = 'R-cl_F-pl'
+            num_real_food = self.RCL_X * self.RCL_Y * self.NUM_RCL
+            num_fake_food = self.NUM_PLAW_FF
+       
+        elif self.RFD == 2 and self.FFD == 0:
+            dist = 'R-pl_F-rand'
+            num_real_food = self.NUM_PLAW_RF
+            num_fake_food = self.NUM_FF
+        
+        elif self.RFD == 2 and self.FFD == 1:
+            dist = 'R-pl_F-cl'
+            num_real_food = self.NUM_PLAW_RF
+            num_fake_food = self.FCL_X * self.FCL_Y * self.NUM_FCL
+        
+        elif self.RFD == 2 and self.FFD == 2:
+            dist = 'R-pl_F-pl'
+            num_real_food = self.NUM_PLAW_RF
+            num_fake_food = self.NUM_PLAW_FF
+
+        else:
+            raise Exception("ERROR: Invalid distribution method used.\n")
+
+        self.fname_header = f'./results/CPFA_{dist}_r{self.BOT_COUNT}_rfc{num_real_food}_ffc{num_fake_food}_{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}_iter{self.num_iterations}_'
 
     def createXML(self):
+
+        self.setFname()
 
         xml = minidom.Document()
 
@@ -275,6 +369,7 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('NumFakeClusters', str(self.NUM_FCL))
         lf_settings.setAttribute('FakeClusterWidthX', str(self.FCL_X))
         lf_settings.setAttribute('FakeClusterWidthY', str(self.FCL_Y))
+        lf_settings.setAttribute('FilenameHeader', str(self.fname_header))
         loops.appendChild(lf_settings)
         #       </settings>
         #   </loop_functions>
