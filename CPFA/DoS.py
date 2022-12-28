@@ -1,5 +1,5 @@
 import DoS_xml_config as config
-import os
+import os, time
 import matplotlib.pyplot as plt
 from datetime import datetime
 import numpy as np
@@ -15,7 +15,7 @@ FAKE_COLLECTION_RATE = []
 
 def Read(fname):
     count = 0
-    with open("test.txt") as f:
+    with open(fname) as f:
         for line in f.readlines():
             data = line.strip().split(',')
             if data[0] == 'Simulation Time (seconds)':
@@ -93,7 +93,7 @@ def Plot2(fname):
     RFC_plt = np.array_split(RFC.astype(float), 2)
     # RCR_plt = np.split(RCR.astype(float), 2)
 
-    # print(f'{RFC_plt}')
+    print(f'{RFC_plt}')
 
     x_tick_labels = ['DoS \nDisabled', 'DoS \nEnabled']
     
@@ -105,7 +105,7 @@ def Plot2(fname):
     #### temporary change to match CURRENT real food total 128 ####
 
     # plt.yticks(range(0,257,32),['0','32','64','96','128','160','192','224','256'])
-    plt.yticks(range(0,257,32),['0','16','32','48','64','80','96','112','128']) 
+    plt.yticks(range(0,129,16),['0','16','32','48','64','80','96','112','128']) 
 
 
     plt.xticks([1,2], x_tick_labels)
@@ -175,6 +175,108 @@ def MainExperiment():
 
     XML = config.C_XML_CONFIG(run_count)
     XML.VISUAL = False
+    XML.MAX_SIM_TIME = 1000
+
+    # Random Distribution Settings
+    XML.NUM_RF = 128
+    num_ff = [64,96,128,160,192]
+    XML.NUM_FF = 128
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 2
+    num_fcl = [(1,8,8),(2,8,8), (3,8,8)]
+    XML.NUM_FCL = 2
+    # Powerlaw Distribution Settings
+    XML.NUM_PLAW_RF = 128
+    num_plaw_ff = [64,96,128,160,192]
+    XML.NUM_PLAW_FF = 128
+
+    for i in reversed(range(3)): # start with powerlaw
+        # Go through all distribution methods
+        XML.setDistribution(i)
+        print(f'Main Experiment, {run_count} iterations without Fake Food, {run_count} with Fake Food.\n')
+        dmode = ""
+        if i == 0:
+            dmode = "Random"
+            # Random
+            for j in num_ff:
+            
+                XML.NUM_FF = j
+
+                # Without Fake Food
+                XML.USE_FF_DOS = "false"
+                XML.createXML()
+                for k in range(run_count):
+                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food: 0\n')
+                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+                # With Fake Food
+                XML.USE_FF_DOS = "true"
+                XML.createXML()
+                for k in range(run_count):
+                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food: {XML.NUM_FF}\n')
+                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+                # Plot results
+                Read(XML.fname_header+'DoSData.txt')
+                Plot2(XML.fname_header)
+        elif i == 1:
+            dmode = "Cluster"
+            # Cluster
+            for j in num_fcl:
+                XML.NUM_FCL = j[0]
+                XML.FCL_X = j[1]
+                XML.FCL_Y = j[2]
+
+                # Without Fake Food
+                XML.USE_FF_DOS = "false"
+                XML.createXML()
+                for k in range(run_count):
+                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}({XML.RCL_X}x{XML.RCL_Y}), Num Fake Food Clusters: 0\n')
+                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+                # With Fake Food
+                XML.USE_FF_DOS = "true"
+                XML.createXML()
+                for k in range(run_count):
+                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}({XML.RCL_X}x{XML.RCL_Y}), Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
+                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+                # Plot results
+                Read(XML.fname_header+'DoSData.txt')
+                Plot2(XML.fname_header)
+
+        elif i == 2:
+            dmode = "PowerLaw"
+            # PowerLaw
+            for j in num_plaw_ff:
+                XML.NUM_PLAW_FF = j
+
+                # Without Fake Food
+                XML.USE_FF_DOS = "false"
+                XML.createXML()
+                for k in range(run_count):
+                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food: 0\n')
+                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+                # With Fake Food
+                XML.USE_FF_DOS = "true"
+                XML.createXML()
+                for k in range(run_count):
+                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_PLAW_RF}, Num Fake Food: {XML.NUM_PLAW_FF}\n')
+                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+                # Plot results
+                Read(XML.fname_header+'DoSData.txt')
+                Plot2(XML.fname_header)
+        else:
+            raise Exception("In 'MainExperiment()': Invalid distribution mode...\n\n")
+
+
+def rePlot():
+    run_count = 50
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
     XML.MAX_SIM_TIME = 1500
 
     # Random Distribution Settings
@@ -186,33 +288,6 @@ def MainExperiment():
     # Powerlaw Distribution Settings
     XML.NUM_PLAW_RF = 128
     XML.NUM_PLAW_FF = 128
-
-    for i in reversed(range(3)): # start with powerlaw
-        # Go through all distribution methods
-        XML.setDistribution(i)
-
-        # Without Fake Food
-        XML.USE_FF_DOS = "false"
-        XML.createXML()
-        for j in range(run_count):
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # With Fake Food
-        XML.USE_FF_DOS = "true"
-        XML.createXML()
-        for j in range(run_count):
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # Plot results
-        Read(XML.fname_header+'DoSData.txt')
-        Plot2(XML.fname_header)
-
-def rePlot():
-    run_count = 50
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 1500
 
     for i in reversed(range(3)): # start with powerlaw
         # Go through all distribution methods
@@ -282,9 +357,9 @@ if __name__ == "__main__":
 
     # rePlot()
 
-    testVisual()
+    # testVisual()
 
-    # MainExperiment()
+    MainExperiment()
 
 
 

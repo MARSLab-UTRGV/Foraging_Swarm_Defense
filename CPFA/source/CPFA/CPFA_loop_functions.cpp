@@ -236,6 +236,7 @@ bool CPFA_loop_functions::IsExperimentFinished() {
 
 	if(FoodList.size() == 0 || GetSpace().GetSimulationClock() >= MaxSimTime) {
 		isFinished = true;
+		// PostExperiment();
 	}
 
     //set to collected 88% food and then stop
@@ -243,17 +244,17 @@ bool CPFA_loop_functions::IsExperimentFinished() {
 	// 	isFinished = true;
 	// }
 
-	if(isFinished == true && MaxSimCounter > 1) {
-		size_t newSimCounter = SimCounter + 1;
-		size_t newMaxSimCounter = MaxSimCounter - 1;
-        argos::LOG<< "time out..."<<endl; 
-		PostExperiment();
-		// Reset();
+	// if(isFinished == true && MaxSimCounter > 1) {
+	// 	size_t newSimCounter = SimCounter + 1;
+	// 	size_t newMaxSimCounter = MaxSimCounter - 1;
+    //     argos::LOG<< "time out..."<<endl; 
+	// 	PostExperiment();
+	// 	// Reset();
 
-		SimCounter    = newSimCounter;
-		MaxSimCounter = newMaxSimCounter;
-		isFinished    = false;
-	}
+	// 	SimCounter    = newSimCounter;
+	// 	MaxSimCounter = newMaxSimCounter;
+	// 	isFinished    = false;
+	// }
 
 	return isFinished;
 }
@@ -795,9 +796,9 @@ void CPFA_loop_functions::SetTrial(unsigned int v) {
 void CPFA_loop_functions::setScore(double s) {
 	score = s;
     
-	if (score >= NumDistributedRealFood) {
-		PostExperiment();
-	}
+	// if (score >= NumDistributedRealFood) {
+	// 	PostExperiment();
+	// }
 }
 
 double CPFA_loop_functions::Score() {	
