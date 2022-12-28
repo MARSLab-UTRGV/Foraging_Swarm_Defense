@@ -227,7 +227,7 @@ class C_XML_CONFIG:
         else:
             raise Exception("ERROR: Invalid distribution method used.\n")
 
-        self.fname_header = f'./results/CPFA_{dist}_r{self.BOT_COUNT}_rfc{num_real_food}_ffc{num_fake_food}_{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}_iter{self.num_iterations}_'
+        self.fname_header = f'./results/CPFA_{dist}_r{self.BOT_COUNT}_rfc{num_real_food}_ffc{num_fake_food}_{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}_time{self.MAX_SIM_TIME}_iter{self.num_iterations}_'
 
     def createXML(self):
 
