@@ -7,6 +7,10 @@
 /* Definition of the LEDs actuator */
 #include <argos3/plugins/robots/generic/control_interface/ci_leds_actuator.h>
 
+// Ryan Luna 12/28/22
+#include <source/Base/QuarantineZone.h>
+#include <source/Base/Food.h>
+
 using namespace std;
 using namespace argos;
 
@@ -34,14 +38,27 @@ class CPFA_controller : public BaseController {
 
 		void SetLoopFunctions(CPFA_loop_functions* lf);
   
-  size_t     GetSearchingTime();//qilu 09/26/2016
-  size_t      GetTravelingTime();//qilu 09/26/2016
-  string      GetStatus();//qilu 09/26/2016
-  size_t      startTime;//qilu 09/26/2016
-        
+		size_t     GetSearchingTime();//qilu 09/26/2016
+		size_t      GetTravelingTime();//qilu 09/26/2016
+		string      GetStatus();//qilu 09/26/2016
+		size_t      startTime;//qilu 09/26/2016
+
+		/* quarantine zone functions */		// Ryan Luna 12/28/22
+		void ClearZoneList();
+		void ClearLocalFoodList();
+		void AddZone(QZone newZone);
+		void AddLocalFood(Food newFood);
+		void RemoveZone(QZone Z);
+		void RemoveLocalFood(Food F);
 
 	private:
-  string 			controllerID;//qilu 07/26/2016
+
+		/* quarantine zone variables */		// Ryan Luna 12/28/22
+		vector<QZone>	QZoneList;
+		vector<Food>	LocalFoodList;
+
+
+  		string 			controllerID;//qilu 07/26/2016
 
 		CPFA_loop_functions* LoopFunctions;
 		argos::CRandom::CRNG* RNG;
@@ -53,7 +70,7 @@ class CPFA_controller : public BaseController {
 
 		/* robot position variables */
 		argos::CVector2 SiteFidelityPosition;
-  bool			 updateFidelity; //qilu 09/07/2016
+  		bool			 updateFidelity; //qilu 09/07/2016
   
 		vector<CRay3> myTrail;
 		CColor        TrailColor;
@@ -68,8 +85,8 @@ class CPFA_controller : public BaseController {
 		size_t MaxTrailSize;
 		size_t SearchTime;//for informed search
   
-  size_t           searchingTime; //qilu 09/26
-  size_t           travelingTime;//qilu 09/26
+		size_t           searchingTime; //qilu 09/26
+		size_t           travelingTime;//qilu 09/26
         
   
 		/* iAnt CPFA state variable */
