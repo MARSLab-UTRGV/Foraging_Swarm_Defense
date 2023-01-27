@@ -16,11 +16,13 @@ CPFA_controller::CPFA_controller() :
 	survey_count(0),
 	isUsingPheromone(0),
     SiteFidelityPosition(1000, 1000), 
-        searchingTime(0),
-        travelingTime(0),
-        startTime(0),
+	searchingTime(0),
+	travelingTime(0),
+	startTime(0),
     m_pcLEDs(NULL),
-        updateFidelity(false)
+	updateFidelity(false),
+	QZoneList(NULL),
+	LocalFoodList(NULL)
 {
 }
 
@@ -53,6 +55,48 @@ void CPFA_controller::Init(argos::TConfigurationNode &node) {
     m_pcLEDs   = GetActuator<CCI_LEDsActuator>("leds");
     controllerID= GetId();//qilu 07/26/2016
 		m_pcLEDs->SetAllColors(CColor::GREEN);
+}
+
+// Ryan Luna 12/28/22
+void CPFA_controller::ClearLocalFoodList(){
+	LocalFoodList.clear();
+}
+
+// Ryan Luna 12/28/22
+void CPFA_controller::ClearZoneList(){
+	QZoneList.clear();
+}
+
+// Ryan Luna 12/28/22
+void CPFA_controller::AddZone(QZone newZone){
+	QZoneList.push_back(newZone);
+}
+
+// Ryan Luna 12/28/22
+void CPFA_controller::AddLocalFood(Food newFood){
+	LocalFoodList.push_back(newFood);
+}
+
+// Ryan Luna 12/28/22
+void CPFA_controller::RemoveZone(QZone Z){
+	int i = 0;
+	for(QZone z : QZoneList){
+		if(Z.GetLocation() == z.GetLocation()){
+			QZoneList.erase(QZoneList.begin()+i);
+		}
+		i++;
+	}
+}
+
+// Ryan Luna 12/28/22 
+void CPFA_controller::RemoveLocalFood(Food F){
+	int i = 0;
+	for(Food f : LocalFoodList){
+		if(F.GetLocation() == f.GetLocation()){
+			LocalFoodList.erase(LocalFoodList.begin()+i);
+		}
+		i++;
+	}
 }
 
 void CPFA_controller::ControlStep() {

@@ -1,0 +1,1 @@
+Some of the Quarantine Zone Strategy infrastructure is here but the implementation is not. This should be able to be run to do tests without the use of quarantine zones.
