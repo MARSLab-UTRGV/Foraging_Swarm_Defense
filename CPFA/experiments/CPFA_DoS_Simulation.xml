@@ -21,8 +21,8 @@
 		</CPFA_controller>
 	</controllers>
 	<loop_functions label="CPFA_loop_functions" library="build/source/CPFA/libCPFA_loop_functions">
-		<CPFA PrintFinalScore="1" ProbabilityOfReturningToNest="0.0147598869881" ProbabilityOfSwitchingToSearching="0.723128706375" RateOfInformedSearchDecay="0.205799848158" RateOfLayingPheromone="14.7027566005" RateOfPheromoneDecay="0.0245057227138" RateOfSiteFidelity="14.1514206414" UninformedSearchVariation="2.81939731297"/>
-		<settings DrawIDs="1" DrawTargetRays="0" DrawTrails="0" DrawDensityRate="4" MaxSimCounter="1" MaxSimTimeInSeconds="1000" OutputData="0" NestElevation="0.001" NestPosition="(0, 0)" NestRadius="0.25" VariableFoodPlacement="0" FoodRadius="0.05" FoodDistribution="0" NumRealFood="128" PowerlawFoodUnitCount="128" NumberOfClusters="2" ClusterWidthX="8" ClusterWidthY="8" UseFakeFoodDoS="true" FakeFoodDistribution="0" NumFakeFood="192" PowerlawFakeFoodUnitCount="192" NumFakeClusters="3" FakeClusterWidthX="8" FakeClusterWidthY="8" FilenameHeader="./results/CPFA_R-rand_F-rand_r24_rfc128_ffc192_10by10_time1000_iter50_"/>
+		<CPFA PrintFinalScore="1" ProbabilityOfReturningToNest="0.00297618325581" ProbabilityOfSwitchingToSearching="0.3637176255" RateOfInformedSearchDecay="0.253110502082" RateOfLayingPheromone="8.98846470854" RateOfPheromoneDecay="0.063119269938" RateOfSiteFidelity="1.42036207003" UninformedSearchVariation="2.67338576954"/>
+		<settings DrawIDs="1" DrawTargetRays="0" DrawTrails="0" DrawDensityRate="4" MaxSimCounter="1" MaxSimTimeInSeconds="1500" OutputData="0" NestElevation="0.001" NestPosition="(0, 0)" NestRadius="0.25" VariableFoodPlacement="0" FoodRadius="0.05" FoodDistribution="1" NumRealFood="192" PowerlawFoodUnitCount="192" NumberOfClusters="2" ClusterWidthX="8" ClusterWidthY="8" UseFakeFoodDoS="true" FakeFoodDistribution="1" NumFakeFood="64" PowerlawFakeFoodUnitCount="64" NumFakeClusters="1" FakeClusterWidthX="8" FakeClusterWidthY="8" FilenameHeader="./results/CPFA_R-cl_F-cl_r24_rfc128_ffc64_10by10_time1500_iter50_"/>
 	</loop_functions>
 	<arena size="10,10,1" center="0,0,0.5">
 		<floor id="floor" pixels_per_meter="10" source="loop_functions"/>
@@ -81,4 +81,14 @@
 	<media>
 		<led id="leds"/>
 	</media>
+	<visualization>
+		<qt-opengl>
+			<camera>
+				<placements>
+					<placement index="0" position="0,0,13" look_at="0,0,0" up="1,0,0" lens_focal_length="35"/>
+				</placements>
+			</camera>
+			<user_functions label="CPFA_qt_user_functions"/>
+		</qt-opengl>
+	</visualization>
 </argos-configuration>

@@ -7,6 +7,8 @@
 #include <source/CPFA/CPFA_controller.h>
 #include <argos3/plugins/simulator/entities/cylinder_entity.h>
 #include <source/Base/Food.h>	// Ryan Luna 11/10/22
+#include <source/Base/Nest.h>	// Ryan Luna 1/24/23
+#include <cmath>				// Ryan Luna 1/25/23
 
 using namespace argos;
 using namespace std;
@@ -125,6 +127,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		argos::Real NestRadiusSquared;
 		argos::Real NestElevation;
 		argos::Real SearchRadiusSquared;
+		argos::Real SearchRadius;
 
 		/* list variables for food & pheromones */
 		std::vector<Food>				FoodList;				// Ryan Luna 11/10/22
@@ -145,8 +148,10 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t TotalFoodCollected;		// Ryan Luna 11/17/22
 		size_t RealFoodCollected;		// Ryan Luna 11/17/22
 		size_t FakeFoodCollected;		// Ryan Luna 11/17/22
+
+		Nest MainNest;					// Ryan Luna 1/24/23
       
-                vector<size_t>		ForageList;
+        vector<size_t>		ForageList;
 		argos::CVector2 NestPosition;
 	private:
 

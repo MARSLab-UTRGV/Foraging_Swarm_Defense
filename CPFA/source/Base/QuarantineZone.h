@@ -7,6 +7,7 @@
 #include <argos3/core/simulator/entity/floor_entity.h>
 
 #include <source/Base/Food.h>
+#include <source/Base/QuarantineZone.h>
 
 using namespace argos;
 using namespace std;
@@ -14,23 +15,24 @@ using namespace std;
 class QZone {
 
     public:
-        QZone(CVector2 location, size_t radius);
+        QZone(CVector2 location, Real radius);
         CVector2    GetLocation();
         CColor      GetColor();
-        size_t      GetRadius();
+        Real      GetRadius();
+        vector<Food>    GetFoodList();
 
         void RemoveFood(Food foodObj);
         void AddFood(Food newFood);
 
-    protected:
+    // protected:
         void        SetLocation(CVector2 newLocation);
         void        SetColor(CColor newColor);
-        void        SetRadius(size_t newRadius);
+        void        SetRadius(Real newRadius);
 
     private:
         CVector2        Location;
         CColor          Color;
-        size_t          Radius;
+        Real            Radius;
         vector<Food>    QFood;
 
 };

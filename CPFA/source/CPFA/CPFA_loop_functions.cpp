@@ -43,6 +43,7 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	NestElevation(0.01),
 	// We are looking at a 4 by 4 square (3 targets + 2*1/2 target gaps)
 	SearchRadiusSquared((4.0 * FoodRadius) * (4.0 * FoodRadius)),
+	SearchRadius(4.0*FoodRadius),
 	NumDistributedRealFood(0),	// name modified ** Ryan Luna 11/12/22
 	NumDistributedFakeFood(0),	// Ryan Luna 11/12/22
 	TotalDistributedFood(0),	// name modified ** Ryan Luna 11/12/22
@@ -138,6 +139,8 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 		NestRadius *= sqrt(log(ArenaWidth)/log(2));
 	}
 	argos::LOG<<"NestRadius="<<NestRadius<<endl;
+
+	MainNest.SetLocation(NestPosition);	// Ryan Luna 1/24/23
 
 	// Send a pointer to this loop functions object to each controller.
 	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");

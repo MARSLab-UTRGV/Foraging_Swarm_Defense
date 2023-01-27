@@ -346,6 +346,19 @@ def testVisual():
     XML.createXML()
     os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
+def quickTest():
+    
+    run_count = 50
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = True
+    XML.MAX_SIM_TIME = 1500
+    XML.setDistribution(1)
+
+
+    XML.createXML()
+    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
 
 if __name__ == "__main__":
 
@@ -359,7 +372,9 @@ if __name__ == "__main__":
 
     # testVisual()
 
-    MainExperiment()
+    quickTest()
+
+    # MainExperiment()
 
 
 

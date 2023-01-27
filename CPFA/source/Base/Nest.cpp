@@ -65,3 +65,22 @@ void Nest:: SetNestIdx(size_t idx){
 size_t Nest:: GetNestIdx(){
      return nest_idx;
  } 
+
+void Nest::CreateZone(vector<Food> LocalList, Food CentralResource, Real ScanDistance){
+
+    Real radius = ScanDistance;
+
+    QZone newZone(CentralResource.GetLocation(), ScanDistance);
+
+    for(Food f : LocalList){
+        newZone.AddFood(f);
+    }
+    
+    ZoneList.push_back(newZone);
+
+    cout << "Zone Created: Location = " << newZone.GetLocation() << ", Radius = " << newZone.GetRadius() << endl;
+}
+
+vector<QZone> Nest::GetZoneList(){
+    return ZoneList;
+}
