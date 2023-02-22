@@ -87,6 +87,11 @@ class CPFA_controller : public BaseController {
 		size_t ResourceDensity;
 		size_t MaxTrailSize;
 		size_t SearchTime;//for informed search
+		size_t BadFoodCount;	// Ryan Luna 01/30/23
+		size_t BadFoodLimit;	// Ryan Luna 01/30/23
+		QZone* CurrentZone;		// Ryan Luna 01/30/23
+		bool UseQZones;			// Ryan Luna 02/05/23
+		size_t MergeMode;
   
 		size_t           searchingTime; //qilu 09/26
 		size_t           travelingTime;//qilu 09/26

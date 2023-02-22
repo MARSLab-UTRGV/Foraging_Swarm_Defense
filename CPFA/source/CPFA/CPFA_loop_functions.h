@@ -69,6 +69,9 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		double getRateOfLayingPheromone();
 		double getRateOfPheromoneDecay();
 
+
+		void Terminate();
+
 	protected:
 
 		void setScore(double s);
@@ -107,6 +110,13 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		Real last_time_in_minutes; 
 
 		bool UseFakeFoodDoS;	// Ryan Luna 11/13/22
+		bool UseAltDistribution;
+		bool UseFakeFoodOnly;
+		size_t AltClusterWidth;
+		size_t AltClusterLength;
+
+		size_t numRealTrails;
+		size_t numFakeTrails;
 
 		/* Result Collection */
 		string FilenameHeader;	// Ryan Luna 12/09/22
@@ -153,9 +163,15 @@ class CPFA_loop_functions : public argos::CLoopFunctions
       
         vector<size_t>		ForageList;
 		argos::CVector2 NestPosition;
+
+		bool terminate;
+		bool densify;
+
+
 	private:
 
 		/* private helper functions */
+		void AlternateFakeFoodDistribution();
 		void RandomFoodDistribution();
 		void ClusterFoodDistribution();
 		void PowerLawFoodDistribution();

@@ -20,7 +20,9 @@ CPFA_controller::CPFA_controller() :
 	travelingTime(0),
 	startTime(0),
     m_pcLEDs(NULL),
-	updateFidelity(false)
+	updateFidelity(false),
+	UseQZones(false),
+	MergeMode(0)
 {
 }
 
@@ -41,6 +43,8 @@ void CPFA_controller::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings, "ResultsDirectoryPath",      	results_path);
 	argos::GetNodeAttribute(settings, "DestinationNoiseStdev",      DestinationNoiseStdev);
 	argos::GetNodeAttribute(settings, "PositionNoiseStdev",      	PositionNoiseStdev);
+	argos::GetNodeAttribute(settings, "UseQZones",					UseQZones);
+	argos::GetNodeAttribute(settings, "MergeMode",					MergeMode);
 
 	argos::CVector2 p(GetPosition());
 	SetStartPosition(argos::CVector3(p.GetX(), p.GetY(), 0.0));
@@ -164,13 +168,17 @@ void CPFA_controller::CPFA() {
 	switch(CPFA_state) {
 		// depart from nest after food drop off or simulation start
 		case DEPARTING:
-			//argos::LOG << "DEPARTING" << std::endl;
+			// if (GetId().compare("fb21") == 0){
+			// 	argos::LOG << GetId() <<": DEPARTING" << std::endl;
+			// }
 			//SetIsHeadingToNest(false);
 			Departing();
 			break;
 		// after departing(), once conditions are met, begin searching()
 		case SEARCHING:
-			//argos::LOG << "SEARCHING" << std::endl;
+			// if (GetId().compare("fb21") == 0){
+			// 	argos::LOG << GetId() << ": SEARCHING" << std::endl;
+			// }
 			//SetIsHeadingToNest(false);
 			if((SimulationTick() % (SimulationTicksPerSecond() / 2)) == 0) {
 				Searching();
@@ -178,12 +186,16 @@ void CPFA_controller::CPFA() {
 			break;
 		// return to nest after food pick up or giving up searching()
 		case RETURNING:
-			//argos::LOG << "RETURNING" << std::endl;
+			// if (GetId().compare("fb21") == 0){
+			// 	argos::LOG << GetId() << ": RETURNING" << std::endl;
+			// }
 			//SetIsHeadingToNest(true);
 			Returning();
 			break;
 		case SURVEYING:
-			//argos::LOG << "SURVEYING" << std::endl;
+			// if (GetId().compare("fb21") == 0){
+			// 	argos::LOG << GetId() << ": SURVEYING" << std::endl;
+			// }
 			//SetIsHeadingToNest(false);
 			Surveying();
 			break;
@@ -288,25 +300,53 @@ void CPFA_controller::Departing()
 				 * Need to check if the initial random search target is in a quarantine zone.
 				 * 
 				 * Ryan Luna 1/25/23
+				 * 
+				 * NO LONGER REQUIRED
+				 * 
+				 * Ryan Luna 1/30/23
 				*/
 
-				bool badTarget = true;
-				CVector2 target;
-			
-				while(badTarget){
-					argos::Real USV = LoopFunctions->UninformedSearchVariation.GetValue();
-					argos::Real rand = RNG->Gaussian(USV);
-					argos::CRadians rotation(rand);
-					argos::CRadians angle1(rotation.UnsignedNormalize());
-					argos::CRadians angle2(GetHeading().UnsignedNormalize());
-					argos::CRadians turn_angle(angle1 + angle2);
-					argos::CVector2 turn_vector(SearchStepSize, turn_angle);
-					target = turn_vector + GetPosition();
 
-					if (!TargetInQZone(target)){
-						badTarget = true;
-					}
-				}
+				// bool badTarget = true;
+				// int count = 0;
+				// bool Terminate = false;
+			
+				// while(badTarget){
+
+				// 	if (count > 2000){
+				// 		Terminate = true;
+				// 		break;
+				// 	} else if (count % 50 == 0){	// every 50 iterations, increase the search variation
+				// 		USV += 0.05;
+				// 	}
+					
+				// 	argos::Real rand = RNG->Gaussian(USV);
+				// 	argos::CRadians rotation(rand);
+				// 	argos::CRadians angle1(rotation.UnsignedNormalize());
+				// 	argos::CRadians angle2(GetHeading().UnsignedNormalize());
+				// 	argos::CRadians turn_angle(angle1 + angle2);
+				// 	argos::CVector2 turn_vector(SearchStepSize, turn_angle);
+				// 	target = turn_vector + GetPosition();
+				// 	// cout << "From Departing(), target = " << target << endl;
+				// 	if (!TargetInQZone(target)){
+				// 		badTarget = false;
+				// 	}
+				// 	count++;
+				// }
+				// if (Terminate){
+				// 	cout << "Call to Terminate() from Departing()" << endl;
+				// 	LoopFunctions->Terminate();
+				// }
+				
+				CVector2 target;
+				argos::Real USV = LoopFunctions->UninformedSearchVariation.GetValue();
+				argos::Real rand = RNG->Gaussian(USV);
+				argos::CRadians rotation(rand);
+				argos::CRadians angle1(rotation.UnsignedNormalize());
+				argos::CRadians angle2(GetHeading().UnsignedNormalize());
+				argos::CRadians turn_angle(angle1 + angle2);
+				argos::CVector2 turn_vector(SearchStepSize, turn_angle);
+				target = turn_vector + GetPosition();
 
 				SetIsHeadingToNest(false);
 				SetTarget(target);
@@ -348,7 +388,7 @@ void CPFA_controller::Searching() {
 		if(distance.SquareLength() < TargetDistanceTolerance) {
 			// randomly give up searching
 			if(SimulationTick()% (5*SimulationTicksPerSecond())==0 && random < LoopFunctions->ProbabilityOfReturningToNest) {
-				
+
 				SetFidelityList();
 				TrailToShare.clear();
 				SetIsHeadingToNest(true);
@@ -370,21 +410,46 @@ void CPFA_controller::Searching() {
 			// uninformed search
 			if(isInformed == false) {
 
-				bool badTarget = true;
+				// bool badTarget = true;
 				CVector2 target;
+				// int count = 0;
+				// bool Terminate = false;
 
-				while(badTarget){
-					argos::CRadians rotation(rand);
-					argos::CRadians angle1(rotation);
-					argos::CRadians angle2(GetHeading());
-					argos::CRadians turn_angle(angle1 + angle2);
-					argos::CVector2 turn_vector(SearchStepSize, turn_angle);
-					target = turn_vector + GetPosition();
-					
-					if (!TargetInQZone(target)) {		// if the target is NOT in a bad location
-						badTarget = false;
-					}
-				}
+				// if (badTarget){
+				// 	// cout << "Entering while loop in Searching State..." << endl;
+				// 	while(badTarget){
+				// 		if (count > 1000){
+				// 			Terminate = true;
+				// 			break;
+				// 		} else if (count % 50 == 0){	// every 50 iterations, increase the search variation
+				// 			USCV += 0.05;
+				// 		}
+				// 		rand = RNG->Gaussian(USCV);
+				// 		argos::CRadians rotation(rand);
+				// 		argos::CRadians angle1(rotation);
+				// 		argos::CRadians angle2(GetHeading());
+				// 		argos::CRadians turn_angle(angle1 + angle2);
+				// 		argos::CVector2 turn_vector(SearchStepSize, turn_angle);
+				// 		target = turn_vector + GetPosition();
+				// 		// cout << "Target Location: " << target << endl;
+				// 		if (!TargetInQZone(target)) {		// if the target is NOT in a bad location
+				// 			badTarget = false;
+				// 		}
+				// 		count++;
+				// 	}
+				// 	if (Terminate){
+				// 		cout << "Call to Terminate() from Searching()..." << endl;
+				// 		LoopFunctions->Terminate();
+				// 	}
+				// }
+				// cout << "Exiting while loop in Searching State..." << endl;
+
+				argos::CRadians rotation(rand);
+				argos::CRadians angle1(rotation);
+				argos::CRadians angle2(GetHeading());
+				argos::CRadians turn_angle(angle1 + angle2);
+				argos::CVector2 turn_vector(SearchStepSize, turn_angle);
+				target = turn_vector + GetPosition();
 
 				SetIsHeadingToNest(false);
 				SetTarget(target);
@@ -473,6 +538,15 @@ void CPFA_controller::Returning() {
 	    argos::Real poissonCDF_sFollowRate = GetPoissonCDF(ResourceDensity, LoopFunctions->RateOfSiteFidelity);
 	    argos::Real r1 = RNG->Uniform(argos::CRange<argos::Real>(0.0, 1.0));
 	    argos::Real r2 = RNG->Uniform(argos::CRange<argos::Real>(0.0, 1.0));
+
+		/**
+		 * Regardless of holding food or not, reset badfood params
+		 * 
+		 * Ryan Luna 01/31/23
+		*/
+		BadFoodCount = 0;
+		CurrentZone = NULL;
+
 	    if (isHoldingFood) { 
           //drop off the food and display in the nest 
 			argos::CVector2 placementPosition;
@@ -494,14 +568,16 @@ void CPFA_controller::Returning() {
 				ClearLocalFoodList();
 
 				/**
-				 * Only lay the pheromone trail if the food is real, NOT fake
+				 * Always lay the pheromone trail if the food is real
 				 * 
 				 * Ryan Luna 01/25/23
 				*/
 				if(poissonCDF_pLayRate > r1 && updateFidelity) {
+					LoopFunctions->numRealTrails++;
+					TrailToShare.push_back(SiteFidelityPosition);	// moved from SetLocalResourseDensity() Ryan Luna 02/05/23
 					TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
 					argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
-					Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity);
+					Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood);
 					LoopFunctions->PheromoneList.push_back(sharedPheromone);
 					sharedPheromone.Deactivate(); // make sure this won't get re-added later...
 				}
@@ -512,22 +588,35 @@ void CPFA_controller::Returning() {
 				//argos::LOG << "Fake Food Aquired" << endl;
 				LoopFunctions->FakeFoodCollected++;
 
-				if (!LocalFoodList.empty()){	// IF THE LOCAL FOOD LIST IS NOT EMPTY
+				if (!LocalFoodList.empty() && UseQZones){	// IF THE LOCAL FOOD LIST IS NOT EMPTY
 
 					// give local food info to nest to create a quarantine zone		Ryan Luna 01/24/23
-					LoopFunctions->MainNest.CreateZone(LocalFoodList, FoodBeingHeld, LoopFunctions->SearchRadius);
+					LoopFunctions->MainNest.CreateZone(MergeMode, LoopFunctions->FoodList, LocalFoodList, FoodBeingHeld, LoopFunctions->SearchRadius);
 					ClearLocalFoodList();
 					// possible unsafe usage of FoodBeingHeld (unsure how to clean object memory without destroying it)		// Ryan Luna 01/25/23
 				}
+				if (!UseQZones){
+					/**
+					 * If we are NOT using QZones, lay a pheromone trail for fake food too
+					 * 
+					 * Ryan Luna 02/5/23
+					*/
+					if(poissonCDF_pLayRate > r1 && updateFidelity) {
+						LoopFunctions->numFakeTrails++;
+						TrailToShare.push_back(SiteFidelityPosition);
+						TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
+						argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+						Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood);
+						LoopFunctions->PheromoneList.push_back(sharedPheromone);
+						sharedPheromone.Deactivate(); // make sure this won't get re-added later...
+					}
+					TrailToShare.clear(); 
+				}
 			}
-			//LoopFunctions->CollectedFoodList.push_back(placementPosition); // not needed i think ** Ryan Luna 11/11/22
-			//Update the location of the nest qilu 09/10
-
- 
 	    }
 
 		// Get Quarantine Zone info from nest		// Ryan Luna 01/24/23
-		if (!LoopFunctions->MainNest.GetZoneList().empty()){
+		if (!LoopFunctions->MainNest.GetZoneList().empty() && UseQZones){
 			ClearZoneList();
 			for(int i=0;i<LoopFunctions->MainNest.GetZoneList().size();i++){
 				AddZone(LoopFunctions->MainNest.GetZoneList()[i]);
@@ -626,12 +715,17 @@ void CPFA_controller::SetRandomSearchLocation() {
 		x = ForageRangeX.GetMin();
 		y = RNG->Uniform(ForageRangeY);
 	}
-
-	if (!TargetInQZone(CVector2(x,y))){	// set target if not in bad location
+	if (UseQZones){
+		cout << "Calling TargetInQZone() from SetRandomSearchLocation()" << endl;
+		if (!TargetInQZone(CVector2(x,y))){	// set target if not in bad location
+			SetIsHeadingToNest(true); 
+			SetTarget(argos::CVector2(x, y));
+		} else {
+			SetRandomSearchLocation(); // recurse and try again
+		}
+	} else {
 		SetIsHeadingToNest(true); 
 		SetTarget(argos::CVector2(x, y));
-	} else {
-		SetRandomSearchLocation(); // recurse and try again
 	}
 }
 
@@ -643,10 +737,13 @@ void CPFA_controller::SetRandomSearchLocation() {
 */
 bool CPFA_controller::TargetInQZone(CVector2 target){
 	bool badLocation = false;
+
+	int count = 0;
+	
+	// cout << "Entering TargetInQZone() loop, checking if target is in a QZone" << endl;
 	
 	// iterate through the bot's QZoneList
-	for (QZone qz : QZoneList){
-		
+	for (QZone qz : QZoneList){		
 		// pythagorean theorem to get distance between two points
 		Real d = sqrt( pow( abs(target.GetX()) - abs(qz.GetLocation().GetX()), 2) + pow( abs(target.GetY()) - abs(qz.GetLocation().GetY()), 2) );
 		
@@ -655,7 +752,7 @@ bool CPFA_controller::TargetInQZone(CVector2 target){
 			break;
 		}
 	}
-
+	// cout << "Exited TargetInQZone()..." << endl;
 	return badLocation;
 }
 
@@ -670,19 +767,59 @@ void CPFA_controller::SetHoldingFood() {
 		// No, the iAnt isn't holding food. Check if we have found food at our
 		// current position and update the food list if we have.
 		size_t i = 0, j = 0;
+
 		for(i = 0; i < LoopFunctions->FoodList.size(); i++) {
 			if((GetPosition() - LoopFunctions->FoodList[i].GetLocation()).SquareLength() < FoodDistanceTolerance ) {
 				// We found food!
 				// Now check if this food is in Quarantine Zone (if QZoneStrategy is ON)	// Ryan Luna 01/25/23
 				bool badFood = false;
-				for (QZone qz : QZoneList){
-					for (Food f : qz.GetFoodList()){
-						if (f.GetLocation()==LoopFunctions->FoodList[i].GetLocation()){	
-							badFood = true;
+				if (UseQZones){
+					for (QZone qz : QZoneList){
+						for (Food f : qz.GetFoodList()){
+							if (f.GetLocation()==LoopFunctions->FoodList[i].GetLocation()){	// bad food found
+								badFood = true;
+
+								/**
+								 * If we don't have a CurrentZone set, set it
+								 * 
+								 * Else if the zone we are in matches the CurrentZone we have set,
+								 * Increment the BadFoodCount and check if the limit is reached,
+								 * If so, return to the nest
+								 * 
+								 * Else, we are in a new zone that doesn't match our previous CurrentZone,
+								 * reset the BadFoodCount and set CurrentZone to this new zone we are in
+								*/
+
+								if (CurrentZone == NULL){
+									CurrentZone = &qz;
+									BadFoodCount++;
+								} else if (CurrentZone == &qz){
+									BadFoodCount++;
+									if (BadFoodCount >= BadFoodLimit){
+										SetFidelityList();
+										TrailToShare.clear();
+										SetIsHeadingToNest(true);
+										SetTarget(LoopFunctions->NestPosition);
+										isGivingUpSearch = true;
+										LoopFunctions->FidelityList.erase(controllerID);
+										isUsingSiteFidelity = false; 
+										updateFidelity = false; 
+										CPFA_state = RETURNING;
+										searchingTime+=SimulationTick()-startTime;
+										startTime = SimulationTick();
+									}
+								} else {
+									BadFoodCount = 0;
+									CurrentZone = &qz;
+								}
+								
+								break;
+							}
 						}
+						if (badFood){break;}
 					}
 				}
-				if (!badFood){	// IF THE FOOD IS NOT BAD THEN PROCEED 
+				if (!badFood){	// IF THE FOOD IS NOT IN QZONE THEN PROCEED 
 					isHoldingFood = true;
 					// Update food variable		// Ryan Luna 1/24/23
 					FoodBeingHeld = LoopFunctions->FoodList[i];
@@ -697,46 +834,7 @@ void CPFA_controller::SetHoldingFood() {
 					break;
 				}
 			}
-
-		/**
-		 * Used to maintain density of resources. Not needed for DoS Attack Simulation. ** Ryan Luna 11/11/22
-		*/
-
-		//    //distribute a new food 
-		//      argos::CVector2 placementPosition;
-		//      placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
-				
-		//      while(LoopFunctions->IsOutOfBounds(placementPosition, 1, 1)){
-		//          placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
-		//      }
-		//      newFoodList.push_back(placementPosition);
-		// 	 newFoodColoringList.push_back(LoopFunctions->FoodColoringList[i]);
-		//     LoopFunctions->increaseNumDistributedFoodByOne(); //the total number of cubes in the arena should be updated. qilu 11/15/2018
-		// 	 //end
-		//                      break;
-		//          } else {
-		//       //Return this unfound-food position to the list
-		//             newFoodList.push_back(LoopFunctions->FoodList[i]);
-		//             newFoodColoringList.push_back(LoopFunctions->FoodColoringList[i]);
-		//          }
 		}
-      //}
-    //   if(j>0){
-    //       for(; j < LoopFunctions->FoodList.size(); j++) {
-    //           newFoodList.push_back(LoopFunctions->FoodList[j]);
-    //           newFoodColoringList.push_back(LoopFunctions->FoodColoringList[j]);
-    //       }
-    //   }
-   
-      // We picked up food. Update the food list minus what we picked up.
-    //   if(IsHoldingFood()) {
-    //      //SetIsHeadingToNest(true);
-    //      //SetTarget(LoopFunctions->NestPosition);
-    //      LoopFunctions->FoodList = newFoodList;
-    //      LoopFunctions->FoodColoringList = newFoodColoringList; //qilu 09/12/2016
-    //      SetLocalResourceDensity();
-    //   }
-
 		// We picked up food. Erase the food we picked up from the food list. ** Ryan Luna 11/11/22
 		if(IsHoldingFood()){
 			LoopFunctions->FoodList.erase(LoopFunctions->FoodList.begin() + i);
@@ -789,7 +887,9 @@ void CPFA_controller::SetLocalResourceDensity() {
 			LoopFunctions->ResourceDensityDelay = SimulationTick() + SimulationTicksPerSecond() * 10;
 
 			// Add to lcoal food list to give to nest 		// Ryan Luna 01/24/23
-			AddLocalFood(LoopFunctions->FoodList[i]);
+			if (UseQZones){
+				AddLocalFood(LoopFunctions->FoodList[i]);
+			}
 		}
 	}
  
@@ -797,7 +897,7 @@ void CPFA_controller::SetLocalResourceDensity() {
     SiteFidelityPosition = GetPosition();
     isUsingSiteFidelity = true;
     updateFidelity = true; 
-    TrailToShare.push_back(SiteFidelityPosition);
+    // TrailToShare.push_back(SiteFidelityPosition);  // *pheromone waypoint bug fix* -- moved to Returning() -- Ryan Luna 02/25/23
     LoopFunctions->FidelityList[controllerID] = SiteFidelityPosition;
 }
 

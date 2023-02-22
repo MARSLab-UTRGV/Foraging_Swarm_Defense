@@ -1,2 +1,0 @@
-Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), Real Food Collected, Real Food Collection Rate (per second), Fake Food Collected, Fake Food Collection Rate (per second)
-1081,124,0.114709,124,0.114709,0,0

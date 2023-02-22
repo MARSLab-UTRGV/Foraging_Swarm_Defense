@@ -31,18 +31,16 @@ class Nest {
                 void SetLocation();
                 void SetLocation(CVector2 newLocation); //qilu 09/11/2016
 
-                /*void        SetNestRadius(int level, Real radius);
-                argos::Real GetNestRadius();
-                argos::Real GetNestRadiusSquared(); */
-
                 void SetNestIdx(size_t idx);
                 size_t GetNestIdx();
 
-                void CreateZone(vector<Food> LocalList, Food CentralResource, Real ScanDistance); 
+                void CreateZone(size_t merge_mode, vector<Food>AllFood, vector<Food> LocalList, Food CentralResource, Real ScanDistance);
 
                 vector<QZone> GetZoneList();
         
 	private:
+
+                void DistanceBasedMerging(vector<Food>AllFood, QZone Catalyst); 
                 CVector2 nestLocation;
                 size_t nest_idx;
 

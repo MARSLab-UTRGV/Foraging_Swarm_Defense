@@ -1,0 +1,13 @@
+*** ./results/CPFA_R-pl_F-cl_r24_rfc108_ffc36_10by10_time1000_iter30_offset-dense BoxPlot Data ***
+
+Key: [DoS Disabled, Dos Enabled]
+
+Medians: [100.5, 98.5]
+Means: []
+Minimums: [86.0, 87.0]
+Maximums: [107.0, 105.0]
+Quarter One: [94.0, 95.0]
+Quarter Three: [101.0, 102.0]
+Lower Outliers: [[75.0], []]
+Upper Outliers: [[], []]
+
