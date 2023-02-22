@@ -231,7 +231,7 @@ def PlotExp1_v2(flist, rdpath, maxRealFood, maxFakeFood):
 
     plt.savefig(f'{rdpath}Experiment_1.png')
 
-def PlotExp2_v1(flist, maxRealFood, maxFakeFood):
+def PlotExp2_v1(flist, rdpath, maxRealFood, maxFakeFood):
 
     RFClist = []
     FFClist = []
@@ -251,8 +251,6 @@ def PlotExp2_v1(flist, maxRealFood, maxFakeFood):
 
     x_tick_labels = ['10','15','20','25','30']
 
-    # generate unicode subscript of letter F
-    F = ['\u0394','\u0393','\u0388','\u0387','\u0386']
 
     data = [
         ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[4][0],RFCdata[8][0],RFCdata[12][0],RFCdata[16][0]),    # Real Food Collected Means
@@ -339,7 +337,7 @@ def PlotExp2_v1(flist, maxRealFood, maxFakeFood):
     fig.subplots_adjust(hspace=0)
 
     # plt.savefig('results/Experiment_2.png')
-    plt.savefig('results_Exp2/Experiment_2.png')
+    plt.savefig(f'{rdpath}/Experiment_2.png')
 
 def PlotPheromoneExperiment_v1(flist, maxFakeFood):
     
@@ -897,6 +895,8 @@ def Experiment2_v1(rc):
     flist = []
 
     for t in time:
+        
+        time.sleep(0.05)
         XML.MAX_SIM_TIME = t
 
         # Standard CPFA
@@ -905,7 +905,8 @@ def Experiment2_v1(rc):
         flist.append(XML.setFname()+"DoSData.txt")
         XML.createXML()
         for j in range(run_count):
-            print(f'Standard CPFA, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
+            time.sleep(0.05)
+            print(f'Standard CPFA, Iteration: {j+1}, Num Real Food Clusters: {XML.NUM_RCL}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
             os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
         # w/ Fake Food
@@ -914,7 +915,8 @@ def Experiment2_v1(rc):
         flist.append(XML.setFname()+"DoSData.txt")
         XML.createXML()
         for k in range(run_count):
-            print(f'CPFA w/ Fake Food, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
+            time.sleep(0.05)
+            print(f'CPFA w/ Fake Food, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
             os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
         # w/ QZones no merging
@@ -924,7 +926,8 @@ def Experiment2_v1(rc):
         flist.append(XML.setFname()+"DoSData.txt")
         XML.createXML()
         for k in range(run_count):
-            print(f'CPFA w/ QZones (no merge), Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
+            time.sleep(0.05)
+            print(f'CPFA w/ QZones (no merge), Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
             os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
         # w/ QZones distance-based merging
@@ -934,11 +937,12 @@ def Experiment2_v1(rc):
         flist.append(XML.setFname()+"DoSData.txt")
         XML.createXML()
         for k in range(run_count):
-            print(f'CPFA w/ QZones (DB-Merge), Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
+            time.sleep(0.05)
+            print(f'CPFA w/ QZones (DB-Merge), Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL} Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
             os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
-    PlotExp2_v1(flist, RFmax, FFmax)
     CheckForTerminatedSimulations(XML.RD_PATH)
+    PlotExp2_v1(flist, XML.RD_PATH, RFmax, FFmax)
 
 def rePlotDensityExperiment():
     run_count = 30
@@ -1378,8 +1382,8 @@ if __name__ == "__main__":
     # testVisual()
 
     # Experiment1_v2(60)
-    rePlotExperiment1_v2(30,'results_Exp1/')
-    # Experiment2_v1()
+    # rePlotExperiment1_v2(30,'results_Exp1/')
+    Experiment2_v1(60)
 
     # rePlotExperiment2_v1()
     # Experiment3TimeTest()
