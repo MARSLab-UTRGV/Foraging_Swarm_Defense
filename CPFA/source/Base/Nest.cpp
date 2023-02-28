@@ -63,8 +63,8 @@ void Nest::CreateZone(size_t merge_mode, vector<Food>AllFood, vector<Food> Local
     
     ZoneList.push_back(newZone);
 
-    cout << "Zone Created: Location = " << newZone.GetLocation() << ", Radius = " << newZone.GetRadius() << 
-        ", QFood size = " << newZone.GetFoodList().size() << endl;
+    // cout << "Zone Created: Location = " << newZone.GetLocation() << ", Radius = " << newZone.GetRadius() << 
+    //     ", QFood size = " << newZone.GetFoodList().size() << endl;
 
     /**
      * Merge Mode 0 -> No Merging
@@ -198,13 +198,13 @@ void Nest::DistanceBasedMerging(vector<Food> AllFood, QZone Catalyst){
 
         if(ConfirmMerge){
             // erase old zones and push new merged zone
-            cout << endl << "Merging Zones: " << endl;
-            cout << "(x1,y1) = (" << x1 << ',' << y1 << "), " << "r1 = " << r1 << endl;
-            cout << "(x2,y2) = (" << x2 << ',' << y2 << "), " << "r2 = " << r2 << endl;
-            cout << "New Radius = " << newRadius << endl;
-            cout << "Slope: " << m << endl;
-            cout << "New Center: (X,Y) = (" << newCenter.GetX() << ',' << newCenter.GetY() << ")" << endl; 
-            cout << "# Food In New QZone = " << MergedZone.GetFoodList().size() << endl << endl;
+            // cout << endl << "Merging Zones: " << endl;
+            // cout << "(x1,y1) = (" << x1 << ',' << y1 << "), " << "r1 = " << r1 << endl;
+            // cout << "(x2,y2) = (" << x2 << ',' << y2 << "), " << "r2 = " << r2 << endl;
+            // cout << "New Radius = " << newRadius << endl;
+            // cout << "Slope: " << m << endl;
+            // cout << "New Center: (X,Y) = (" << newCenter.GetX() << ',' << newCenter.GetY() << ")" << endl; 
+            // cout << "# Food In New QZone = " << MergedZone.GetFoodList().size() << endl << endl;
 
             ZoneList.erase(ZoneList.begin()+i);
             ZoneList.erase(ZoneList.begin()+j-1);
@@ -212,13 +212,13 @@ void Nest::DistanceBasedMerging(vector<Food> AllFood, QZone Catalyst){
         } else {
             // delete the zone inside the larger zone
             if (r1 < newRadius){
-                cout << "Zone Removed: " << '(' << x1 << ',' << y1 << ')' << endl;
+                // cout << "Zone Removed: " << '(' << x1 << ',' << y1 << ')' << endl;
                 ZoneList.erase(ZoneList.begin()+i);
                 if (x1 != Catalyst.GetLocation().GetX() && y1 != Catalyst.GetLocation().GetY()){
                     cout << endl << "NEWLY CREATED ZONE WAS NOT THE ONE THAT WAS REMOVED..." << endl;
                 }
             }else{
-                cout << "Zone Removed: " << '(' << x2 << ',' << y2 << ')' << endl;
+                // cout << "Zone Removed: " << '(' << x2 << ',' << y2 << ')' << endl;
                 ZoneList.erase(ZoneList.begin()+j);
                 if (x2 != Catalyst.GetLocation().GetX() && y2 != Catalyst.GetLocation().GetY()){
                     cout << endl << "NEWLY CREATED ZONE WAS NOT THE ONE THAT WAS REMOVED..." << endl;

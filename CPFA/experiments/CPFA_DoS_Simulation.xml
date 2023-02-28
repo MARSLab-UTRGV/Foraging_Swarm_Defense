@@ -16,13 +16,13 @@
 				<footbot_motor_ground implementation="rot_z_only"/>
 			</sensors>
 			<params>
-				<settings DestinationNoiseStdev="0.0" FoodDistanceTolerance="0.13" NestAngleTolerance="0.1" NestDistanceTolerance="0.05" PositionNoiseStdev="0.0" ResultsDirectoryPath="results_Exp2_60it/" RobotForwardSpeed="16.0" RobotRotationSpeed="8.0" SearchStepSize="0.08" TargetAngleTolerance="0.1" TargetDistanceTolerance="0.05" UseQZones="true" MergeMode="1"/>
+				<settings DestinationNoiseStdev="0.0" FoodDistanceTolerance="0.13" NestAngleTolerance="0.1" NestDistanceTolerance="0.05" PositionNoiseStdev="0.0" ResultsDirectoryPath="results_Exp3_v2_60it/" RobotForwardSpeed="16.0" RobotRotationSpeed="8.0" SearchStepSize="0.08" TargetAngleTolerance="0.1" TargetDistanceTolerance="0.05" UseQZones="true" MergeMode="1" FFdetectionAcc="0.2" RFdetectionAcc="1.0"/>
 			</params>
 		</CPFA_controller>
 	</controllers>
 	<loop_functions label="CPFA_loop_functions" library="build/source/CPFA/libCPFA_loop_functions">
 		<CPFA PrintFinalScore="1" ProbabilityOfReturningToNest="0.00297618325581" ProbabilityOfSwitchingToSearching="0.3637176255" RateOfInformedSearchDecay="0.253110502082" RateOfLayingPheromone="8.98846470854" RateOfPheromoneDecay="0.063119269938" RateOfSiteFidelity="1.42036207003" UninformedSearchVariation="2.67338576954"/>
-		<settings DrawIDs="1" DrawTargetRays="0" DrawTrails="0" DrawDensityRate="4" MaxSimCounter="1" MaxSimTimeInSeconds="1800" OutputData="0" NestElevation="0.001" NestPosition="(0, 0)" NestRadius="0.25" VariableFoodPlacement="0" FoodRadius="0.05" UseFakeFoodOnly="false" FoodDistribution="1" UseAltDistribution="false" AltClusterWidth="36" AltClusterLength="4" NumRealFood="192" PowerlawFoodUnitCount="192" NumberOfClusters="3" ClusterWidthX="6" ClusterWidthY="6" UseFakeFoodDoS="true" FakeFoodDistribution="1" NumFakeFood="64" PowerlawFakeFoodUnitCount="64" NumFakeClusters="3" FakeClusterWidthX="6" FakeClusterWidthY="6" FilenameHeader="results_Exp2_60it/CPFA_st-2_R-cl_F-cl_r16_rfc108_ffc108_10by10_time1800_iter60_" Densify="true"/>
+		<settings DrawIDs="1" DrawTargetRays="0" DrawTrails="0" DrawDensityRate="4" MaxSimCounter="1" MaxSimTimeInSeconds="900" OutputData="0" NestElevation="0.001" NestPosition="(0, 0)" NestRadius="0.25" VariableFoodPlacement="0" FoodRadius="0.05" UseFakeFoodOnly="false" FoodDistribution="1" UseAltDistribution="false" AltClusterWidth="36" AltClusterLength="4" NumRealFood="192" PowerlawFoodUnitCount="192" NumberOfClusters="3" ClusterWidthX="6" ClusterWidthY="6" UseFakeFoodDoS="true" FakeFoodDistribution="1" NumFakeFood="64" PowerlawFakeFoodUnitCount="64" NumFakeClusters="3" FakeClusterWidthX="6" FakeClusterWidthY="6" FilenameHeader="results_Exp3_v2_60it/CPFA_st-2_R-cl_F-cl_r16_rfc108_ffc108_10by10_time900_iter60_ffacc20_" Densify="true"/>
 	</loop_functions>
 	<arena size="10,10,1" center="0,0,0.5">
 		<floor id="floor" pixels_per_meter="10" source="loop_functions"/>

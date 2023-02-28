@@ -15,6 +15,7 @@ FAKE_FOOD_COLLECTED = []
 FAKE_COLLECTION_RATE = []
 REAL_PTRAILS_CREATED = []
 FAKE_PTRAILS_CREATED = []
+FALSE_POSITIVES = []
 
 def Read(fname):
     count = 0
@@ -27,6 +28,7 @@ def Read(fname):
     FAKE_COLLECTION_RATE.clear()
     REAL_PTRAILS_CREATED.clear()
     FAKE_PTRAILS_CREATED.clear()
+    FALSE_POSITIVES.clear()
     
     with open(fname) as f:
         for line in f.readlines():
@@ -42,6 +44,7 @@ def Read(fname):
             FAKE_COLLECTION_RATE.append(data[6])
             REAL_PTRAILS_CREATED.append(data[7])
             FAKE_PTRAILS_CREATED.append(data[8])
+            FALSE_POSITIVES.append(data[9])
 
 def PlotExp1(flist, maxRealFood, maxFakeFood):
 
@@ -231,6 +234,240 @@ def PlotExp1_v2(flist, rdpath, maxRealFood, maxFakeFood):
 
     plt.savefig(f'{rdpath}Experiment_1.png')
 
+def PrintExp1_data(flist, rdpath, maxRealFood, maxFakeFood):
+
+    RFClist = []
+    FFClist = []
+
+    for filename in flist:
+        Read(filename)
+        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
+        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
+    
+    RFCdata = []
+    for r in RFClist:
+        RFCdata.append((round(np.mean(r),1),np.std(r)))
+    FFCdata = []
+    for f in FFClist:
+        FFCdata.append((round(np.mean(f),1),np.std(f)))
+
+    x_tick_labels = ['1','2','3','4','5']
+
+
+    data1 = [
+        ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),    # Real Food Collected Means
+                                        (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),    # Real Food Collected StdDeviation
+                                        (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),    # Fake Food Collected Means
+                                        (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1])),   # Fake Food Collected StdDeviation
+
+        ('$FA_{RF}$',                   (RFCdata[1][0],RFCdata[4][0],RFCdata[7][0],RFCdata[10][0],RFCdata[13][0]),
+                                        (RFCdata[1][1],RFCdata[4][1],RFCdata[7][1],RFCdata[10][1],RFCdata[13][1]),
+                                        (FFCdata[1][0],FFCdata[4][0],FFCdata[7][0],FFCdata[10][0],FFCdata[13][0]),
+                                        (FFCdata[1][1],FFCdata[4][1],FFCdata[7][1],FFCdata[10][1],FFCdata[13][1])),
+
+        ('$FA_{QZ}$',                   (RFCdata[2][0],RFCdata[5][0],RFCdata[8][0],RFCdata[11][0],RFCdata[14][0]),
+                                        (RFCdata[2][1],RFCdata[5][1],RFCdata[8][1],RFCdata[11][1],RFCdata[14][1]),
+                                        (FFCdata[2][0],FFCdata[5][0],FFCdata[8][0],FFCdata[11][0],FFCdata[14][0]),
+                                        (FFCdata[2][1],FFCdata[5][1],FFCdata[8][1],FFCdata[11][1],FFCdata[14][1])),
+
+        ('$FA_{QZ\_M}$',                (RFCdata[3][0],RFCdata[6][0],RFCdata[9][0],RFCdata[12][0],RFCdata[15][0]),
+                                        (RFCdata[3][1],RFCdata[6][1],RFCdata[9][1],RFCdata[12][1],RFCdata[15][1]),
+                                        (FFCdata[3][0],FFCdata[6][0],FFCdata[9][0],FFCdata[12][0],FFCdata[15][0]),
+                                        (FFCdata[3][1],FFCdata[6][1],FFCdata[9][1],FFCdata[12][1],FFCdata[15][1]))
+    ]
+
+    # print(f'{data1}\n\n')
+
+    # sim_types = ['FA_R', 'FA_RF', 'FA_QZ', 'FA_RF_M']
+    # std_means = {}
+    # for sim in data1:
+    #     std_real = sim[2]
+    #     std_fake = sim[4]
+    #     avg_std_real = sum(std_real) / len(std_real)
+    #     avg_std_fake = sum(std_fake) / len(std_fake)
+    #     std_means[sim[0]] = {'Real': avg_std_real, 'Fake': avg_std_fake}
+    #     print(f'{sim[0]}: Real: {avg_std_real:.2f}, Fake: {avg_std_fake:.2f}')
+
+    # print(f'<Number of Fake Food Clusters>,<Simulation Type>,<Real Food Collected Mean>,<Real Food Collected Standard Deviation>,<Fake Food Collected Mean>,<Fake Food Collected Standard Deviation>')
+
+    # for num_fcl in range(5):
+    #     for d in data1:
+    #         print(f'{num_fcl+1},{d[0]},{d[1][num_fcl]},{d[2][num_fcl]},{d[3][num_fcl]},{d[4][num_fcl]}')
+
+    ###### FA_RF vs FA_QZ ######
+
+    # avg_diffs_real = []
+    # for i in range(5):
+    #     avg_diffs_real.append(((data1[2][1][i]-data1[1][1][i])/data1[1][1][i])*100)
+
+    # print(f'avg_diffs_real: {avg_diffs_real}')
+    # print(f'Avg Dif Real: {np.mean(avg_diffs_real)}')
+
+    # avg_diffs_fake = []
+    # for i in range(5):
+    #     avg_diffs_fake.append(((data1[2][3][i]-data1[1][3][i])/data1[1][3][i])*100)
+
+    # print(f'avg_diffs_fake: {avg_diffs_fake}')
+    # print(f'Avg Dif Fake: {np.mean(avg_diffs_fake)}')
+
+    ###########################
+
+    ####### FA_QZ vs FA_R #######
+
+    # avg_diffs_real = []
+    # for i in range(5):
+    #     avg_diffs_real.append(((data1[2][1][i]-data1[0][1][i])/data1[0][1][i])*100)
+
+    # print(f'avg_diffs_real: {avg_diffs_real}')
+    # print(f'Avg Acc Real: {100+np.mean(avg_diffs_real)}')
+
+    ###### FA_QZ_M vs FA_QZ ######
+
+    # avg_diffs_real = []
+    # for i in range(5):
+    #     avg_diffs_real.append(((data1[2][1][i]-data1[3][1][i])/data1[3][1][i])*100)
+
+    # print(f'avg_diffs_real: {avg_diffs_real}')
+    # print(f'Avg Dif Real: {np.mean(avg_diffs_real)}')
+
+    # avg_diffs_fake = []
+    # for i in range(5):
+    #     avg_diffs_fake.append(((data1[2][3][i]-data1[3][3][i])/data1[3][3][i])*100)
+
+    # print(f'avg_diffs_fake: {avg_diffs_fake}')
+    # print(f'Avg Dif Fake: {np.mean(avg_diffs_fake)}')
+
+    ########################### 
+
+    ######### stdev #########
+    fa_rf_avg  = np.mean(data1[1][2])
+    print(f'FA_RF Avg: {fa_rf_avg}')
+    fa_qz_avg  = np.mean(data1[2][2])
+    print(f'FA_QZ Avg: {fa_qz_avg}')
+    fa_qzm_avg = np.mean(data1[3][2])
+    print(f'FA_QZ_M Avg: {fa_qzm_avg}')
+    avg_dif_rfqz = (fa_rf_avg-fa_qz_avg)/fa_rf_avg
+    print(f'Avg Dif RF-QZ: {avg_dif_rfqz*100}%')
+    avg_dif_rfqzm = (fa_rf_avg-fa_qzm_avg)/fa_rf_avg
+    print(f'Avg Dif RF-QZM: {avg_dif_rfqzm*100}%')
+
+def PrintExp2_data(flist, rdpath, maxRealFood, maxFakeFood):
+
+    RFClist = []
+    FFClist = []
+
+    for filename in flist:
+        Read(filename)
+        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
+        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
+    
+    RFCdata = []
+    for r in RFClist:
+        RFCdata.append((round(np.mean(r),1),np.std(r)))
+    FFCdata = []
+    for f in FFClist:
+        FFCdata.append((round(np.mean(f),1),np.std(f)))
+
+    x_tick_labels = ['10','15','20','25','30']
+
+
+    data1 = [
+        ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[4][0],RFCdata[8][0],RFCdata[12][0],RFCdata[16][0]),    # Real Food Collected Means
+                                        (RFCdata[0][1],RFCdata[4][1],RFCdata[8][1],RFCdata[12][1],RFCdata[16][1]),    # Real Food Collected StdDeviation
+                                        (FFCdata[0][0],FFCdata[4][0],FFCdata[8][0],FFCdata[12][0],FFCdata[16][0]),    # Fake Food Collected Means
+                                        (FFCdata[0][1],FFCdata[4][1],FFCdata[8][1],FFCdata[12][1],FFCdata[16][1])),   # Fake Food Collected StdDeviation
+
+        ('$FA_{RF}$',                   (RFCdata[1][0],RFCdata[5][0],RFCdata[9][0],RFCdata[13][0],RFCdata[17][0]),
+                                        (RFCdata[1][1],RFCdata[5][1],RFCdata[9][1],RFCdata[13][1],RFCdata[17][1]),
+                                        (FFCdata[1][0],FFCdata[5][0],FFCdata[9][0],FFCdata[13][0],FFCdata[17][0]),
+                                        (FFCdata[1][1],FFCdata[5][1],FFCdata[9][1],FFCdata[13][1],FFCdata[17][1])),
+
+        ('$FA_{QZ}$',                   (RFCdata[2][0],RFCdata[6][0],RFCdata[10][0],RFCdata[14][0],RFCdata[18][0]),
+                                        (RFCdata[2][1],RFCdata[6][1],RFCdata[10][1],RFCdata[14][1],RFCdata[18][1]),
+                                        (FFCdata[2][0],FFCdata[6][0],FFCdata[10][0],FFCdata[14][0],FFCdata[18][0]),
+                                        (FFCdata[2][1],FFCdata[6][1],FFCdata[10][1],FFCdata[14][1],FFCdata[18][1])),
+
+        ('$FA_{QZ\_M}$',                (RFCdata[3][0],RFCdata[7][0],RFCdata[11][0],RFCdata[15][0],RFCdata[19][0]),
+                                        (RFCdata[3][1],RFCdata[7][1],RFCdata[11][1],RFCdata[15][1],RFCdata[19][1]),
+                                        (FFCdata[3][0],FFCdata[7][0],FFCdata[11][0],FFCdata[15][0],FFCdata[19][0]),
+                                        (FFCdata[3][1],FFCdata[7][1],FFCdata[11][1],FFCdata[15][1],FFCdata[19][1]))
+    ]
+
+    # print(f'{data1}\n\n')
+
+    # sim_types = ['FA_R', 'FA_RF', 'FA_QZ', 'FA_RF_M']
+    # std_means = {}
+    # for sim in data1:
+    #     std_real = sim[2]
+    #     std_fake = sim[4]
+    #     avg_std_real = sum(std_real) / len(std_real)
+    #     avg_std_fake = sum(std_fake) / len(std_fake)
+    #     std_means[sim[0]] = {'Real': avg_std_real, 'Fake': avg_std_fake}
+    #     print(f'{sim[0]}: Real: {avg_std_real:.2f}, Fake: {avg_std_fake:.2f}')
+
+    print(f'<Maximum Simulation Time>,<Simulation Type>,<Real Food Collected Mean>,<Real Food Collected Standard Deviation>,<Fake Food Collected Mean>,<Fake Food Collected Standard Deviation>')
+
+    for t in range(5):
+        for d in data1:
+            print(f'{x_tick_labels[t]},{d[0]},{d[1][t]},{d[2][t]},{d[3][t]},{d[4][t]}')
+
+    ###### FA_RF vs FA_QZ ######
+
+    # avg_diffs_real = []
+    # for i in range(5):
+    #     avg_diffs_real.append(((data1[2][1][i]-data1[1][1][i])/data1[1][1][i])*100)
+
+    # print(f'avg_diffs_real: {avg_diffs_real}')
+    # print(f'Avg Dif Real: {np.mean(avg_diffs_real)}')
+
+    # avg_diffs_fake = []
+    # for i in range(5):
+    #     avg_diffs_fake.append(((data1[2][3][i]-data1[1][3][i])/data1[1][3][i])*100)
+
+    # print(f'avg_diffs_fake: {avg_diffs_fake}')
+    # print(f'Avg Dif Fake: {np.mean(avg_diffs_fake)}')
+
+    ###########################
+
+    ####### FA_QZ vs FA_R #######
+
+    # avg_diffs_real = []
+    # for i in range(5):
+    #     avg_diffs_real.append(((data1[2][1][i]-data1[0][1][i])/data1[0][1][i])*100)
+
+    # print(f'avg_diffs_real: {avg_diffs_real}')
+    # print(f'Avg Acc Real: {100+np.mean(avg_diffs_real)}')
+
+    ###### FA_QZ_M vs FA_QZ ######
+
+    # avg_diffs_real = []
+    # for i in range(5):
+    #     avg_diffs_real.append(((data1[2][1][i]-data1[3][1][i])/data1[3][1][i])*100)
+
+    # print(f'avg_diffs_real: {avg_diffs_real}')
+    # print(f'Avg Dif Real: {np.mean(avg_diffs_real)}')
+
+    # avg_diffs_fake = []
+    # for i in range(5):
+    #     avg_diffs_fake.append(((data1[2][3][i]-data1[3][3][i])/data1[3][3][i])*100)
+
+    # print(f'avg_diffs_fake: {avg_diffs_fake}')
+    # print(f'Avg Dif Fake: {np.mean(avg_diffs_fake)}')
+
+    ########################### 
+
+    ######### stdev #########
+    # fa_rf_avg  = np.mean(data1[1][2])
+    # print(f'FA_RF Avg: {fa_rf_avg}')
+    # fa_qz_avg  = np.mean(data1[2][2])
+    # print(f'FA_QZ Avg: {fa_qz_avg}')
+    # fa_qzm_avg = np.mean(data1[3][2])
+    # print(f'FA_QZ_M Avg: {fa_qzm_avg}')
+    # avg_dif_rfqz = (fa_rf_avg-fa_qz_avg)/fa_rf_avg
+    # print(f'Avg Dif RF-QZ: {avg_dif_rfqz*100}%')
+    # avg_dif_rfqzm = (fa_rf_avg-fa_qzm_avg)/fa_rf_avg
+    # print(f'Avg Dif RF-QZM: {avg_dif_rfqzm*100}%')
+
 def PlotExp2_v1(flist, rdpath, maxRealFood, maxFakeFood):
 
     RFClist = []
@@ -243,11 +480,11 @@ def PlotExp2_v1(flist, rdpath, maxRealFood, maxFakeFood):
     RFCdata = []
     for r in RFClist:
         RFCdata.append((round(np.mean(r),1),np.std(r)))
-        print(f'{round(np.mean(r),1)} +- {np.std(r)}')
+        # print(f'{round(np.mean(r),1)} +- {np.std(r)}')
     FFCdata = []
     for f in FFClist:
         FFCdata.append((round(np.mean(f),1),np.std(f)))
-        print(f'{round(np.mean(f),1)} +- {np.std(f)}')
+        # print(f'{round(np.mean(f),1)} +- {np.std(f)}')
 
     x_tick_labels = ['10','15','20','25','30']
 
@@ -339,6 +576,117 @@ def PlotExp2_v1(flist, rdpath, maxRealFood, maxFakeFood):
     # plt.savefig('results/Experiment_2.png')
     plt.savefig(f'{rdpath}/Experiment_2.png')
 
+def PlotExp3_v1(flist, rdpath, maxRealFood, maxFakeFood):
+
+    RFClist = []
+    FFClist = []
+    FPlist = []
+
+    for filename in flist:
+        Read(filename)
+        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
+        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
+        FPlist.append(np.array(FALSE_POSITIVES).astype(float))
+    
+    RFCdata = []
+    for r in RFClist:
+        RFCdata.append((round(np.mean(r),1),np.std(r)))
+    FFCdata = []
+    for f in FFClist:
+        FFCdata.append((round(np.mean(f),1),np.std(f)))
+    for p in FPlist:
+        FPlist.append((round(np.mean(p),1),np.std(p)))
+
+    x_tick_labels = ['100%','80%','60%','40%','20%']
+
+
+    data1 = [
+        ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),    # Real Food Collected Means
+                                        (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),    # Real Food Collected StdDeviation
+                                        (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),    # Fake Food Collected Means
+                                        (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1])),   # Fake Food Collected StdDeviation
+                                        
+
+        ('$FA_{RF}$',                   (RFCdata[1][0],RFCdata[4][0],RFCdata[7][0],RFCdata[10][0],RFCdata[13][0]),
+                                        (RFCdata[1][1],RFCdata[4][1],RFCdata[7][1],RFCdata[10][1],RFCdata[13][1]),
+                                        (FFCdata[1][0],FFCdata[4][0],FFCdata[7][0],FFCdata[10][0],FFCdata[13][0]),
+                                        (FFCdata[1][1],FFCdata[4][1],FFCdata[7][1],FFCdata[10][1],FFCdata[13][1])),
+
+        ('$FA_{QZ}$',                   (RFCdata[2][0],RFCdata[5][0],RFCdata[8][0],RFCdata[11][0],RFCdata[14][0]),
+                                        (RFCdata[2][1],RFCdata[5][1],RFCdata[8][1],RFCdata[11][1],RFCdata[14][1]),
+                                        (FFCdata[2][0],FFCdata[5][0],FFCdata[8][0],FFCdata[11][0],FFCdata[14][0]),
+                                        (FFCdata[2][1],FFCdata[5][1],FFCdata[8][1],FFCdata[11][1],FFCdata[14][1])),
+
+        ('$FA_{QZ\_M}$',                (RFCdata[3][0],RFCdata[6][0],RFCdata[9][0],RFCdata[12][0],RFCdata[15][0]),
+                                        (RFCdata[3][1],RFCdata[6][1],RFCdata[9][1],RFCdata[12][1],RFCdata[15][1]),
+                                        (FFCdata[3][0],FFCdata[6][0],FFCdata[9][0],FFCdata[12][0],FFCdata[15][0]),
+                                        (FFCdata[3][1],FFCdata[6][1],FFCdata[9][1],FFCdata[12][1],FFCdata[15][1]))
+    ]
+
+    x = np.arange(len(x_tick_labels))
+    width=0.23
+    multiplier=0
+
+    fig,ax=plt.subplots(figsize=(14,10),nrows=2, sharex=True)
+    labelsize = 14
+    textsize = 23
+    top_plt_pad = -125
+    bottom_plt_pad = -25
+    top_labelcolor = 'white'
+    bottom_labelcolor = 'black'
+    bar_zorder = 0
+    label_zorder = 15
+    b_label_rotation = 30
+
+    offset = width * multiplier
+    rect1 = ax[0].bar(x+offset, data1[0][1], width, align="center", yerr=data1[0][2], ecolor='orange', label=data1[0][0], edgecolor='black', color='blue', zorder=bar_zorder)
+    ax[0].bar_label(rect1,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    multiplier+=1
+
+    offset = width * multiplier
+    rect3 = ax[0].bar(x+offset, data1[1][1], width, align="center", yerr=data1[1][2], ecolor='orange', label=data1[1][0], edgecolor='black', color='green', zorder=bar_zorder)
+    rect4 = ax[1].bar(x+offset, data1[1][3], width, align="center", yerr=data1[1][4], ecolor='orange', label=data1[1][0], edgecolor='black', hatch='xx', color='green', zorder=bar_zorder)
+    ax[0].bar_label(rect3,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    ax[1].bar_label(rect4,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    multiplier+=1
+
+    offset = width * multiplier
+    rect5 = ax[0].bar(x+offset, data1[2][1], width, align="center", yerr=data1[2][2], ecolor='orange', label=data1[2][0], edgecolor='black', color='red', zorder=bar_zorder)
+    rect6 = ax[1].bar(x+offset, data1[2][3], width, align="center", yerr=data1[2][4], ecolor='orange', label=data1[2][0], edgecolor='black', hatch='xx', color='red', zorder=bar_zorder)
+    ax[0].bar_label(rect5,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    ax[1].bar_label(rect6,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    multiplier+=1
+
+    offset = width * multiplier
+    rect7 = ax[0].bar(x+offset, data1[3][1], width, align="center", yerr=data1[3][2], ecolor='orange', label=data1[3][0], edgecolor='black', color='purple', zorder=bar_zorder)
+    rect8 = ax[1].bar(x+offset, data1[3][3], width, align="center", yerr=data1[3][4], ecolor='orange', label=data1[3][0], edgecolor='black', hatch='xx', color='purple', zorder=bar_zorder)
+    ax[0].bar_label(rect7,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    ax[1].bar_label(rect8,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    multiplier+=1
+    
+    # ax[0].legend(loc='lower left', ncols=2, fontsize=textsize, bbox_to_anchor=(0, -0.1), zorder = 20)
+
+    # First get the handles and labels from the axes
+    handles1, labels1 = ax[0].get_legend_handles_labels()
+    plt.legend(handles1, labels1, loc='lower left', ncol=2, fontsize=textsize)
+
+    # ax[0].set_ylim(0,maxRealFood)
+    ax[0].set_ylabel('Real Resources Collected', fontsize=textsize)
+    ax[1].set_ylim(0,65)
+    ax[1].set_ylabel('Fake Resources Collected', fontsize=textsize)
+    ax[1].invert_yaxis()
+
+    ax[1].set_xticks(x+width, x_tick_labels, fontsize=labelsize)
+    ax[1].xaxis.tick_bottom()
+    ax[1].set_xlabel('Fake Food Detection Accuracy', fontsize=textsize)
+
+    # ax[0].set_title('Foraging Results by Maximum Simulation Time')
+
+    fig.tight_layout()
+    fig.subplots_adjust(hspace=0)
+
+    plt.savefig(f'{rdpath}Experiment_3.png')
+
 def PlotPheromoneExperiment_v1(flist, maxFakeFood):
     
     FPlist = []
@@ -354,8 +702,7 @@ def PlotPheromoneExperiment_v1(flist, maxFakeFood):
     x_tick_labels = ['Standard', 'High']
 
     data = [
-        (FPdata[0][0], FPdata[0][1]),
-        (FPdata[1][0], FPdata[1][1]),
+        
     ]
 
     # generate a boxplot using FPlist
@@ -366,6 +713,70 @@ def PlotPheromoneExperiment_v1(flist, maxFakeFood):
     plt.ylim(0,maxFakeFood)
     plt.savefig("PheromoneExperiment1_boxplot.png")
     plt.close()
+
+def PlotArenaExperiment_v1(flist, rdpath, maxRealFood, maxFakeFood):
+
+    RFClist = []
+    FFClist = []
+    for filename in flist:
+        Read(filename)
+        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
+        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
+    
+    RFCdata = []
+    for r in RFClist:
+        RFCdata.append((round(np.mean(r),1),np.std(r)))
+        print(f'{round(np.mean(r),1)} +- {np.std(r)}')
+    FFCdata = []
+    for f in FFClist:
+        FFCdata.append((round(np.mean(f),1),np.std(f)))
+        print(f'{round(np.mean(f),1)} +- {np.std(f)}')
+
+    x_tick_labels = ['6x6','7x7','8x8','9x9','10x10']
+
+    data = [
+        ('FA$_{R}$',    (RFCdata[0][0], RFCdata[1][0], RFCdata[2][0], RFCdata[3][0], RFCdata[4][0]),    # real food means
+                        (RFCdata[0][1], RFCdata[1][1], RFCdata[2][1], RFCdata[3][1], RFCdata[4][1])),   # real food stdev
+
+        ('FA$_{F}$',    (FFCdata[0][0], FFCdata[1][0], FFCdata[2][0], FFCdata[3][0], FFCdata[4][0]),    # fake food means
+                        (FFCdata[0][1], FFCdata[1][1], FFCdata[2][1], FFCdata[3][1], FFCdata[4][1])),   # fake food stdev
+    ]
+
+    x = np.arange(len(x_tick_labels))
+    width=0.23
+    multiplier=0
+
+    labelsize = 14
+    textsize = 23
+    top_plt_pad = -125
+    bottom_plt_pad = -25
+    top_labelcolor = 'white'
+    bottom_labelcolor = 'black'
+    bar_zorder = 0
+    label_zorder = 15
+    b_label_rotation = 30
+
+    fig, ax = plt.subplots()
+
+    offset = width * multiplier
+    rect1 = ax.bar(x+offset, data[0][1], width, align="center", yerr=data[0][2], ecolor='orange', label=data[0][0], edgecolor='black', color='blue', zorder=bar_zorder)
+    ax.bar_label(rect1,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    multiplier+=1
+
+    offset = width * multiplier
+    rect2 = ax.bar(x+offset, data[1][1], width, align="center", yerr=data[1][2], ecolor='orange', label=data[1][0], edgecolor='black', hatch='xx', color='blue', zorder=bar_zorder)
+    ax.bar_label(rect2,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    multiplier+=1
+    
+    plt.legend(loc='upper left', ncol=2, fontsize=textsize)
+
+    ax.set_ylabel('Resources Collected', fontsize=textsize)
+    ax.set_xlabel('Arena Size', fontsize=textsize)
+
+    fig.tight_layout()
+    fig.subplots_adjust(hspace=0)
+
+    plt.savefig(f'{rdpath}/ArenaSize_Exp1.png')
 
 def InitialExperiment():
     run_count = 50
@@ -890,11 +1301,11 @@ def Experiment2_v1(rc):
     FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
 
     # Vary sim time -> 10, 15, 20, 25, 30
-    time = [10*60, 15*60, 20*60, 25*60, 30*60]
+    t_list = [10*60, 15*60, 20*60, 25*60, 30*60]
 
     flist = []
 
-    for t in time:
+    for t in t_list:
         
         time.sleep(0.05)
         XML.MAX_SIM_TIME = t
@@ -943,6 +1354,97 @@ def Experiment2_v1(rc):
 
     CheckForTerminatedSimulations(XML.RD_PATH)
     PlotExp2_v1(flist, XML.RD_PATH, RFmax, FFmax)
+
+def Experiment3_v1(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(True)  # Use increased density for fake food
+    XML.setBotCount(16)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.RD_PATH=f'results_Exp3_v2_{run_count}it/'
+
+    if (not CheckDirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not CheckDirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    XML.NUM_FCL = 3
+    XML.FCL_X = 6
+    XML.FCL_Y = 6
+
+    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
+    FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
+
+    flist = []
+
+    FF_acc_list = [1.0,0.8,0.6,0.4,0.2]
+
+    # Standard CPFA
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    flist.append(XML.setFname()+"DoSData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Standard CPFA, Iteration: {j+1}/{run_count}\n')
+        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+    
+    for j in FF_acc_list:
+
+        # pause for 5ms to check for termination command
+        time.sleep(0.05)
+        
+        XML.FF_ACC = j
+
+        # w/ Fake Food
+        XML.UseFFDoS(True)
+        XML.UseQZone(False)
+        flist.append(XML.setFname()+"DoSData.txt")
+        XML.createXML()
+        for k in range(run_count):
+            time.sleep(0.05)
+            print(f'CPFA w/ Fake Food, Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
+            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+        # w/ QZones no merging
+        XML.UseFFDoS(True)
+        XML.UseQZone(True)
+        XML.MM = 0
+        flist.append(XML.setFname()+"DoSData.txt")
+        XML.createXML()
+        for k in range(run_count):
+            time.sleep(0.05)
+            print(f'CPFA w/ QZones (no merge), Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
+            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+        # w/ QZones distance-based merging
+        XML.UseFFDoS(True)
+        XML.UseQZone(True)
+        XML.MM = 1
+        flist.append(XML.setFname()+"DoSData.txt")
+        XML.createXML()
+        for k in range(run_count):
+            time.sleep(0.05)
+            print(f'CPFA w/ QZones (DB-Merge), Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
+            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+    PlotExp3_v1(flist, XML.RD_PATH, RFmax, FFmax)
+    CheckForTerminatedSimulations(XML.RD_PATH)
+    # PlotExp1_merge_test(flist, RFmax, FFmax)
 
 def rePlotDensityExperiment():
     run_count = 30
@@ -1043,15 +1545,18 @@ def rePlotExperiment1_v2(rc, rd_path):
         
     # PlotExp1(flist, RFmax, FFmax)
     PlotExp1_v2(flist, XML.RD_PATH, RFmax, FFmax)
+    PrintExp1_data(flist, XML.RD_PATH, RFmax, FFmax)
 
-def rePlotExperiment2_v1():
-    run_count = 30
+def rePlotExperiment2_v1(rc, rd_path):
+    run_count = rc
 
     XML = config.C_XML_CONFIG(run_count)
     XML.VISUAL = False
     XML.Densify(True)  # Use standard density for fake food
     XML.setBotCount(16)
     XML.setDistribution(1) # Cluster Distribution Only
+    XML.RD_PATH = rd_path
+    XML.UseFFOnly(False)
 
     # Cluster Distribution Settings
     XML.NUM_RCL = 3
@@ -1095,7 +1600,8 @@ def rePlotExperiment2_v1():
         XML.MM = 1
         flist.append(XML.setFname()+"DoSData.txt")
 
-    PlotExp2_v1(flist, RFmax, FFmax)
+    PlotExp2_v1(flist, XML.RD_PATH, RFmax, FFmax)
+    PrintExp2_data(flist, XML.RD_PATH, RFmax, FFmax)
 
 def PheromoneExperiment_v1(rc):
     run_count = rc
@@ -1142,6 +1648,56 @@ def PheromoneExperiment_v1(rc):
         print(f'Running simulation {i+1}/{run_count}, Density: Increased')
         os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
     
+def ArenaSizeExperiment_v1(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.setBotCount(16)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.RD_PATH=f'results_ArenaSize_Exp1/'
+    XML.UseFFOnly(False)
+    XML.UseQZone(False)
+    XML.UseFFDoS(True)
+
+    if (not CheckDirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not CheckDirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_FCL = 3
+    XML.FCL_X = 6
+    XML.FCL_Y = 6
+
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
+    FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
+
+    arenaSize = [(6,6,1), (7,7,1), (8,8,1), (9,9,1), (10,10,1)]
+
+    flist = []
+
+    for a in arenaSize:
+        XML.ARENA_SIZE = a
+        flist.append(XML.setFname()+"DoSData.txt")
+        XML.createXML()
+        for i in range(run_count):
+            print(f'Running simulation {i+1}/{run_count}, Arena Size: {a}')
+            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+    
+    CheckForTerminatedSimulations(XML.RD_PATH)
+    PlotArenaExperiment_v1(flist, XML.RD_PATH, RFmax, FFmax)
+
 def testVisual():
 
     XML = config.C_XML_CONFIG(1)
@@ -1382,10 +1938,13 @@ if __name__ == "__main__":
     # testVisual()
 
     # Experiment1_v2(60)
-    # rePlotExperiment1_v2(30,'results_Exp1/')
-    Experiment2_v1(60)
+    # rePlotExperiment1_v2(60,'results_Exp1_60it/')
+    # Experiment2_v1(60)
+    # rePlotExperiment2_v1(60,'results_Exp2_60it/')
+    Experiment3_v1(60)
 
-    # rePlotExperiment2_v1()
+    # ArenaSizeExperiment_v1(60)
+
     # Experiment3TimeTest()
     # testExperiment1Visual()
     # Experiment1()

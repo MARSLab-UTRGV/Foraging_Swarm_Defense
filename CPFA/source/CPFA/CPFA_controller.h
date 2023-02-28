@@ -95,6 +95,9 @@ class CPFA_controller : public BaseController {
   
 		size_t           searchingTime; //qilu 09/26
 		size_t           travelingTime;//qilu 09/26
+
+		Real	FFdetectionAcc;
+		Real    RFdetectionAcc;
         
   
 		/* iAnt CPFA state variable */

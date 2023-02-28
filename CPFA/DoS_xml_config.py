@@ -65,6 +65,8 @@ class C_XML_CONFIG:
         self.TDT =               0.05                    # Target Distance Tolerance
         self.UQZ =               'false'                 # Turn ON/OFF QZone usage
         self.MM =                1                       # Merge Mode (0->No Merging, 1->Distance-Based)
+        self.FF_ACC=             1.00                    # Food Food Accuracy (0.0-1.0)
+        self.RF_ACC=             1.00                    # Real Food Food Accuracy (0.0-1.0)
 
         # Fake Food Loop Function Settings **
         self.USE_FF_DOS =        "true"                  # Turn on/off fake_food DoS
@@ -286,7 +288,6 @@ class C_XML_CONFIG:
             iter = f'iter{self.num_iterations}'
 
             self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
-            return self.fname_header
         else:
             path = self.RD_PATH
             alg = f'CPFA'
@@ -310,7 +311,11 @@ class C_XML_CONFIG:
 
             self.fname_header = f'{path}{alg}_{st}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
             # self.fname_header = f'{path}{alg}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
-            return self.fname_header
+
+        if self.FF_ACC < 1.0:
+            self.fname_header = self.fname_header + f'ffacc{int(self.FF_ACC*100)}_'
+        
+        return self.fname_header
 
     def setBotCount(self,botCount):
         if not botCount % 4 == 0:
@@ -410,6 +415,8 @@ class C_XML_CONFIG:
         params_settings.setAttribute('TargetDistanceTolerance', str(self.TDT))
         params_settings.setAttribute('UseQZones', str(self.UQZ))
         params_settings.setAttribute('MergeMode', str(self.MM))
+        params_settings.setAttribute('FFdetectionAcc', str(self.FF_ACC))
+        params_settings.setAttribute('RFdetectionAcc', str(self.RF_ACC))
         params.appendChild(params_settings)
         #           </params>
         #       </CPFA_controller>

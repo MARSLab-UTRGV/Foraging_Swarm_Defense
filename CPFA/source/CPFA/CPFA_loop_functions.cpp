@@ -58,7 +58,8 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	UseAltDistribution(false),
 	AltClusterWidth(0),
 	AltClusterLength(0),
-	UseFakeFoodOnly(false)
+	UseFakeFoodOnly(false),
+	numFalsePositives(0)
 {}
 
 void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {	
@@ -346,7 +347,7 @@ void CPFA_loop_functions::PostExperiment() {
 			DoSDataOutput 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
 							<< "Real Food Collected, Real Food Collection Rate (per second), "
 							<< "Fake Food Collected, Fake Food Collection Rate (per second), " 
-							<< "Real Food Trails Created, Fake Food Trails Created" << endl;
+							<< "Real Food Trails Created, Fake Food Trails Created, False Positives" << endl;
 		}
 
 		TotalFoodCollected = RealFoodCollected + FakeFoodCollected;
@@ -354,7 +355,7 @@ void CPFA_loop_functions::PostExperiment() {
 		DoSDataOutput 	<< getSimTimeInSeconds() << ',' << TotalFoodCollected << ',' << TotalFoodCollected/getSimTimeInSeconds() << ','
 						<< RealFoodCollected << ',' << RealFoodCollected/getSimTimeInSeconds() << ','
 						<< FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
-						<< numRealTrails << ',' << numFakeTrails << endl;
+						<< numRealTrails << ',' << numFakeTrails << numFalsePositives << endl;
       }
 
 	ofstream TerminateCount ((FilenameHeader+"TerminatedCount.txt").c_str(), ios::app);
