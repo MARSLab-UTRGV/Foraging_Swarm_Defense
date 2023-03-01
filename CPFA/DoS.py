@@ -1364,7 +1364,7 @@ def Experiment3_v1(rc):
     XML.Densify(True)  # Use increased density for fake food
     XML.setBotCount(16)
     XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=f'results_Exp3_v2_{run_count}it/'
+    XML.RD_PATH=f'results_Exp3_v3_{run_count}it/'
 
     if (not CheckDirectoryExists(XML.RD_PATH)):
         print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
@@ -1443,7 +1443,7 @@ def Experiment3_v1(rc):
             print(f'CPFA w/ QZones (DB-Merge), Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
             os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
-    PlotExp3_v1(flist, XML.RD_PATH, RFmax, FFmax)
+    #PlotExp3_v1(flist, XML.RD_PATH, RFmax, FFmax)
     CheckForTerminatedSimulations(XML.RD_PATH)
     # PlotExp1_merge_test(flist, RFmax, FFmax)
 
