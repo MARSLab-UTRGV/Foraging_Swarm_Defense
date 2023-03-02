@@ -16,6 +16,7 @@ FAKE_COLLECTION_RATE = []
 REAL_PTRAILS_CREATED = []
 FAKE_PTRAILS_CREATED = []
 FALSE_POSITIVES = []
+QZONES_CREATED = []
 
 def Read(fname):
     count = 0
@@ -29,6 +30,7 @@ def Read(fname):
     REAL_PTRAILS_CREATED.clear()
     FAKE_PTRAILS_CREATED.clear()
     FALSE_POSITIVES.clear()
+    QZONES_CREATED.clear()
     
     with open(fname) as f:
         for line in f.readlines():
@@ -45,6 +47,7 @@ def Read(fname):
             REAL_PTRAILS_CREATED.append(data[7])
             FAKE_PTRAILS_CREATED.append(data[8])
             FALSE_POSITIVES.append(data[9])
+            QZONES_CREATED.append(data[10])
 
 def PlotExp1(flist, maxRealFood, maxFakeFood):
 
@@ -586,27 +589,31 @@ def PlotExp3_v3(flist, rdpath, maxRealFood, maxFakeFood, x_ticks):
         Read(filename)
         RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
         FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
+        # FFClist.append(np.random.randint(0,108,(1,60)).astype(float))
         FPlist.append(np.array(FALSE_POSITIVES).astype(float))
+        # FPlist.append(np.random.randint(0,90,(1,60)).astype(float))
 
-    for i in range(len(RFClist)):
-        for j in range(len(REAL_FOOD_COLLECTED)):
-            RFClist[i][j] = RFClist[i][j]-FPlist[i][j]
-            FFClist[i][j] = FFClist[i][j]+FPlist[i][j]
+    # for i in range(len(RFClist)):
+    #     for j in range(len(REAL_FOOD_COLLECTED)):
+    #         RFClist[i][j] = RFClist[i][j]-FPlist[i][j]
+    #         FFClist[i][j] = FFClist[i][j]+FPlist[i][j]
     
     RFCdata = []
     for r in RFClist:
         RFCdata.append((round(np.mean(r),1),np.std(r)))
+    print (len(RFCdata))
     FFCdata = []
     for f in FFClist:
         FFCdata.append((round(np.mean(f),1),np.std(f)))
+    print (len(FFCdata))
     FPdata = []
     for p in FPlist:
         FPdata.append((round(np.mean(p),1),np.std(p)))
-
+    print (len(FPdata))
     x_tick_labels = []
     for x in x_ticks:
-        if x*100 % 2:
-            x_tick_labels.append(f'{x*100}%')
+        # if x*100 % 2:
+        x_tick_labels.append(f'{int(x*100)}%')
 
 
     # data1 = [
@@ -633,58 +640,52 @@ def PlotExp3_v3(flist, rdpath, maxRealFood, maxFakeFood, x_ticks):
     # ]
 
     data1 = [
-        ('$FA_{R}$',                (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),
-                                    (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),
+        ('$FA_{R}$',                (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),
+                                    (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),
                                     (FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0]),
                                     (FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1]),
-                                    (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),
-                                    (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1]))
+                                    (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),
+                                    (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1])),
+        
+        ('$FA_{FR}$',               (RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0]),
+                                    (RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1]),
+                                    (FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0]),
+                                    (FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1]),
+                                    (FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0]),
+                                    (FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1]))
     ]
 
-    # RFCdata = [std, ff100, qz100, qzm100, ff95, qz95, qzm95, ff90, qz90, qzm90]
+    # RFCdata = [std, ff, qz100, qzm100, qz95, qzm95, qz90, qzm90]
 
     # data1 = [rfc]
 
-    sim_type = ['$FA_{RF}$','$FA_{QZ}$','$FA_{QZ\_M}$']
-    for i in range(3):
-        rfc_m = ()
-        rfc_s = ()
-        fp_m = ()
-        fp_s = ()
-        ffc_m = ()
-        ffc_s = ()
-        counter = 1
-        for j in range(1+i,len(RFCdata),3):
-            counter+=1
-            if j == 1:
-                fp_m.append(FPdata[1][0])
-                fp_s.append(FPdata[1][1])
-                if counter == 2:
-                    rfc_m.append(RFCdata[1][0])
-                    rfc_s.append(RFCdata[1][1])
-                    ffc_m.append(FFCdata[1][0])
-                    ffc_s.append(FFCdata[1][1])
-                    counter = 0
-            else:
-                fp_m.append(FPdata[j][0])
-                fp_s.append(FPdata[j][1])
-                if counter == 2:
-                    rfc_m.append(RFCdata[j][0])
-                    rfc_s.append(RFCdata[j][1])
-                    ffc_m.append(FFCdata[j][0])
-                    ffc_s.append(FFCdata[j][1])
-                    counter = 0
-        data1.append((sim_type[i], rfc_m, rfc_s, fp_m, fp_s, ffc_m, ffc_s))
+    sim_type = ['$FA_{QZ}$','$FA_{QZ\_M}$']
+    for i in range(len(sim_type)):
+        rfc_m = []
+        rfc_s = []
+        fp_m = []
+        fp_s = []
+        ffc_m = []
+        ffc_s = []
+        for j in range(2+i,len(RFCdata),2):
+            fp_m.append(FPdata[j][0])
+            fp_s.append(FPdata[j][1])
+            rfc_m.append(RFCdata[j][0])
+            rfc_s.append(RFCdata[j][1])
+            ffc_m.append(FFCdata[j][0])
+            ffc_s.append(FFCdata[j][1])
+        data1.append((sim_type[i], tuple(rfc_m), tuple(rfc_s), tuple(fp_m), tuple(fp_s), tuple(ffc_m), tuple(ffc_s)))
 
     x = np.arange(len(x_tick_labels))
-    width=0.23
+    width=0.4
     multiplier=0
 
-    fig,ax=plt.subplots(figsize=(14,10),nrows=2, sharex=True)
+    fig,ax=plt.subplots(figsize=(14,10),nrows=3, sharex=True)
     labelsize = 14
     textsize = 23
+    ticksize = 18
     top_plt_pad = -125
-    bottom_plt_pad = -25
+    bottom_plt_pad = 25
     top_labelcolor = 'white'
     bottom_labelcolor = 'black'
     bar_zorder = 0
@@ -705,38 +706,53 @@ def PlotExp3_v3(flist, rdpath, maxRealFood, maxFakeFood, x_ticks):
 
     offset = width * multiplier
     rect5 = ax[0].bar(x+offset, data1[2][1], width, align="center", yerr=data1[2][2], ecolor='orange', label=data1[2][0], edgecolor='black', color='red', zorder=bar_zorder)
-    rect6 = ax[1].bar(x+offset, data1[2][5], width, align="center", yerr=data1[2][6], ecolor='orange', label=data1[2][0], edgecolor='black', hatch='xx', color='red', zorder=bar_zorder)
-    ax[0].bar_label(rect5,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    ax[1].bar_label(rect6,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    line1 = ax[0].axhline(data1[0][1][0], linestyle='dashed', color='blue', linewidth=2)
+    rect6 = ax[1].bar(x+offset, data1[2][3], width, align="center", yerr=data1[2][4], ecolor='orange', label=data1[2][0], edgecolor='black', hatch='..', color='red', zorder=bar_zorder)
+    rect7 = ax[2].bar(x+offset, data1[2][5], width, align="center", yerr=data1[2][6], ecolor='orange', label=data1[2][0], edgecolor='black', hatch='xx', color='red', zorder=bar_zorder)
+    line2 = ax[2].axhline(data1[0][1][0], linestyle='dashed', color='blue', linewidth=2)
+    # ax[0].bar_label(rect5,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    # ax[1].bar_label(rect6,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    # ax[2].bar_label(rect7,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
     multiplier+=1
 
     offset = width * multiplier
-    rect7 = ax[0].bar(x+offset, data1[3][1], width, align="center", yerr=data1[3][2], ecolor='orange', label=data1[3][0], edgecolor='black', color='purple', zorder=bar_zorder)
-    rect8 = ax[1].bar(x+offset, data1[3][5], width, align="center", yerr=data1[3][6], ecolor='orange', label=data1[3][0], edgecolor='black', hatch='xx', color='purple', zorder=bar_zorder)
-    ax[0].bar_label(rect7,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    ax[1].bar_label(rect8,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    rect8 = ax[0].bar(x+offset, data1[3][1], width, align="center", yerr=data1[3][2], ecolor='orange', label=data1[3][0], edgecolor='black', color='purple', zorder=bar_zorder)
+    line3 = ax[0].axhline(data1[1][1][0], linestyle='dashed', color='green', linewidth=2)
+    rect9 = ax[1].bar(x+offset, data1[3][3], width, align="center", yerr=data1[3][4], ecolor='orange', label=data1[3][0], edgecolor='black', hatch='..', color='purple', zorder=bar_zorder)
+    rect10 = ax[2].bar(x+offset, data1[3][5], width, align="center", yerr=data1[3][6], ecolor='orange', label=data1[3][0], edgecolor='black', hatch='xx', color='purple', zorder=bar_zorder)
+    line4 = ax[2].axhline(data1[1][1][0], linestyle='dashed', color='green', linewidth=2)
+    # ax[0].bar_label(rect8,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    # ax[1].bar_label(rect9,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    # ax[2].bar_label(rect10,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
     multiplier+=1
     
     # ax[0].legend(loc='lower left', ncols=2, fontsize=textsize, bbox_to_anchor=(0, -0.1), zorder = 20)
 
     # First get the handles and labels from the axes
-    handles1, labels1 = ax[0].get_legend_handles_labels()
-    plt.legend(handles1, labels1, loc='lower left', ncol=2, fontsize=textsize)
+    # handles1, labels1 = ax[0].get_legend_handles_labels()
+    # handles2, labels2 = ax[1].get_legend_handles_labels()
+    # handles3, labels3 = ax[2].get_legend_handles_labels()
+    # plt.legend(handles1, labels1, loc='lower left', ncol=2, fontsize=textsize)
 
     # ax[0].set_ylim(0,maxRealFood)
-    ax[0].set_ylabel('Real Resources Collected', fontsize=textsize)
-    ax[1].set_ylim(0,65)
-    ax[1].set_ylabel('Fake Resources Collected', fontsize=textsize)
-    # ax[1].invert_yaxis()
+    ax[0].set_ylabel('Real Resources\n Collected', fontsize=textsize, labelpad=20)
+    ax[1].set_ylabel('False Positives', fontsize=textsize, labelpad=20)
+    ax[2].set_ylabel('Fake Resources\n Collected', fontsize=textsize, labelpad=20)
 
-    ax[1].set_xticks(x+width, x_tick_labels, fontsize=labelsize)
-    ax[1].xaxis.tick_bottom()
-    ax[1].set_xlabel('Fake Food Detection Accuracy', fontsize=textsize)
+    ax[1].set_ylim(0,90)
 
-    # ax[0].set_title('Foraging Results by Maximum Simulation Time')
+    ax[0].tick_params(axis='both',labelsize=ticksize)
+    ax[1].tick_params(axis='both',labelsize=ticksize)
+    ax[2].tick_params(axis='both',labelsize=ticksize)
+    ax[2].tick_params(axis='x', rotation=b_label_rotation)
+
+    ax[2].set_xticks(x+width/2, x_tick_labels, fontsize=ticksize)
+    ax[2].xaxis.tick_bottom()
+    ax[2].set_xlabel('Fake Food Detection Accuracy', fontsize=textsize)
+
 
     fig.tight_layout()
-    fig.subplots_adjust(hspace=0)
+    fig.subplots_adjust(hspace=0.1)
 
     plt.savefig(f'{rdpath}Experiment_3.png')
 
@@ -1456,15 +1472,6 @@ def Experiment3_v1(rc):
         print(f'Standard CPFA, Iteration: {j+1}/{run_count}\n')
         os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
-    # w/ Fake Food
-    XML.UseFFDoS(True)
-    XML.UseQZone(False)
-    flist.append(XML.setFname()+"DoSData.txt")
-    XML.createXML()
-    for k in range(run_count):
-        time.sleep(0.05)
-        print(f'CPFA w/ Fake Food, Iteration: {k+1}/{run_count}\n')
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
     
     for j in FF_acc_list:
 
@@ -1473,6 +1480,15 @@ def Experiment3_v1(rc):
         
         XML.FF_ACC = j
 
+        # w/ Fake Food
+        XML.UseFFDoS(True)
+        XML.UseQZone(False)
+        flist.append(XML.setFname()+"DoSData.txt")
+        XML.createXML()
+        for k in range(run_count):
+            time.sleep(0.05)
+            print(f'CPFA w/ Fake Food, Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
+            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
         # w/ QZones no merging
         XML.UseFFDoS(True)
@@ -1697,7 +1713,7 @@ def rePlotExperiment3_v2(rc, rd_path):
     
     for j in FF_acc_list:
         XML.FF_ACC = j
-         
+        
         # w/ QZones no merging
         XML.UseFFDoS(True)
         XML.UseQZone(True)
@@ -2029,6 +2045,196 @@ def CheckForTerminatedSimulations(path):
             print(f'{file}\n')
         return True
 
+def reformatResults(rd):
+    alt = False
+    # go through all files in rd
+    for file in os.listdir(rd):
+        if file.endswith("DoSData.txt"):
+            alt = False
+            if file.endswith("ffacc100_DoSData.txt"):
+                # print('IN FILE 100 acc')
+                alt = True
+            # read in the data
+            with open(os.path.join(rd, file)) as f:
+                data = f.readlines()
+            # parse the data
+            for i in range(len(data)):
+                data[i] = data[i].strip().split(',')
+            # reformat data
+            for line in data:
+                if line[0] == 'Simulation Time (seconds)':
+                    continue
+                junk = line[len(line)-1]
+                new_junk = junk
+                if alt:
+                    if len(junk) == 3:
+                        new_junk = f'{junk[0]}{junk[1]},{junk[2]}'
+                    elif len(junk) == 2:
+                        new_junk = f'{junk[0]},{junk[1]}'
+                    else:
+                        print(f'Error: {junk} in {file}')
+                else:
+                    if len(junk) == 4:
+                        new_junk = f'{junk[0]}{junk[1]},{junk[2]}{junk[3]}'
+                    elif len(junk) == 3:
+                        new_junk = f'{junk[0]},{junk[1]}{junk[2]}'
+                    elif len(junk) == 2:
+                        new_junk = f'{junk[0]},{junk[1]}'
+                    else:
+                        print(f'Error: {junk} in {file}')
+                        continue
+                line[len(line)-1] = new_junk
+            # write the reformatted data
+            with open(os.path.join(rd, file), 'w') as f:
+                for line in data:
+                    f.write(','.join(line) + '\n')
+
+def QZoneCountExperimentTest():
+    run_count = 1
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = True
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(True)  # Use increased density for fake food
+    XML.setBotCount(16)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.RD_PATH=f'results_qztest_{run_count}it/'
+    XML.RANDOM_SEED = 194114
+
+    if (not CheckDirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not CheckDirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    XML.NUM_FCL = 10
+    XML.FCL_X = 6
+    XML.FCL_Y = 6
+
+    XML.UseFFDoS(True)
+    XML.UseQZone(True)
+    XML.MM=0
+    XML.createXML()
+    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+    XML.MM=1
+    XML.createXML()
+    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+def QZoneCountExperiment(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(True)  # Use increased density for fake food
+    XML.setBotCount(16)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.RD_PATH=f'results_qztest_{run_count}it/'
+    # XML.RANDOM_SEED = 194114
+
+    if (not CheckDirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not CheckDirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    XML.NUM_FCL = 10
+    XML.FCL_X = 6
+    XML.FCL_Y = 6
+
+    XML.UseFFDoS(True)
+    XML.UseQZone(True)
+
+    for i in range(run_count):
+        XML.MM=0
+        XML.createXML()
+        print(f'Running QZone NO MERGE {i+1}/{run_count}...')
+        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+    for i in range(run_count):
+        XML.MM=1
+        XML.createXML()
+        print(f'Running QZone DB-MERGE {i+1}/{run_count}...')
+        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+
+    CheckForTerminatedSimulations(XML.RD_PATH)
+
+def checkFormat(rd):
+    # check if the format is correct
+    alt = False
+    # go through all files in rd
+    for file in os.listdir(rd):
+        if file.endswith("DoSData.txt"):
+            alt = False
+            if file.endswith("ffacc100_DoSData.txt"):
+                # print('IN FILE 100 acc')
+                alt = True
+            # read in the data
+            with open(os.path.join(rd, file)) as f:
+                data = f.readlines()
+            # parse the data
+            for i in range(len(data)):
+                data[i] = data[i].strip().split(',')
+            for line in data:
+                if line[0] == 'Simulation Time (seconds)':
+                    continue
+                if len(line) != 10:
+                    print('Error: ' + file + ' has ' + str(len(data)) + ' lines instead of 10')
+                if int(line[9]) > 108:
+                    print('Error: ' + file + ' has ' + str(int(line[9])) + ' packets instead of <= 108')
+
+def getMeanStd(rd):
+
+    noMerge = []
+    dbMerge = []
+    # go through all files in rd
+    for file in os.listdir(rd):
+        if file.startswith("CPFA_st-3"):
+            Read(rd+file)
+            noMerge=np.array(QZONES_CREATED).astype(float)
+            print(noMerge)
+        elif file.startswith("CPFA_st-2"):
+            Read(rd+file)
+            dbMerge=np.array(QZONES_CREATED).astype(float)
+            print(dbMerge)
+    
+    # noMergeData = []
+    # for r in noMerge:
+    #     noMergeData.append((np.mean(r),np.std(r)))
+    # dbMergeData = []
+    # for f in dbMerge:
+    #     dbMergeData.append((np.mean(r),np.std(r)))
+
+    # get mean of noMerge and dbMerge with np
+    noMergeMean = np.mean(noMerge)
+    dbMergeMean = np.mean(dbMerge)
+    noMergeStd = np.std(noMerge)
+    dbMergeStd = np.std(dbMerge)
+    
+    # print them
+    print('noMergeMean: ' + str(noMergeMean))
+    print('noMergeStd: ' + str(noMergeStd))
+    print('dbMergeMean: ' + str(dbMergeMean))
+    print('dbMergeStd: ' + str(dbMergeStd))
+
+
 # Random Seed List
 # 
 # 
@@ -2052,8 +2258,15 @@ if __name__ == "__main__":
     # rePlotExperiment1_v2(60,'results_Exp1_60it/')
     # Experiment2_v1(60)
     # rePlotExperiment2_v1(60,'results_Exp2_60it/')
-    Experiment3_v1(60)
+    # Experiment3_v1(60)
     # rePlotExperiment3_v2(60,'results_Exp3_v3_60it/')
+
+    # QZoneCountExperimentTest()
+    # QZoneCountExperiment(60)
+    getMeanStd('results_qztest_60it/')
+    
+    # reformatResults('results_Exp3_v3_60it/')
+    # checkFormat('results_Exp3_v3_60it/')
 
     # ArenaSizeExperiment_v1(60)
 

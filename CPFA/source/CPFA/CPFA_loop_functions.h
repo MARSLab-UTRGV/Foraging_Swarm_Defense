@@ -118,6 +118,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t numRealTrails;
 		size_t numFakeTrails;
 		size_t numFalsePositives;
+		size_t numQZones;
 
 		/* Result Collection */
 		string FilenameHeader;	// Ryan Luna 12/09/22
