@@ -563,72 +563,77 @@ void CPFA_controller::Returning() {
 			// only count it if the food is real ** Ryan Luna 11/12/22
 			if (!isHoldingFakeFood){	// IF HOLDING REAL FOOD
 
+				num_targets_collected++;
+				LoopFunctions->currNumCollectedFood++;
+				LoopFunctions->RealFoodCollected++;
+				LoopFunctions->setScore(num_targets_collected);
+				// delete local food list		Ryan Luna 01/24/23
+				ClearLocalFoodList();
+
+				/**
+				 * Always lay the pheromone trail if the food is real
+				 * 
+				 * Ryan Luna 01/25/23
+				*/
+				if(poissonCDF_pLayRate > r1 && updateFidelity) {
+					LoopFunctions->numRealTrails++;
+					TrailToShare.push_back(SiteFidelityPosition);	// moved from SetLocalResourseDensity() Ryan Luna 02/05/23
+					TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
+					argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+					Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood);
+					LoopFunctions->PheromoneList.push_back(sharedPheromone);
+					sharedPheromone.Deactivate(); // make sure this won't get re-added later...
+				}
+				TrailToShare.clear(); 
 				// the nest will detect real food with <RFdetectionAcc> accuracy.
 				Real random = RNG->Uniform(CRange<Real>(0.0, 1.0));
-				if (random < RFdetectionAcc) {	// passed real food detection probability
+
+
+
+
+				
+				if (random <= RFdetectionAcc) {	// passed real food detection probability
 					//argos::LOG << "Real Food Aquired" << endl;
-					num_targets_collected++;
-					LoopFunctions->currNumCollectedFood++;
-					LoopFunctions->RealFoodCollected++;
-					LoopFunctions->setScore(num_targets_collected);
 
-					// delete local food list		Ryan Luna 01/24/23
-					ClearLocalFoodList();
-
-					/**
-					 * Always lay the pheromone trail if the food is real
-					 * 
-					 * Ryan Luna 01/25/23
-					*/
-					if(poissonCDF_pLayRate > r1 && updateFidelity) {
-						LoopFunctions->numRealTrails++;
-						TrailToShare.push_back(SiteFidelityPosition);	// moved from SetLocalResourseDensity() Ryan Luna 02/05/23
-						TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
-						argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
-						Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood);
-						LoopFunctions->PheromoneList.push_back(sharedPheromone);
-						sharedPheromone.Deactivate(); // make sure this won't get re-added later...
-					}
-					TrailToShare.clear(); 
 
 				} else {	// TREAT IT AS FAKE FOOD
 
 					//argos::LOG << "Fake Food Aquired" << endl;
-					LoopFunctions->FakeFoodCollected++;
+					// LoopFunctions->FakeFoodCollected++;
 
-					if (!LocalFoodList.empty() && UseQZones){	// IF THE LOCAL FOOD LIST IS NOT EMPTY
+					// if (!LocalFoodList.empty() && UseQZones){	// IF THE LOCAL FOOD LIST IS NOT EMPTY
 
-						// give local food info to nest to create a quarantine zone		Ryan Luna 01/24/23
-						LoopFunctions->MainNest.CreateZone(MergeMode, LoopFunctions->FoodList, LocalFoodList, FoodBeingHeld, LoopFunctions->SearchRadius);
-						ClearLocalFoodList();
-						// possible unsafe usage of FoodBeingHeld (unsure how to clean object memory without destroying it)		// Ryan Luna 01/25/23
-					}
-					if (!UseQZones){
-						/**
-						 * If we are NOT using QZones, lay a pheromone trail for fake food too
-						 * 
-						 * Ryan Luna 02/5/23
-						*/
-						if(poissonCDF_pLayRate > r1 && updateFidelity) {
-							LoopFunctions->numFakeTrails++;
-							TrailToShare.push_back(SiteFidelityPosition);
-							TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
-							argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
-							Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood);
-							LoopFunctions->PheromoneList.push_back(sharedPheromone);
-							sharedPheromone.Deactivate(); // make sure this won't get re-added later...
-						}
-						TrailToShare.clear(); 
-				}
+					// 	// give local food info to nest to create a quarantine zone		Ryan Luna 01/24/23
+					// 	LoopFunctions->MainNest.CreateZone(MergeMode, LoopFunctions->FoodList, LocalFoodList, FoodBeingHeld, LoopFunctions->SearchRadius);
+					// 	ClearLocalFoodList();
+					// 	// possible unsafe usage of FoodBeingHeld (unsure how to clean object memory without destroying it)		// Ryan Luna 01/25/23
+					// }
+					// if (!UseQZones){
+					// 	/**
+					// 	 * If we are NOT using QZones, lay a pheromone trail for fake food too
+					// 	 * 
+					// 	 * Ryan Luna 02/5/23
+					// 	*/
+					// 	if(poissonCDF_pLayRate > r1 && updateFidelity) {
+					// 		LoopFunctions->numRealTrails++;
+					// 		TrailToShare.push_back(SiteFidelityPosition);
+					// 		TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
+					// 		argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+					// 		Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood);
+					// 		LoopFunctions->PheromoneList.push_back(sharedPheromone);
+					// 		sharedPheromone.Deactivate(); // make sure this won't get re-added later...
+					// 	}
+					// 	TrailToShare.clear(); 
+					// }
 
 				}
 			} else {	// IF HOLDING FAKE FOOD
 
+				LoopFunctions->FakeFoodCollected++;
 				// the nest will detect fake food with <FFdetectionAcc> accuracy.
 				Real random = RNG->Uniform(CRange<Real>(0.0, 1.0));
-				if (random < FFdetectionAcc){	// Passed fake food detection probability
+				if (random <= FFdetectionAcc){	// Passed fake food detection probability
 					//argos::LOG << "Fake Food Aquired" << endl;
-					LoopFunctions->FakeFoodCollected++;
 
 					if (!LocalFoodList.empty() && UseQZones){	// IF THE LOCAL FOOD LIST IS NOT EMPTY
 
@@ -658,10 +663,10 @@ void CPFA_controller::Returning() {
 					LOG << "False Positive Collected..." << endl;
 					LoopFunctions->numFalsePositives++;		// increment number of false positives on real food detected
 					//argos::LOG << "Real Food Aquired" << endl;
-					num_targets_collected++;
-					LoopFunctions->currNumCollectedFood++;
-					LoopFunctions->RealFoodCollected++;
-					LoopFunctions->setScore(num_targets_collected);
+					// num_targets_collected++;
+					// LoopFunctions->currNumCollectedFood++;
+					// LoopFunctions->RealFoodCollected++;
+					// LoopFunctions->setScore(num_targets_collected);
 
 					// delete local food list		Ryan Luna 01/24/23
 					ClearLocalFoodList();
@@ -672,7 +677,7 @@ void CPFA_controller::Returning() {
 					 * Ryan Luna 01/25/23
 					*/
 					if(poissonCDF_pLayRate > r1 && updateFidelity) {
-						LoopFunctions->numRealTrails++;
+						LoopFunctions->numFakeTrails++;
 						TrailToShare.push_back(SiteFidelityPosition);	// moved from SetLocalResourseDensity() Ryan Luna 02/05/23
 						TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
 						argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());

@@ -355,7 +355,7 @@ void CPFA_loop_functions::PostExperiment() {
 		DoSDataOutput 	<< getSimTimeInSeconds() << ',' << TotalFoodCollected << ',' << TotalFoodCollected/getSimTimeInSeconds() << ','
 						<< RealFoodCollected << ',' << RealFoodCollected/getSimTimeInSeconds() << ','
 						<< FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
-						<< numRealTrails << ',' << numFakeTrails << numFalsePositives << endl;
+						<< numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << endl;
       }
 
 	ofstream TerminateCount ((FilenameHeader+"TerminatedCount.txt").c_str(), ios::app);

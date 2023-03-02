@@ -1456,6 +1456,15 @@ def Experiment3_v1(rc):
         print(f'Standard CPFA, Iteration: {j+1}/{run_count}\n')
         os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
+    # w/ Fake Food
+    XML.UseFFDoS(True)
+    XML.UseQZone(False)
+    flist.append(XML.setFname()+"DoSData.txt")
+    XML.createXML()
+    for k in range(run_count):
+        time.sleep(0.05)
+        print(f'CPFA w/ Fake Food, Iteration: {k+1}/{run_count}\n')
+        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
     
     for j in FF_acc_list:
 
@@ -1464,15 +1473,6 @@ def Experiment3_v1(rc):
         
         XML.FF_ACC = j
 
-        # w/ Fake Food
-        XML.UseFFDoS(True)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ Fake Food, Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
 
         # w/ QZones no merging
         XML.UseFFDoS(True)
@@ -1690,15 +1690,14 @@ def rePlotExperiment3_v2(rc, rd_path):
     XML.UseQZone(False)
     flist.append(XML.setFname()+"DoSData.txt")
 
+    # w/ Fake Food
+    XML.UseFFDoS(True)
+    XML.UseQZone(False)
+    flist.append(XML.setFname()+"DoSData.txt")
     
     for j in FF_acc_list:
         XML.FF_ACC = j
-        
-        # w/ Fake Food
-        XML.UseFFDoS(True)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        
+         
         # w/ QZones no merging
         XML.UseFFDoS(True)
         XML.UseQZone(True)
@@ -2053,8 +2052,8 @@ if __name__ == "__main__":
     # rePlotExperiment1_v2(60,'results_Exp1_60it/')
     # Experiment2_v1(60)
     # rePlotExperiment2_v1(60,'results_Exp2_60it/')
-    # Experiment3_v1(60)
-    rePlotExperiment3_v2(60,'results_Exp3_v3_60it/')
+    Experiment3_v1(60)
+    # rePlotExperiment3_v2(60,'results_Exp3_v3_60it/')
 
     # ArenaSizeExperiment_v1(60)
 

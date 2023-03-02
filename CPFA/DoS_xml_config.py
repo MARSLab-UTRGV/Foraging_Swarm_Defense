@@ -312,8 +312,8 @@ class C_XML_CONFIG:
             self.fname_header = f'{path}{alg}_{st}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
             # self.fname_header = f'{path}{alg}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
 
-        if self.FF_ACC < 1.0:
-            self.fname_header = self.fname_header + f'ffacc{int(self.FF_ACC*100)}_'
+    
+        self.fname_header = self.fname_header + f'ffacc{int(self.FF_ACC*100)}_'
         
         return self.fname_header
 
