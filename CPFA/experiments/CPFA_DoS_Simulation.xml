@@ -16,13 +16,13 @@
 				<footbot_motor_ground implementation="rot_z_only"/>
 			</sensors>
 			<params>
-				<settings DestinationNoiseStdev="0.0" FoodDistanceTolerance="0.13" NestAngleTolerance="0.1" NestDistanceTolerance="0.05" PositionNoiseStdev="0.0" ResultsDirectoryPath="results/" RobotForwardSpeed="16.0" RobotRotationSpeed="8.0" SearchStepSize="0.08" TargetAngleTolerance="0.1" TargetDistanceTolerance="0.05"/>
+				<settings DestinationNoiseStdev="0.0" FoodDistanceTolerance="0.13" NestAngleTolerance="0.1" NestDistanceTolerance="0.05" PositionNoiseStdev="0.0" ResultsDirectoryPath="results_qztest_60it/" RobotForwardSpeed="16.0" RobotRotationSpeed="8.0" SearchStepSize="0.08" TargetAngleTolerance="0.1" TargetDistanceTolerance="0.05" UseQZones="true" MergeMode="1" FFdetectionAcc="1.0" RFdetectionAcc="1.0"/>
 			</params>
 		</CPFA_controller>
 	</controllers>
 	<loop_functions label="CPFA_loop_functions" library="build/source/CPFA/libCPFA_loop_functions">
-		<CPFA PrintFinalScore="1" ProbabilityOfReturningToNest="0.0147598869881" ProbabilityOfSwitchingToSearching="0.723128706375" RateOfInformedSearchDecay="0.205799848158" RateOfLayingPheromone="14.7027566005" RateOfPheromoneDecay="0.0245057227138" RateOfSiteFidelity="14.1514206414" UninformedSearchVariation="2.81939731297"/>
-		<settings DrawIDs="1" DrawTargetRays="0" DrawTrails="0" DrawDensityRate="4" MaxSimCounter="1" MaxSimTimeInSeconds="1000" OutputData="0" NestElevation="0.001" NestPosition="(0, 0)" NestRadius="0.25" VariableFoodPlacement="0" FoodRadius="0.05" FoodDistribution="0" NumRealFood="128" PowerlawFoodUnitCount="128" NumberOfClusters="2" ClusterWidthX="8" ClusterWidthY="8" UseFakeFoodDoS="true" FakeFoodDistribution="0" NumFakeFood="192" PowerlawFakeFoodUnitCount="192" NumFakeClusters="3" FakeClusterWidthX="8" FakeClusterWidthY="8" FilenameHeader="./results/CPFA_R-rand_F-rand_r24_rfc128_ffc192_10by10_time1000_iter50_"/>
+		<CPFA PrintFinalScore="1" ProbabilityOfReturningToNest="0.00297618325581" ProbabilityOfSwitchingToSearching="0.3637176255" RateOfInformedSearchDecay="0.253110502082" RateOfLayingPheromone="8.98846470854" RateOfPheromoneDecay="0.063119269938" RateOfSiteFidelity="1.42036207003" UninformedSearchVariation="2.67338576954"/>
+		<settings DrawIDs="1" DrawTargetRays="0" DrawTrails="0" DrawDensityRate="4" MaxSimCounter="1" MaxSimTimeInSeconds="900" OutputData="0" NestElevation="0.001" NestPosition="(0, 0)" NestRadius="0.25" VariableFoodPlacement="0" FoodRadius="0.05" UseFakeFoodOnly="false" FoodDistribution="1" UseAltDistribution="false" AltClusterWidth="36" AltClusterLength="4" NumRealFood="192" PowerlawFoodUnitCount="192" NumberOfClusters="3" ClusterWidthX="6" ClusterWidthY="6" UseFakeFoodDoS="true" FakeFoodDistribution="1" NumFakeFood="64" PowerlawFakeFoodUnitCount="64" NumFakeClusters="10" FakeClusterWidthX="6" FakeClusterWidthY="6" FilenameHeader="results_qztest_60it/CPFA_st-2_R-cl_F-cl_r16_rfc108_ffc360_10by10_time900_iter60_ffacc100_" Densify="true"/>
 	</loop_functions>
 	<arena size="10,10,1" center="0,0,0.5">
 		<floor id="floor" pixels_per_meter="10" source="loop_functions"/>
@@ -41,7 +41,7 @@
 		<distribute>
 			<position center="1,1,0.0" distances="0.3,0.3,0.0" layout="2,3,1" method="grid"/>
 			<orientation method="constant" values="0.0,0.0,0.0"/>
-			<entity quantity="6" max_trials="100">
+			<entity quantity="4.0" max_trials="100">
 				<foot-bot id="fb0">
 					<controller config="CPFA"/>
 				</foot-bot>
@@ -50,7 +50,7 @@
 		<distribute>
 			<position center="1,-1,0.0" distances="0.3,0.3,0.0" layout="2,3,1" method="grid"/>
 			<orientation method="constant" values="0.0,0.0,0.0"/>
-			<entity quantity="6" max_trials="100">
+			<entity quantity="4.0" max_trials="100">
 				<foot-bot id="fb1">
 					<controller config="CPFA"/>
 				</foot-bot>
@@ -59,7 +59,7 @@
 		<distribute>
 			<position center="-1,1,0.0" distances="0.3,0.3,0.0" layout="2,3,1" method="grid"/>
 			<orientation method="constant" values="0.0,0.0,0.0"/>
-			<entity quantity="6" max_trials="100">
+			<entity quantity="4.0" max_trials="100">
 				<foot-bot id="fb2">
 					<controller config="CPFA"/>
 				</foot-bot>
@@ -68,7 +68,7 @@
 		<distribute>
 			<position center="-1,-1,0.0" distances="0.3,0.3,0.0" layout="2,3,1" method="grid"/>
 			<orientation method="constant" values="0.0,0.0,0.0"/>
-			<entity quantity="6" max_trials="100">
+			<entity quantity="4.0" max_trials="100">
 				<foot-bot id="fb3">
 					<controller config="CPFA"/>
 				</foot-bot>

@@ -2,22 +2,24 @@
 
 #include "QuarantineZone.h"
 
-QZone::QZone(CVector2 location, size_t radius):
+QZone::QZone(CVector2 location, Real radius):
     Location(location), 
-    Radius(radius)
+    Radius(radius),
+    Color(CColor::RED)
 {
     // nothing yet
 }
 
-CVector2    QZone::GetLocation()    {return Location;}
-CColor      QZone::GetColor()       {return Color;}
-size_t      QZone::GetRadius()      {return Radius;}
+CVector2        QZone::GetLocation()    {return Location;}
+CColor          QZone::GetColor()       {return Color;}
+Real            QZone::GetRadius()      {return Radius;}
+vector<Food>    QZone::GetFoodList()    {return QFood;}
 
-void        QZone::SetLocation(CVector2 newLocation)    {Location = newLocation;}
-void        QZone::SetColor(CColor newColor)            {Color = newColor;}
-void        QZone::SetRadius(size_t newRadius)          {Radius = newRadius;}
+void        QZone::SetLocation(CVector2 newLocation)        {Location = newLocation;}
+void        QZone::SetColor(CColor newColor)                {Color = newColor;}
+void        QZone::SetRadius(Real newRadius)                {Radius = newRadius;}
 
-void        QZone::AddFood(Food newFood)                {QFood.push_back(newFood);}
+void        QZone::AddFood(Food newFood)                    {QFood.push_back(newFood);}
 void        QZone::RemoveFood(Food foodObj){
     
     int i = 0;

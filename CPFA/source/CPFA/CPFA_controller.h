@@ -50,6 +50,7 @@ class CPFA_controller : public BaseController {
 		void AddLocalFood(Food newFood);
 		void RemoveZone(QZone Z);
 		void RemoveLocalFood(Food F);
+		bool TargetInQZone(CVector2 target);
 
 	private:
 
@@ -57,6 +58,7 @@ class CPFA_controller : public BaseController {
 		vector<QZone>	QZoneList;
 		vector<Food>	LocalFoodList;
 
+		Food FoodBeingHeld;		// Ryan Luna 1/24/23
 
   		string 			controllerID;//qilu 07/26/2016
 
@@ -80,13 +82,22 @@ class CPFA_controller : public BaseController {
 		bool isHoldingFakeFood;		// Ryan Luna 11/12/22
 		bool isUsingSiteFidelity;
 		bool isGivingUpSearch;
+		bool QZoneStrategy;		// to turn ON/OFF Quarantine Zones
   
 		size_t ResourceDensity;
 		size_t MaxTrailSize;
 		size_t SearchTime;//for informed search
+		size_t BadFoodCount;	// Ryan Luna 01/30/23
+		size_t BadFoodLimit;	// Ryan Luna 01/30/23
+		QZone* CurrentZone;		// Ryan Luna 01/30/23
+		bool UseQZones;			// Ryan Luna 02/05/23
+		size_t MergeMode;
   
 		size_t           searchingTime; //qilu 09/26
 		size_t           travelingTime;//qilu 09/26
+
+		Real	FFdetectionAcc;
+		Real    RFdetectionAcc;
         
   
 		/* iAnt CPFA state variable */

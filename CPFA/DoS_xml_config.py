@@ -30,11 +30,10 @@ class C_XML_CONFIG:
         ####### CONFIGURATION #######
 
         self.BOT_DEFAULT_DIST =  True                    # Use default distribution found in original CPFA tests
-                                                        # If this method is used, self.BOT_COUNT is ignored and 24 bots
-                                                        # will be used instead in grid distribution mode
-
-        # NOT YET IMPLEMENTED **********************************
+                                                         # If this method is used, self.BOT_COUNT is ignored and 24 bots
+                                                         # will be used instead in grid distribution mode
         self.BOT_COUNT =         24                      # total bot count
+        self.BOTS_PER_GROUP =    self.BOT_COUNT/4        # number of bots per group * DEFAULT DISTRIBUTION ONLY*
         self.BOT_DIST_RAD =      1.5                     # Bot distribution radius (uniform distribution in central area)
 
         self.ARENA_SIZE =        (10,10,1)               # (x,y,z)
@@ -64,6 +63,10 @@ class C_XML_CONFIG:
         self.SSS =               0.08                    # Search Step Size
         self.TAT =               0.10                    # Target Angle Tolerance
         self.TDT =               0.05                    # Target Distance Tolerance
+        self.UQZ =               'false'                 # Turn ON/OFF QZone usage
+        self.MM =                1                       # Merge Mode (0->No Merging, 1->Distance-Based)
+        self.FF_ACC=             1.00                    # Food Food Accuracy (0.0-1.0)
+        self.RF_ACC=             1.00                    # Real Food Food Accuracy (0.0-1.0)
 
         # Fake Food Loop Function Settings **
         self.USE_FF_DOS =        "true"                  # Turn on/off fake_food DoS
@@ -72,7 +75,11 @@ class C_XML_CONFIG:
         self.NUM_FCL =           1                       # Number of fake food clusters for cluster distribution
         self.FCL_X =             8                       # Fake cluster width X for cluster distribution
         self.FCL_Y =             8                       # Fake cluster width Y for cluster distribution
-        self.NUM_PLAW_FF =       64                     # Number of fake food to distribute for power law distribution
+        self.NUM_PLAW_FF =       64                      # Number of fake food to distribute for power law distribution
+        self.USE_ALT_DIST =      "false"                 # Use alternate fake food distribution (4 3x12 clusters on each wall)
+        self.ALT_FCL_W =         36                      # Alternate fake food cluster width (using alt dist only)
+        self.ALT_FCL_L =         4                       # Alternate fake food cluster length (using alt dist only)
+        self.USE_FF_ONLY =       'false'                 # Turn on/off fake food only mode (0=No, 1=Yes) (default = No)
 
         # Real Food Loop Function Settings
         self.RFD =               0                       # Real Food Distribution Mode (0=Random, 1=Cluster, 2=PowerLaw) (default = Random)
@@ -95,6 +102,7 @@ class C_XML_CONFIG:
         self.NEST_RAD =          0.25                    # Nest radius
         self.VFP =               0                       # Variable food placement
         self.FOOD_RAD =          0.05                    # Food radius
+        self.DENSIFY =           "false"                 # Turn ON/OFF dense clusters
 
         self.fname_header = "\0"                         # Filename Header
         self.num_iterations = iterations                 # Number of Experiment Iterations
@@ -121,8 +129,8 @@ class C_XML_CONFIG:
             self.RLP     = "8.98846470854"
             self.RPD     = "0.063119269938"
 
-            self.RFD     = 1
-            self.FFD     = 1
+            self.RFD    = 1
+            self.FFD    = 1
 
         elif distribution == 2:  # powerlaw
             self.PSS     = "0.3637176255"
@@ -131,12 +139,48 @@ class C_XML_CONFIG:
             self.RISD    = "0.253110502082"
             self.RSF     = "1.42036207003"
             self.RLP     = "15.976929417"
-            self.PRD     = "0.063119269938"
+            self.RPD     = "0.063119269938"
 
             self.RFD     = 2
             self.FFD     = 2
         else:
             raise Exception("ERROR: A valid distribution mode was not given...")
+
+    def UseFFDoS(self, useFF):
+        if (useFF):
+            if(self.USE_FF_ONLY == "true"):
+                print("ERROR: Cannot use FF Only and FF DoS at the same time...")
+                exit(1)
+            self.USE_FF_DOS = 'true'
+        else:
+            self.USE_FF_DOS = 'false'
+        
+    def UseQZone(self, useQZ):
+        if (useQZ):
+            self.UQZ = "true"
+        else:
+            self.UQZ = "false"
+    
+    def Densify(self, dense):
+        if dense:
+            self.DENSIFY = "true"
+        else:
+            self.DENSIFY = "false"
+
+    def UseAltDistribution(self, useAlt):
+        if (useAlt):
+            self.USE_ALT_DIST = 'true'
+        else:
+            self.USE_ALT_DIST = 'false'
+    
+    def UseFFOnly(self, useFFOnly):
+        if (useFFOnly):
+            if (self.USE_FF_DOS == 'true'):
+                print("ERROR: Cannot use FF Only and use FF DoS at the same time...")
+                exit(1)
+            self.USE_FF_ONLY = 'true'
+        else:
+            self.USE_FF_ONLY = 'false'
 
     # generates arena size string for xml based on self.ARENA_SIZE
     def arenaSize(self):
@@ -178,6 +222,7 @@ class C_XML_CONFIG:
         dist = ''
         num_real_food = 0
         num_fake_food = 0
+        dense = ''
         
         if self.RFD == 0 and self.FFD == 0:
             dist = 'R-rand_F-rand'
@@ -227,7 +272,56 @@ class C_XML_CONFIG:
         else:
             raise Exception("ERROR: Invalid distribution method used.\n")
 
-        self.fname_header = f'./results/CPFA_{dist}_r{self.BOT_COUNT}_rfc{num_real_food}_ffc{num_fake_food}_{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}_time{self.MAX_SIM_TIME}_iter{self.num_iterations}_'
+        if (self.USE_FF_ONLY == 'true'):
+            if self.DENSIFY == "true":
+                dense = 'density-high'
+            else:
+                dense = 'density-std'
+
+            path = self.RD_PATH
+            alg = f'CPFA'
+            bot_count = f'r{self.BOT_COUNT}'
+            rfc = f'rfc0'
+            ffc = f'ffc{num_fake_food}'
+            arena = f'{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}'
+            time = f'time{self.MAX_SIM_TIME}'
+            iter = f'iter{self.num_iterations}'
+
+            self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
+        else:
+            path = self.RD_PATH
+            alg = f'CPFA'
+            bot_count = f'r{self.BOT_COUNT}'
+            rfc = f'rfc{num_real_food}'
+            ffc = f'ffc{num_fake_food}'
+            arena = f'{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}'
+            time = f'time{self.MAX_SIM_TIME}'
+            iter = f'iter{self.num_iterations}'
+
+            if self.USE_FF_DOS == "false" and self.UQZ == "false":
+                st = 'st-0'
+                ffc = 'ffc0'
+            elif self.USE_FF_DOS == "true" and self.UQZ == "false":
+                st = 'st-1'
+            elif self.USE_FF_DOS == "true" and self.UQZ == "true":
+                if self.MM == 1:
+                    st = 'st-2'
+                else:
+                    st = 'st-3'
+
+            self.fname_header = f'{path}{alg}_{st}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
+            # self.fname_header = f'{path}{alg}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
+
+    
+        self.fname_header = self.fname_header + f'ffacc{int(self.FF_ACC*100)}_'
+        
+        return self.fname_header
+
+    def setBotCount(self,botCount):
+        if not botCount % 4 == 0:
+            print ("Warning: Number of bots not divisible by 4. Default bot distribution not supported...\n\n")
+        self.BOT_COUNT = botCount
+        self.BOTS_PER_GROUP = botCount/4
 
     def createXML(self):
 
@@ -319,6 +413,10 @@ class C_XML_CONFIG:
         params_settings.setAttribute('SearchStepSize', str(self.SSS))
         params_settings.setAttribute('TargetAngleTolerance', str(self.TAT))
         params_settings.setAttribute('TargetDistanceTolerance', str(self.TDT))
+        params_settings.setAttribute('UseQZones', str(self.UQZ))
+        params_settings.setAttribute('MergeMode', str(self.MM))
+        params_settings.setAttribute('FFdetectionAcc', str(self.FF_ACC))
+        params_settings.setAttribute('RFdetectionAcc', str(self.RF_ACC))
         params.appendChild(params_settings)
         #           </params>
         #       </CPFA_controller>
@@ -356,7 +454,11 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('NestRadius', str(self.NEST_RAD))
         lf_settings.setAttribute('VariableFoodPlacement', str(self.VFP))
         lf_settings.setAttribute('FoodRadius', str(self.FOOD_RAD))
+        lf_settings.setAttribute('UseFakeFoodOnly', str(self.USE_FF_ONLY))
         lf_settings.setAttribute('FoodDistribution', str(self.RFD))
+        lf_settings.setAttribute('UseAltDistribution', str(self.USE_ALT_DIST))
+        lf_settings.setAttribute('AltClusterWidth', str(self.ALT_FCL_W))
+        lf_settings.setAttribute('AltClusterLength', str(self.ALT_FCL_L))
         lf_settings.setAttribute('NumRealFood', str(self.NUM_RF))
         lf_settings.setAttribute('PowerlawFoodUnitCount', str(self.NUM_PLAW_RF))
         lf_settings.setAttribute('NumberOfClusters', str(self.NUM_RCL))
@@ -370,6 +472,7 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('FakeClusterWidthX', str(self.FCL_X))
         lf_settings.setAttribute('FakeClusterWidthY', str(self.FCL_Y))
         lf_settings.setAttribute('FilenameHeader', str(self.fname_header))
+        lf_settings.setAttribute('Densify', str(self.DENSIFY))
         loops.appendChild(lf_settings)
         #       </settings>
         #   </loop_functions>
@@ -463,7 +566,7 @@ class C_XML_CONFIG:
 
         #           <entity>
             entity0 = xml.createElement('entity')
-            entity0.setAttribute('quantity', '6')
+            entity0.setAttribute('quantity', str(self.BOTS_PER_GROUP))
             entity0.setAttribute('max_trials','100')
             fb0_distribution.appendChild(entity0)
 
@@ -502,7 +605,7 @@ class C_XML_CONFIG:
 
         #           <entity>
             entity1 = xml.createElement('entity')
-            entity1.setAttribute('quantity', '6')
+            entity1.setAttribute('quantity', str(self.BOTS_PER_GROUP))
             entity1.setAttribute('max_trials','100')
             fb1_distribution.appendChild(entity1)
 
@@ -540,7 +643,7 @@ class C_XML_CONFIG:
 
         #           <entity>
             entity2 = xml.createElement('entity')
-            entity2.setAttribute('quantity', '6')
+            entity2.setAttribute('quantity', str(self.BOTS_PER_GROUP))
             entity2.setAttribute('max_trials','100')
             fb2_distribution.appendChild(entity2)
 
@@ -578,7 +681,7 @@ class C_XML_CONFIG:
 
         #           <entity>
             entity3 = xml.createElement('entity')
-            entity3.setAttribute('quantity', '6')
+            entity3.setAttribute('quantity', str(self.BOTS_PER_GROUP))
             entity3.setAttribute('max_trials','100')
             fb3_distribution.appendChild(entity3)
 
@@ -640,7 +743,7 @@ class C_XML_CONFIG:
             placement.setAttribute('index','0')
             placement.setAttribute('position','0,0,13')
             placement.setAttribute('look_at','0,0,0')
-            placement.setAttribute('up','1,0,0')
+            placement.setAttribute('up','0,1,0')
             placement.setAttribute('lens_focal_length',str(self.CAM_HEIGHT))
             placements.appendChild(placement)
             #               </placements>

@@ -3,6 +3,8 @@
 
 #include <argos3/core/utility/math/vector2.h>
 
+using namespace std;
+
 /*****
  * Implementation of the iAnt Pheromone object used by the iAnt CPFA. iAnts build and maintain a list of these pheromone waypoint objects to use during
  * the informed search component of the CPFA algorithm.
@@ -12,7 +14,7 @@ class Pheromone {
     public:
 
         /* constructor function */
-        Pheromone(argos::CVector2 newLocation, std::vector<argos::CVector2> newTrail, argos::Real newTime, argos::Real newDecayRate, size_t density);
+        Pheromone(argos::CVector2 newLocation, std::vector<argos::CVector2> newTrail, argos::Real newTime, argos::Real newDecayRate, size_t density, bool fake);
 
         /* public helper functions */
         void                         Update(argos::Real time);

@@ -14,17 +14,32 @@ Pheromone::Pheromone(argos::CVector2              newLocation,
                              std::vector<argos::CVector2> newTrail,
                              argos::Real                  newTime,
                              argos::Real                  newDecayRate,
-                             size_t                       density)
+                             size_t                       density,
+                             bool                         fake)
 {
-    /* required initializations */
-	location    = newLocation;
-    trail       = newTrail;
-	lastUpdated = newTime;
-	decayRate   = newDecayRate;
-    ResourceDensity = density;
-    /* standardized initializations */
-	weight      = 1.0;
-	threshold   = 0.001;
+    if (fake){
+        /* required initializations */
+        location    = newLocation;
+        trail       = newTrail;
+        lastUpdated = newTime;
+        decayRate   = 0;
+        ResourceDensity = density;
+        /* standardized initializations */
+        weight      = 10.0;
+        threshold   = 0.001;
+        // cout << "In Pheromone.cpp: Trail to fake resource created..." << endl;
+    }else{
+        /* required initializations */
+        location    = newLocation;
+        trail       = newTrail;
+        lastUpdated = newTime;
+        decayRate   = newDecayRate;
+        ResourceDensity = density;
+        /* standardized initializations */
+        weight      = 1.0;
+        threshold   = 0.001;
+        // cout << "In Pheromone.cpp: Trail to real resource created..." << endl;
+    }
 }
 
 /*****

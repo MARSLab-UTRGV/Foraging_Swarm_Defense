@@ -1,0 +1,13 @@
+*** ./results/CPFA_R-pl_F-cl_r24_rfc108_ffc108_10by10_time1000_iter30_ BoxPlot Data ***
+
+Key: [DoS Disabled, Dos Enabled]
+
+Medians: [36.5, 34.5]
+Means: []
+Minimums: [23.0, 24.0]
+Maximums: [47.0, 44.0]
+Quarter One: [28.25, 32.25]
+Quarter Three: [39.0, 38.0]
+Lower Outliers: [[], [22.0, 20.0]]
+Upper Outliers: [[], [51.0, 49.0]]
+

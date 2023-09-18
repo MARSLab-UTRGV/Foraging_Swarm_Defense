@@ -21,7 +21,8 @@ target_link_libraries(CPFA_controller
                       BaseController
                       Pheromone
                       Nest
-                      Food)
+                      Food
+                      QuarantineZone)
 
 target_link_libraries(CPFA_loop_functions
                       CPFA_controller

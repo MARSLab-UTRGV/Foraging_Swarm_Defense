@@ -57,6 +57,7 @@ void CPFA_qt_user_functions::DrawOnArena(CFloorEntity& entity) {
 	DrawFidelity();
 	DrawPheromones();
 	DrawNest();
+	DrawQuarantineZone();
 
 	if(loopFunctions.DrawTargetRays == 1) DrawTargetRays();
 }
@@ -79,6 +80,27 @@ void CPFA_qt_user_functions::DrawNest() {
 	/* Draw the nest on the arena. */
 	//DrawCircle(nest_3d, CQuaternion(), loopFunctions.NestRadius, CColor::RED);
     DrawCylinder(nest_3d, CQuaternion(), loopFunctions.NestRadius, 0.008, CColor::GREEN);
+}
+
+void CPFA_qt_user_functions::DrawQuarantineZone() {			// Ryan Luna 1/24/23
+
+	vector<QZone> zonelist = loopFunctions.MainNest.GetZoneList();
+
+	for(int i=0;i<zonelist.size();i++){
+		/* 2d cartesian coordinates of the zone */
+		Real x_coordinate = zonelist[i].GetLocation().GetX();
+		Real y_coordinate = zonelist[i].GetLocation().GetY();
+
+		/* required: leaving this 0.0 will draw the zone inside of the floor */
+		Real elevation = 0.0;
+
+		/* 3d cartesian coordinates of the zone */
+		CVector3 nest_3d(x_coordinate, y_coordinate, elevation);
+
+		/* Draw the zone on the arena. */
+		DrawCylinder(nest_3d, CQuaternion(), zonelist[i].GetRadius(), 0.008, zonelist[i].GetColor());
+	}
+	zonelist.clear();
 }
 
 void CPFA_qt_user_functions::DrawFood() {

@@ -1,1 +1,1 @@
-Some of the Quarantine Zone Strategy infrastructure is here but the implementation is not. This should be able to be run to do tests without the use of quarantine zones.
+This repo is starting as a duplicate from CPFA-DoS. Here will be an implementation of another attack on foraging robot swarms. Detractors will create pheromone trails to a location where benign robots can be abducted.

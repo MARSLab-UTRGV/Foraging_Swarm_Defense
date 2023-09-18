@@ -7,6 +7,8 @@
 #include <source/CPFA/CPFA_controller.h>
 #include <argos3/plugins/simulator/entities/cylinder_entity.h>
 #include <source/Base/Food.h>	// Ryan Luna 11/10/22
+#include <source/Base/Nest.h>	// Ryan Luna 1/24/23
+#include <cmath>				// Ryan Luna 1/25/23
 
 using namespace argos;
 using namespace std;
@@ -67,6 +69,9 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		double getRateOfLayingPheromone();
 		double getRateOfPheromoneDecay();
 
+
+		void Terminate();
+
 	protected:
 
 		void setScore(double s);
@@ -105,6 +110,15 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		Real last_time_in_minutes; 
 
 		bool UseFakeFoodDoS;	// Ryan Luna 11/13/22
+		bool UseAltDistribution;
+		bool UseFakeFoodOnly;
+		size_t AltClusterWidth;
+		size_t AltClusterLength;
+
+		size_t numRealTrails;
+		size_t numFakeTrails;
+		size_t numFalsePositives;
+		size_t numQZones;
 
 		/* Result Collection */
 		string FilenameHeader;	// Ryan Luna 12/09/22
@@ -125,6 +139,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		argos::Real NestRadiusSquared;
 		argos::Real NestElevation;
 		argos::Real SearchRadiusSquared;
+		argos::Real SearchRadius;
 
 		/* list variables for food & pheromones */
 		std::vector<Food>				FoodList;				// Ryan Luna 11/10/22
@@ -145,12 +160,20 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t TotalFoodCollected;		// Ryan Luna 11/17/22
 		size_t RealFoodCollected;		// Ryan Luna 11/17/22
 		size_t FakeFoodCollected;		// Ryan Luna 11/17/22
+
+		Nest MainNest;					// Ryan Luna 1/24/23
       
-                vector<size_t>		ForageList;
+        vector<size_t>		ForageList;
 		argos::CVector2 NestPosition;
+
+		bool terminate;
+		bool densify;
+
+
 	private:
 
 		/* private helper functions */
+		void AlternateFakeFoodDistribution();
 		void RandomFoodDistribution();
 		void ClusterFoodDistribution();
 		void PowerLawFoodDistribution();

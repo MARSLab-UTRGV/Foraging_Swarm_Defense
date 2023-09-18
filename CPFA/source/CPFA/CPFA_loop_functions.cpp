@@ -43,13 +43,24 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	NestElevation(0.01),
 	// We are looking at a 4 by 4 square (3 targets + 2*1/2 target gaps)
 	SearchRadiusSquared((4.0 * FoodRadius) * (4.0 * FoodRadius)),
+	SearchRadius(4.0*FoodRadius),
 	NumDistributedRealFood(0),	// name modified ** Ryan Luna 11/12/22
 	NumDistributedFakeFood(0),	// Ryan Luna 11/12/22
 	TotalDistributedFood(0),	// name modified ** Ryan Luna 11/12/22
 	score(0),
 	PrintFinalScore(0),
 	UseFakeFoodDoS(false),		// Ryan Luna 11/13/22
-	FilenameHeader("\0")			// Ryan Luna 12/09/22
+	FilenameHeader("\0"),			// Ryan Luna 12/09/22
+	terminate(false),
+	densify(true),
+	numRealTrails(0),
+	numFakeTrails(0),
+	UseAltDistribution(false),
+	AltClusterWidth(0),
+	AltClusterLength(0),
+	UseFakeFoodOnly(false),
+	numFalsePositives(0),
+	numQZones(0)
 {}
 
 void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {	
@@ -80,6 +91,10 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "DrawTrails", 					DrawTrails);
 	argos::GetNodeAttribute(settings_node, "DrawTargetRays", 				DrawTargetRays);
 	argos::GetNodeAttribute(settings_node, "FoodDistribution", 				FoodDistribution);
+	argos::GetNodeAttribute(settings_node, "UseAltDistribution", 			UseAltDistribution);
+	argos::GetNodeAttribute(settings_node, "AltClusterWidth", 				AltClusterWidth);
+	argos::GetNodeAttribute(settings_node, "AltClusterLength", 				AltClusterLength);
+	argos::GetNodeAttribute(settings_node, "UseFakeFoodOnly", 				UseFakeFoodOnly);
 	argos::GetNodeAttribute(settings_node, "FakeFoodDistribution", 			FakeFoodDistribution);
 	argos::GetNodeAttribute(settings_node, "NumRealFood", 					NumRealFood);					// name modified ** Ryan Luna 11/13/22
 	argos::GetNodeAttribute(settings_node, "NumFakeFood", 					NumFakeFood);					// Ryan Luna 11/12/22
@@ -97,7 +112,8 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
     argos::GetNodeAttribute(settings_node, "NestPosition", 					NestPosition);
 	argos::GetNodeAttribute(settings_node, "UseFakeFoodDoS",				UseFakeFoodDoS);				// Ryan Luna 11/13/22
 	argos::GetNodeAttribute(settings_node, "FilenameHeader",				FilenameHeader);				// Ryan Luna 12/06/22
-    FoodRadiusSquared = FoodRadius*FoodRadius;
+    argos::GetNodeAttribute(settings_node, "Densify", 						densify);						// Ryan Luna 02/08/22
+	FoodRadiusSquared = FoodRadius*FoodRadius;
 
     //Number of distributed foods ** modified ** Ryan Luna 11/13/22
     if (FoodDistribution == 1){
@@ -138,6 +154,8 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 		NestRadius *= sqrt(log(ArenaWidth)/log(2));
 	}
 	argos::LOG<<"NestRadius="<<NestRadius<<endl;
+
+	MainNest.SetLocation(NestPosition);	// Ryan Luna 1/24/23
 
 	// Send a pointer to this loop functions object to each controller.
 	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
@@ -231,6 +249,11 @@ void CPFA_loop_functions::PostStep() {
 	// do nothing
 }
 
+void CPFA_loop_functions::Terminate(){
+	terminate = true;
+	cout << "Terminating program" << endl;
+}
+
 bool CPFA_loop_functions::IsExperimentFinished() {
 	bool isFinished = false;
 
@@ -238,6 +261,8 @@ bool CPFA_loop_functions::IsExperimentFinished() {
 		isFinished = true;
 		// PostExperiment();
 	}
+
+	if (terminate) {isFinished = true;}
 
     //set to collected 88% food and then stop
     // if(score >= NumDistributedRealFood){
@@ -301,20 +326,20 @@ void CPFA_loop_functions::PostExperiment() {
             CollisionTime += c2.GetCollisionTime();
         }
              
-        ofstream dataOutput( (FilenameHeader+ "iAntTagData.txt").c_str(), ios::app);
-        // output to file
-        if(dataOutput.tellp() == 0) {
-            dataOutput << "tags_collected, collisions_in_seconds, time_in_minutes, random_seed\n";//qilu 08/18
-        }
+        // ofstream dataOutput( (FilenameHeader+ "iAntTagData.txt").c_str(), ios::app);
+        // // output to file
+        // if(dataOutput.tellp() == 0) {
+        //     dataOutput << "tags_collected, collisions_in_seconds, time_in_minutes, random_seed\n";//qilu 08/18
+        // }
     
-        dataOutput << Score() << ", "<<CollisionTime/(2*ticks_per_second)<< ", "<< curr_time_in_minutes << ", " << RandomSeed << endl;
-        dataOutput.close();
+        // dataOutput << Score() << ", "<<CollisionTime/(2*ticks_per_second)<< ", "<< curr_time_in_minutes << ", " << RandomSeed << endl;
+        // dataOutput.close();
     
-        ofstream forageDataOutput((FilenameHeader+"ForageData.txt").c_str(), ios::app);
-        if(ForageList.size()!=0) forageDataOutput<<"Forage: "<< ForageList[0];
-        for(size_t i=1; i< ForageList.size(); i++) forageDataOutput<<", "<<ForageList[i];
-        forageDataOutput<<"\n";
-        forageDataOutput.close();
+        // ofstream forageDataOutput((FilenameHeader+"ForageData.txt").c_str(), ios::app);
+        // if(ForageList.size()!=0) forageDataOutput<<"Forage: "<< ForageList[0];
+        // for(size_t i=1; i< ForageList.size(); i++) forageDataOutput<<", "<<ForageList[i];
+        // forageDataOutput<<"\n";
+        // forageDataOutput.close();
 
 		// Write to file ** Ryan Luna 11/17/22
 		ofstream DoSDataOutput((FilenameHeader+"DoSData.txt").c_str(), ios::app);
@@ -322,15 +347,24 @@ void CPFA_loop_functions::PostExperiment() {
 
 			DoSDataOutput 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
 							<< "Real Food Collected, Real Food Collection Rate (per second), "
-							<< "Fake Food Collected, Fake Food Collection Rate (per second)" << endl;
+							<< "Fake Food Collected, Fake Food Collection Rate (per second), " 
+							<< "Real Food Trails Created, Fake Food Trails Created, False Positives, QZones" << endl;
 		}
 
 		TotalFoodCollected = RealFoodCollected + FakeFoodCollected;
 
 		DoSDataOutput 	<< getSimTimeInSeconds() << ',' << TotalFoodCollected << ',' << TotalFoodCollected/getSimTimeInSeconds() << ','
 						<< RealFoodCollected << ',' << RealFoodCollected/getSimTimeInSeconds() << ','
-						<< FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << endl;
+						<< FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
+						<< numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << ',' << MainNest.GetZoneList().size() << endl;
       }
+
+	ofstream TerminateCount ((FilenameHeader+"TerminatedCount.txt").c_str(), ios::app);
+	if(terminate){
+		TerminateCount	<< 0 << ", ";
+	} else {
+		TerminateCount	<< 1 << ", ";
+	}
 }
 
 
@@ -360,21 +394,23 @@ void CPFA_loop_functions::UpdatePheromoneList() {
 
 // modified to include FakeFoodDistribution ** Ryan Luna 11/13/22
 void CPFA_loop_functions::SetFoodDistribution() {
-	switch(FoodDistribution) {
-		case 0:
-			RandomFoodDistribution();
-			break;
-		case 1:
-			ClusterFoodDistribution();
-			break;
-		case 2:
-			PowerLawFoodDistribution();
-			break;
-		default:
-			argos::LOGERR << "ERROR: Invalid food distribution in XML file.\n";
-	}
 
-	if (UseFakeFoodDoS){
+	if (UseAltDistribution){
+		AlternateFakeFoodDistribution();
+	} else if (UseFakeFoodDoS){
+		switch(FoodDistribution) {
+			case 0:
+				RandomFoodDistribution();
+				break;
+			case 1:
+				ClusterFoodDistribution();
+				break;
+			case 2:
+				PowerLawFoodDistribution();
+				break;
+			default:
+				argos::LOGERR << "ERROR: Invalid food distribution in XML file.\n";
+		}
 		switch(FakeFoodDistribution) {
 			case 0:
 				RandomFakeFoodDistribution();
@@ -388,11 +424,136 @@ void CPFA_loop_functions::SetFoodDistribution() {
 			default:
 				argos::LOGERR << "ERROR: Invalid food distribution in XML file.\n";
 		}
+	} else if (UseFakeFoodOnly) {
+		LOG << "[WARNING] This simulation is ONLY using Fake Food [WARNING] Real Food is NOT being distributed [WARNING]" << endl;
+		switch(FakeFoodDistribution) {
+			case 0:
+				RandomFakeFoodDistribution();
+				break;
+			case 1:
+				ClusterFakeFoodDistribution();
+				break;
+			case 2:
+				PowerLawFakeFoodDistribution();
+				break;
+			default:
+				argos::LOGERR << "ERROR: Invalid food distribution in XML file.\n";
+		}
+	} else {
+		switch(FoodDistribution) {
+			case 0:
+				RandomFoodDistribution();
+				break;
+			case 1:
+				ClusterFoodDistribution();
+				break;
+			case 2:
+				PowerLawFoodDistribution();
+				break;
+			default:
+				argos::LOGERR << "ERROR: Invalid food distribution in XML file.\n";
+		}
 	}
 }
 
+void CPFA_loop_functions::AlternateFakeFoodDistribution(){
+	
+	Real foodOffset;
+	size_t foodPlaced = 0;
+	if (densify){
+		foodOffset = 2.0 * FoodRadius;
+	} else {
+		foodOffset = 3.0 * FoodRadius;
+	}
+	argos::CVector3 ArenaSize = GetSpace().GetArenaSize();
+	float wallbuffer = 0.5;
+	size_t ClusterLength = AltClusterLength;
+	size_t ClusterWidth = AltClusterWidth;
+
+	// West Wall
+	CVector2 WestClusterPosition;
+	size_t WestClusterX = ClusterLength;
+	size_t WestClusterY = ClusterWidth;
+	WestClusterPosition.Set(-ArenaSize.GetX()/2 + wallbuffer, foodOffset/2 + (((WestClusterY/2)-1) * foodOffset));
+	
+	for(size_t i = 0; i < WestClusterY; i++) {
+		for(size_t j = 0; j < WestClusterX; j++) {
+			foodPlaced++;
+
+			Food tmp(WestClusterPosition, Food::FoodType::FAKE);
+			FoodList.push_back(tmp);
+
+			WestClusterPosition.SetX(WestClusterPosition.GetX() + foodOffset);
+		}
+
+		WestClusterPosition.SetX(WestClusterPosition.GetX() - (WestClusterX * foodOffset));
+		WestClusterPosition.SetY(WestClusterPosition.GetY() - foodOffset);
+	}
+
+	// East Wall
+	CVector2 EastClusterPosition;
+	size_t EastClusterX = ClusterLength;
+	size_t EastClusterY = ClusterWidth;
+	EastClusterPosition.Set(ArenaSize.GetX()/2 - wallbuffer, foodOffset/2 + (((EastClusterY/2)-1) * foodOffset));
+	
+	for(size_t i = 0; i < EastClusterY; i++) {
+		for(size_t j = 0; j < EastClusterX; j++) {
+			foodPlaced++;
+
+			Food tmp(EastClusterPosition, Food::FoodType::FAKE);
+			FoodList.push_back(tmp);
+
+			EastClusterPosition.SetX(EastClusterPosition.GetX() - foodOffset);
+		}
+
+		EastClusterPosition.SetX(EastClusterPosition.GetX() + (EastClusterX * foodOffset));
+		EastClusterPosition.SetY(EastClusterPosition.GetY() - foodOffset);
+	}
+
+	// North Wall
+	CVector2 NorthClusterPosition;
+	size_t NorthClusterX = ClusterWidth;
+	size_t NorthClusterY = ClusterLength;
+	NorthClusterPosition.Set(foodOffset/2 + (((NorthClusterX/2)-1) * foodOffset), ArenaSize.GetY()/2 - wallbuffer);
+	
+	for(size_t i = 0; i < NorthClusterY; i++) {
+		for(size_t j = 0; j < NorthClusterX; j++) {
+			foodPlaced++;
+
+			Food tmp(NorthClusterPosition, Food::FoodType::FAKE);
+			FoodList.push_back(tmp);
+
+			NorthClusterPosition.SetX(NorthClusterPosition.GetX() - foodOffset);
+		}
+
+		NorthClusterPosition.SetX(NorthClusterPosition.GetX() + (NorthClusterX * foodOffset));
+		NorthClusterPosition.SetY(NorthClusterPosition.GetY() - foodOffset);
+	}
+
+	// South Wall
+	CVector2 SouthClusterPosition;
+	size_t SouthClusterX = ClusterWidth;
+	size_t SouthClusterY = ClusterLength;
+	SouthClusterPosition.Set(foodOffset/2 + (((SouthClusterX/2)-1) * foodOffset), -ArenaSize.GetY()/2 + wallbuffer);
+	
+	for(size_t i = 0; i < SouthClusterY; i++) {
+		for(size_t j = 0; j < SouthClusterX; j++) {
+			foodPlaced++;
+
+			Food tmp(SouthClusterPosition, Food::FoodType::FAKE);
+			FoodList.push_back(tmp);
+
+			SouthClusterPosition.SetX(SouthClusterPosition.GetX() - foodOffset);
+		}
+
+		SouthClusterPosition.SetX(SouthClusterPosition.GetX() + (SouthClusterX * foodOffset));
+		SouthClusterPosition.SetY(SouthClusterPosition.GetY() + foodOffset);
+	}
+
+}
+
 void CPFA_loop_functions::RandomFoodDistribution() {
-	FoodList.clear();
+	// FoodList.clear();
 // 	FoodColoringList.clear();
 	argos::CVector2 placementPosition;
 
@@ -428,7 +589,7 @@ void CPFA_loop_functions::RandomFakeFoodDistribution(){
 
  
 void CPFA_loop_functions::ClusterFoodDistribution() {
-    FoodList.clear();
+    // FoodList.clear();
 	argos::Real     foodOffset  = 3.0 * FoodRadius;
 	size_t          foodToPlace = NumberOfClusters * ClusterWidthX * ClusterWidthY;
 	size_t          foodPlaced = 0;
@@ -462,10 +623,16 @@ void CPFA_loop_functions::ClusterFoodDistribution() {
 // Ryan Luna 11/13/22
 void CPFA_loop_functions::ClusterFakeFoodDistribution(){
 	
-	argos::Real     foodOffset  = 3.0 * FoodRadius;
 	size_t			fakefoodToPlace = NumFakeClusters * FakeClusterWidthX * FakeClusterWidthY;
 	size_t			fakefoodPlaced = 0;
 	CVector2		placementPosition;
+	argos::Real		foodOffset;
+
+	if (densify){
+		foodOffset  = 2.0 * FoodRadius;
+	} else {
+		foodOffset  = 3.0 * FoodRadius;
+	}
 
 	NumFakeFood = fakefoodToPlace;
 
@@ -493,7 +660,7 @@ void CPFA_loop_functions::ClusterFakeFoodDistribution(){
 }
 
 void CPFA_loop_functions::PowerLawFoodDistribution() {
- 	FoodList.clear();
+ 	// FoodList.clear();
 	argos::Real foodOffset     = 3.0 * FoodRadius;
 	size_t      foodPlaced     = 0;
 	size_t      powerLawLength = 1;

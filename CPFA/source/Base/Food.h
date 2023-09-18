@@ -21,7 +21,7 @@ class Food {
             FAKE = 0,
             REAL = 1
         };
-
+        Food(){}
         Food(CVector2 location, FoodType type);
         void SetColor(CColor newColor);
         CColor GetColor();
