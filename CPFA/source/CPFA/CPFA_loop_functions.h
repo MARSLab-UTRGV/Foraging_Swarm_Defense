@@ -5,9 +5,11 @@
 #include <argos3/plugins/robots/foot-bot/simulator/footbot_entity.h>
 #include <argos3/core/simulator/entity/floor_entity.h>
 #include <source/CPFA/CPFA_controller.h>
+#include <source/CPFA/Detractor_controller.h>
 #include <argos3/plugins/simulator/entities/cylinder_entity.h>
 #include <source/Base/Food.h>	// Ryan Luna 11/10/22
 #include <source/Base/Nest.h>	// Ryan Luna 1/24/23
+#include <source/Base/Attacker_Nest.h>
 #include <cmath>				// Ryan Luna 1/25/23
 
 using namespace argos;
@@ -19,6 +21,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 {
 
 	friend class CPFA_controller;
+	friend class Detractor_controller;
 	friend class CPFA_qt_user_functions;
 
 	public:
@@ -71,6 +74,8 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 
 
 		void Terminate();
+
+		void CaptureRobotInAtkNest(string id);
 
 	protected:
 
@@ -161,10 +166,13 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t RealFoodCollected;		// Ryan Luna 11/17/22
 		size_t FakeFoodCollected;		// Ryan Luna 11/17/22
 
+	  	/*TODO: Wondering if it is necessary to make another nest object for the attacker nest... */
 		Nest MainNest;					// Ryan Luna 1/24/23
+		AtkNest AttackerNest;
       
         vector<size_t>		ForageList;
 		argos::CVector2 NestPosition;
+		argos::CVector2 AttackerNestPosition;
 
 		bool terminate;
 		bool densify;
@@ -182,6 +190,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		void PowerLawFakeFoodDistribution();	// Ryan Luna 11/13/22
         bool IsOutOfBounds(argos::CVector2 p, size_t length, size_t width);
 		bool IsCollidingWithNest(argos::CVector2 p);
+		bool IsCollidingWithAtkNest(argos::CVector2 p);		// Ryan Luna 09/20/23
 		bool IsCollidingWithFood(argos::CVector2 p);
 		double score;
 		int PrintFinalScore;

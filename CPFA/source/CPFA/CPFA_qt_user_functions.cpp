@@ -12,11 +12,12 @@ CPFA_qt_user_functions::CPFA_qt_user_functions() :
 }
 
 void CPFA_qt_user_functions::DrawOnRobot(CFootBotEntity& entity) {
-	CPFA_controller& c = dynamic_cast<CPFA_controller&>(entity.GetControllableEntity().GetController());
+	CPFA_controller* c = dynamic_cast<CPFA_controller*>(&entity.GetControllableEntity().GetController());
+	// cout << "Drawing on robot: " << c->GetId() << endl;
 
 	// modified to draw fake food	** Ryan Luna 11/12/22
-	if(c.IsHoldingFood()) {
-		if(c.IsHoldingFakeFood()){
+	if(c->IsHoldingFood()) {
+		if(c->IsHoldingFakeFood()){
 			DrawCylinder(CVector3(0.0, 0.0, 0.3), CQuaternion(), loopFunctions.FoodRadius, 0.025, CColor::PURPLE);	
 		} else {
 			DrawCylinder(CVector3(0.0, 0.0, 0.3), CQuaternion(), loopFunctions.FoodRadius, 0.025, CColor::BLACK);
@@ -70,16 +71,20 @@ void CPFA_qt_user_functions::DrawNest() {
 	/* 2d cartesian coordinates of the nest */
 	Real x_coordinate = loopFunctions.NestPosition.GetX();
 	Real y_coordinate = loopFunctions.NestPosition.GetY();
+	Real atk_x_coordinate = loopFunctions.AttackerNestPosition.GetX();
+	Real atk_y_coordinate = loopFunctions.AttackerNestPosition.GetY();
 
 	/* required: leaving this 0.0 will draw the nest inside of the floor */
 	Real elevation = loopFunctions.NestElevation;
 
 	/* 3d cartesian coordinates of the nest */
 	CVector3 nest_3d(x_coordinate, y_coordinate, elevation);
+	CVector3 atk_nest_3d(atk_x_coordinate, atk_y_coordinate, elevation);
 
 	/* Draw the nest on the arena. */
 	//DrawCircle(nest_3d, CQuaternion(), loopFunctions.NestRadius, CColor::RED);
     DrawCylinder(nest_3d, CQuaternion(), loopFunctions.NestRadius, 0.008, CColor::GREEN);
+	DrawCylinder(atk_nest_3d, CQuaternion(), loopFunctions.NestRadius, 0.008, CColor::GRAY20 	);
 }
 
 void CPFA_qt_user_functions::DrawQuarantineZone() {			// Ryan Luna 1/24/23

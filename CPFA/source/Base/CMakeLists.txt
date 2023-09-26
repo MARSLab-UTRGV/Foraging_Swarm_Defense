@@ -8,7 +8,6 @@ add_library(BaseController  SHARED  BaseController.h
 add_library(Pheromone       SHARED  Pheromone.h
                                     Pheromone.cpp)
 
-
 add_library(Nest            SHARED  Nest.h
                                     Nest.cpp)
 
@@ -17,6 +16,9 @@ add_library(Food            SHARED  Food.h
 
 add_library(QuarantineZone  SHARED  QuarantineZone.h 
                                     QuarantineZone.cpp)
+
+add_library(Attacker_Nest   SHARED  Attacker_Nest.h 
+                                    Attacker_Nest.cpp)
                                   
 ###############################################
 # link shared object files to dependencies
@@ -31,6 +33,7 @@ target_link_libraries(Nest)
 target_link_libraries(Pheromone)
 target_link_libraries(Food)
 target_link_libraries(QuarantineZone)
+target_link_libraries(Attacker_Nest)
 
 ###############################################
 # some notes...

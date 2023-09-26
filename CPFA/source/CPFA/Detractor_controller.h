@@ -1,5 +1,5 @@
-#ifndef CPFA_CONTROLLER_H
-#define CPFA_CONTROLLER_H
+#ifndef DETRACTOR_CONTROLLER_H
+#define DETRACTOR_CONTROLLER_H
 
 #include <source/Base/BaseController.h>
 #include <source/Base/Pheromone.h>
@@ -11,20 +11,16 @@
 #include <source/Base/QuarantineZone.h>
 #include <source/Base/Food.h>
 
-#include <source/Base/Attacker_Nest.h>
-
 using namespace std;
 using namespace argos;
 
-static unsigned int num_targets_collected = 0;
-
 class CPFA_loop_functions;
 
-class CPFA_controller : public BaseController {
+class Detractor_controller : public BaseController {
 
 	public:
 
-		CPFA_controller();
+		Detractor_controller();
 
 		// CCI_Controller inheritence functions
 		void Init(argos::TConfigurationNode &node);
@@ -44,6 +40,7 @@ class CPFA_controller : public BaseController {
 		size_t     GetSearchingTime();//qilu 09/26/2016
 		size_t      GetTravelingTime();//qilu 09/26/2016
 		string      GetStatus();//qilu 09/26/2016
+		string 		GetDetractorStatus();
 		size_t      startTime;//qilu 09/26/2016
 
 		/* quarantine zone functions */		// Ryan Luna 12/28/22
@@ -102,20 +99,25 @@ class CPFA_controller : public BaseController {
 
 		Real	FFdetectionAcc;
 		Real    RFdetectionAcc;
-
-		/* Detractor related stuff */
-		bool captured;
-		size_t captureTime;
         
   
-		/* iAnt CPFA state variable */
+		/* iAnt Detractor state variable */
 		enum CPFA_state {
 			DEPARTING = 0,
 			SEARCHING = 1,
 			RETURNING = 2,
-			SURVEYING = 3,
-			CAPTURED  = 4,				// new CPFA state for defined behavior after being captured
-		} CPFA_state;
+			SURVEYING = 3
+		}	CPFA_state;
+
+		enum Detractor_state {
+			_HOME_			= 0,			// robot is at its home (attacker) nest
+			_DEPARTING_ 	= 1,			// departing from the attacker nest to the defender nest
+			_DELIVERING_	= 2,			// delivering fake food and deploying false pheromone trail
+			_RETURNING_		= 3,			// returning to the attacker nest from the defender nest after delivering fake food
+		}	Detractor_state;
+
+		bool isDetractor;					// boolean to set at initialization to determine if robot is a detractor or not
+		argos::CVector2 badNestPos;			// location of the attacker nest (used when laying pheromone trails back to bad nest position.
 
 		/* iAnt CPFA state functions */
 		void CPFA();
@@ -123,9 +125,15 @@ class CPFA_controller : public BaseController {
 		void Searching();
 		void Returning();
 		void Surveying();
-		void Captured();
+		
+		/* iAnt Detractor state functions */
+		void Detract();
+		void Home_d();
+		void Departing_d();
+		void Delivering_d();
+		void Returning_d();
 
-		/* CPFA helper functions */
+		/* CPFA/Detractor helper functions */
 		void SetRandomSearchLocation();
 		void SetHoldingFood();
 		void SetLocalResourceDensity();
@@ -150,4 +158,4 @@ class CPFA_controller : public BaseController {
         CCI_LEDsActuator* m_pcLEDs;
 };
 
-#endif /* CPFA_CONTROLLER_H */
+#endif /* DETRACTOR_CONTROLLER_H */

@@ -25,6 +25,7 @@ class Pheromone {
         argos::Real                  GetWeight();
         size_t                       GetResourceDensity();
         bool                          IsActive();
+        bool                         IsMisleading();
         argos::CVector2              location;
         size_t ResourceDensity;
 
@@ -38,6 +39,7 @@ class Pheromone {
         argos::Real decayRate;
         argos::Real weight;
         argos::Real threshold;
+        bool isAtkPheromone;
 };
 
 #endif /* IANT_PHEROMONE_H */

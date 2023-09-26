@@ -115,6 +115,10 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
     argos::GetNodeAttribute(settings_node, "Densify", 						densify);						// Ryan Luna 02/08/22
 	FoodRadiusSquared = FoodRadius*FoodRadius;
 
+	argos::TConfigurationNode atk_node = argos::GetNode(node, "detractor_settings");
+
+	argos::GetNodeAttribute(atk_node, "AttackerNestPosition",				AttackerNestPosition);
+
     //Number of distributed foods ** modified ** Ryan Luna 11/13/22
     if (FoodDistribution == 1){
 		if (UseFakeFoodDoS){
@@ -156,21 +160,40 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::LOG<<"NestRadius="<<NestRadius<<endl;
 
 	MainNest.SetLocation(NestPosition);	// Ryan Luna 1/24/23
-
-	// Send a pointer to this loop functions object to each controller.
-	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
-	argos::CSpace::TMapPerType::iterator it;
     
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
     Num_robots = footbots.size();
     argos::LOG<<"Number of robots="<<Num_robots<<endl;
 
-	for(it = footbots.begin(); it != footbots.end(); it++) {
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
 		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
-		BaseController& c = dynamic_cast<BaseController&>(footBot.GetControllableEntity().GetController());
-		CPFA_controller& c2 = dynamic_cast<CPFA_controller&>(c);
-		c2.SetLoopFunctions(this);
+		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+		if(c != nullptr) {
+			cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
+			CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
+			Detractor_controller* c3 = dynamic_cast<Detractor_controller*>(c);
+			if(c2 != nullptr) {
+				c2->SetLoopFunctions(this);
+				cout << "CPFA_controller cast successful" << endl;
+			}
+			else {
+				cout << "CPFA_controller cast failed" << endl;
+				cout << "Actual type of c2: " << typeid(c2).name() << endl;
+			}
+			if(c3 != nullptr) {
+				c3->SetLoopFunctions(this);
+				cout << "Detractor_controller cast successful" << endl;
+			}
+			else {
+				cout << "Detractor_controller cast failed" << endl;
+				cout << "Actual type of c3: " << typeid(c3).name() << endl;
+			}
+		}
+		else {
+			cout << "BaseController cast failed" << endl;
+		}
 	}
-     
+
    	NestRadiusSquared = NestRadius*NestRadius;
 	
     SetFoodDistribution();
@@ -204,15 +227,37 @@ void CPFA_loop_functions::Reset() {
     SetFoodDistribution();
     
     argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
-    argos::CSpace::TMapPerType::iterator it;
-   
-    for(it = footbots.begin(); it != footbots.end(); it++) {
-        argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
-        BaseController& c = dynamic_cast<BaseController&>(footBot.GetControllableEntity().GetController());
-        CPFA_controller& c2 = dynamic_cast<CPFA_controller&>(c);
-        MoveEntity(footBot.GetEmbodiedEntity(), c2.GetStartPosition(), argos::CQuaternion(), false);
-    	c2.Reset();
-    }
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+		if(c != nullptr) {
+			cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
+			CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
+			Detractor_controller* c3 = dynamic_cast<Detractor_controller*>(c);
+			if(c2 != nullptr) {
+				MoveEntity(footBot.GetEmbodiedEntity(), c2->GetStartPosition(), argos::CQuaternion(), false);
+				c2->Reset();
+				cout << "CPFA_controller cast successful" << endl;
+			}
+			else {
+				cout << "CPFA_controller cast failed" << endl;
+				cout << "Actual type of c2: " << typeid(c2).name() << endl;
+			}
+			if(c3 != nullptr) {
+				MoveEntity(footBot.GetEmbodiedEntity(), c3->GetStartPosition(), argos::CQuaternion(), false);
+				c3->Reset();
+				cout << "Detractor_controller cast successful" << endl;
+			}
+			else {
+				cout << "Detractor_controller cast failed" << endl;
+				cout << "Actual type of c3: " << typeid(c3).name() << endl;
+			}
+		}
+		else {
+			cout << "BaseController cast failed" << endl;
+		}
+	}
+
 }
 
 void CPFA_loop_functions::PreStep() {
@@ -318,13 +363,35 @@ void CPFA_loop_functions::PostExperiment() {
         unsigned int ticks_per_second = GetSimulator().GetPhysicsEngine("dyn2d").GetInverseSimulationClockTick();//qilu 02/06/2021
         
         argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
-         
-        for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
-            argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
-            BaseController& c = dynamic_cast<BaseController&>(footBot.GetControllableEntity().GetController());
-            CPFA_controller& c2 = dynamic_cast<CPFA_controller&>(c);
-            CollisionTime += c2.GetCollisionTime();
-        }
+
+		for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+			argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+			BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+			if(c != nullptr) {
+				cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
+				CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
+				Detractor_controller* c3 = dynamic_cast<Detractor_controller*>(c);
+				if(c2 != nullptr) {
+					CollisionTime += c2->GetCollisionTime();
+					cout << "CPFA_controller cast successful" << endl;
+				}
+				else {
+					cout << "CPFA_controller cast failed" << endl;
+					cout << "Actual type of c2: " << typeid(c2).name() << endl;
+				}
+				if(c3 != nullptr) {
+					CollisionTime += c3->GetCollisionTime();
+					cout << "Detractor_controller cast successful" << endl;
+				}
+				else {
+					cout << "Detractor_controller cast failed" << endl;
+					cout << "Actual type of c3: " << typeid(c3).name() << endl;
+				}
+			}
+			else {
+				cout << "BaseController cast failed" << endl;
+			}
+		}
              
         // ofstream dataOutput( (FilenameHeader+ "iAntTagData.txt").c_str(), ios::app);
         // // output to file
@@ -342,21 +409,23 @@ void CPFA_loop_functions::PostExperiment() {
         // forageDataOutput.close();
 
 		// Write to file ** Ryan Luna 11/17/22
-		ofstream DoSDataOutput((FilenameHeader+"DoSData.txt").c_str(), ios::app);
-		if (DoSDataOutput.tellp() == 0){
+		ofstream DataOut((FilenameHeader+"AttackData.txt").c_str(), ios::app);
+		if (DataOut.tellp() == 0){
 
-			DoSDataOutput 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
-							<< "Real Food Collected, Real Food Collection Rate (per second), "
-							<< "Fake Food Collected, Fake Food Collection Rate (per second), " 
-							<< "Real Food Trails Created, Fake Food Trails Created, False Positives, QZones" << endl;
+			DataOut 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
+							<< "Real Food Collected, Real Food Collection Rate (per second), " << endl;
+
+							// << "Fake Food Collected, Fake Food Collection Rate (per second), " 
+							// << "Real Food Trails Created, Fake Food Trails Created, False Positives, QZones" << endl;
 		}
 
 		TotalFoodCollected = RealFoodCollected + FakeFoodCollected;
 
-		DoSDataOutput 	<< getSimTimeInSeconds() << ',' << TotalFoodCollected << ',' << TotalFoodCollected/getSimTimeInSeconds() << ','
-						<< RealFoodCollected << ',' << RealFoodCollected/getSimTimeInSeconds() << ','
-						<< FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
-						<< numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << ',' << MainNest.GetZoneList().size() << endl;
+		DataOut 	<< getSimTimeInSeconds() << ',' << TotalFoodCollected << ',' << TotalFoodCollected/getSimTimeInSeconds() << ','
+						<< RealFoodCollected << ',' << RealFoodCollected/getSimTimeInSeconds() << ',' << endl;
+						
+						// << FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
+						// << numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << ',' << MainNest.GetZoneList().size() << endl;
       }
 
 	ofstream TerminateCount ((FilenameHeader+"TerminatedCount.txt").c_str(), ios::app);
@@ -877,8 +946,8 @@ bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t
 	argos::Real y_min = p.GetY() - FoodRadius;
 	argos::Real y_max = p.GetY() + FoodRadius + lengthOffset;
 
-	if((x_min < (ForageRangeX.GetMin() + FoodRadius))
-			|| (x_max > (ForageRangeX.GetMax() - FoodRadius)) ||
+	if(		(x_min < (ForageRangeX.GetMin() + FoodRadius)) ||
+			(x_max > (ForageRangeX.GetMax() - FoodRadius)) ||
 			(y_min < (ForageRangeY.GetMin() + FoodRadius)) ||
 			(y_max > (ForageRangeY.GetMax() - FoodRadius)))
 	{
@@ -889,6 +958,7 @@ bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t
 		for(size_t k = 0; k < width; k++) {
 			if(IsCollidingWithFood(placementPosition)) return true;
 			if(IsCollidingWithNest(placementPosition)) return true;
+			if(IsCollidingWithAtkNest(placementPosition)) return true;
 			placementPosition.SetX(placementPosition.GetX() + foodOffset);
 		}
 
@@ -904,7 +974,14 @@ bool CPFA_loop_functions::IsCollidingWithNest(argos::CVector2 p) {
 	argos::Real nestRadiusPlusBuffer = NestRadius + FoodRadius;
 	argos::Real NRPB_squared = nestRadiusPlusBuffer * nestRadiusPlusBuffer;
 
-      return ( (p - NestPosition).SquareLength() < NRPB_squared) ;
+      return ( (p - NestPosition).SquareLength() < NRPB_squared ) ;
+}
+
+bool CPFA_loop_functions::IsCollidingWithAtkNest(argos::CVector2 p) {
+	argos::Real nestRadiusPlusBuffer = NestRadius + FoodRadius;
+	argos::Real NRPB_squared = nestRadiusPlusBuffer * nestRadiusPlusBuffer;
+
+      return ( (p - AttackerNestPosition).SquareLength() < NRPB_squared ) ;
 }
 
 bool CPFA_loop_functions::IsCollidingWithFood(argos::CVector2 p) {
@@ -988,6 +1065,10 @@ void CPFA_loop_functions::ConfigureFromGenome(Real* g)
 	RateOfSiteFidelity                = g[4];
 	RateOfLayingPheromone             = g[5];
 	RateOfPheromoneDecay              = g[6];
+}
+
+void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
+	AttackerNest.CaptureRobot(robot_id);
 }
 
 REGISTER_LOOP_FUNCTIONS(CPFA_loop_functions, "CPFA_loop_functions")

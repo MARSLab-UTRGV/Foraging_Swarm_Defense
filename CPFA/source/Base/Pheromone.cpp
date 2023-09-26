@@ -19,17 +19,19 @@ Pheromone::Pheromone(argos::CVector2              newLocation,
 {
     if (fake){
         /* required initializations */
+        isAtkPheromone = true;
         location    = newLocation;
         trail       = newTrail;
         lastUpdated = newTime;
-        decayRate   = 0;
+        decayRate   = newDecayRate;
         ResourceDensity = density;
         /* standardized initializations */
-        weight      = 10.0;
+        weight      = 1.0;
         threshold   = 0.001;
-        // cout << "In Pheromone.cpp: Trail to fake resource created..." << endl;
+        cout << "In Pheromone.cpp: Trail to attacker nest created..." << endl;
     }else{
         /* required initializations */
+        isAtkPheromone = false;
         location    = newLocation;
         trail       = newTrail;
         lastUpdated = newTime;
@@ -40,6 +42,10 @@ Pheromone::Pheromone(argos::CVector2              newLocation,
         threshold   = 0.001;
         // cout << "In Pheromone.cpp: Trail to real resource created..." << endl;
     }
+}
+
+bool Pheromone::IsMisleading(){
+    return isAtkPheromone;
 }
 
 /*****

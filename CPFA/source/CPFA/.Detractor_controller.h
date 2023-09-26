@@ -1,5 +1,5 @@
-#ifndef CPFA_CONTROLLER_H
-#define CPFA_CONTROLLER_H
+#ifndef DETRACTOR_CONTROLLER_H
+#define DETRACTOR_CONTROLLER_H
 
 #include <source/Base/BaseController.h>
 #include <source/Base/Pheromone.h>
@@ -11,20 +11,16 @@
 #include <source/Base/QuarantineZone.h>
 #include <source/Base/Food.h>
 
-#include <source/Base/Attacker_Nest.h>
-
 using namespace std;
 using namespace argos;
 
-static unsigned int num_targets_collected = 0;
-
 class CPFA_loop_functions;
 
-class CPFA_controller : public BaseController {
+class Detractor_controller : public BaseController {
 
 	public:
 
-		CPFA_controller();
+		Detractor_controller();
 
 		// CCI_Controller inheritence functions
 		void Init(argos::TConfigurationNode &node);
@@ -35,7 +31,6 @@ class CPFA_controller : public BaseController {
 		bool IsHoldingFakeFood();	// Ryan Luna 11/12/22
 		bool IsUsingSiteFidelity();
 		bool IsInTheNest();
-		bool IsInTheBadNest();
 
 		Real FoodDistanceTolerance;
 
@@ -81,7 +76,6 @@ class CPFA_controller : public BaseController {
 		CColor        TrailColor;
 
 		bool isInformed;
-		bool isWronglyInformed;
 		bool isHoldingFood;
 		bool isHoldingFakeFood;		// Ryan Luna 11/12/22
 		bool isUsingSiteFidelity;
@@ -102,30 +96,24 @@ class CPFA_controller : public BaseController {
 
 		Real	FFdetectionAcc;
 		Real    RFdetectionAcc;
-
-		/* Detractor related stuff */
-		bool captured;
-		size_t captureTime;
         
   
-		/* iAnt CPFA state variable */
-		enum CPFA_state {
+		/* iAnt Detractor state variable */
+		enum Detractor_state {
 			DEPARTING = 0,
 			SEARCHING = 1,
 			RETURNING = 2,
-			SURVEYING = 3,
-			CAPTURED  = 4,				// new CPFA state for defined behavior after being captured
-		} CPFA_state;
+			SURVEYING = 3
+		} Detractor_state;
 
-		/* iAnt CPFA state functions */
-		void CPFA();
+		/* iAnt Detractor state functions */
+		void Detract();
 		void Departing();
 		void Searching();
 		void Returning();
 		void Surveying();
-		void Captured();
 
-		/* CPFA helper functions */
+		/* Detractor helper functions */
 		void SetRandomSearchLocation();
 		void SetHoldingFood();
 		void SetLocalResourceDensity();
@@ -150,4 +138,4 @@ class CPFA_controller : public BaseController {
         CCI_LEDsActuator* m_pcLEDs;
 };
 
-#endif /* CPFA_CONTROLLER_H */
+#endif /* DETRACTOR_CONTROLLER_H */

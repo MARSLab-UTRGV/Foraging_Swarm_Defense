@@ -69,7 +69,7 @@ class C_XML_CONFIG:
         self.RF_ACC=             1.00                    # Real Food Food Accuracy (0.0-1.0)
 
         # Fake Food Loop Function Settings **
-        self.USE_FF_DOS =        "true"                  # Turn on/off fake_food DoS
+        self.USE_FF_DOS =        "false"                 # Turn on/off fake_food DoS
         self.FFD =               0                       # Fake Food Distribution Mode (0=Random, 1=Cluster, 2=PowerLaw) (default = Random)
         self.NUM_FF =            64                      # Number of fake food to distribute for random distribution
         self.NUM_FCL =           1                       # Number of fake food clusters for cluster distribution
@@ -99,6 +99,11 @@ class C_XML_CONFIG:
         self.OUTPUT_DATA =       0                       # turn output data on/off
         self.NEST_ELV =          0.001                   # Nest elevation
         self.NEST_POS =          (0,0)                   # Nest location
+
+        atkNest_x = self.ARENA_SIZE[0]/2-1
+        atkNest_y = self.ARENA_SIZE[1]/2-1
+        self.ATK_NEST_POS =      (atkNest_x,atkNest_y)   # Attacker nest location
+        
         self.NEST_RAD =          0.25                    # Nest radius
         self.VFP =               0                       # Variable food placement
         self.FOOD_RAD =          0.05                    # Food radius
@@ -420,6 +425,75 @@ class C_XML_CONFIG:
         params.appendChild(params_settings)
         #           </params>
         #       </CPFA_controller>
+
+        #       <Detractor_controller>
+        detractor_controller = xml.createElement('Detractor_controller')
+        detractor_controller.setAttribute('id','Detractor')
+        detractor_controller.setAttribute('library','build/source/CPFA/libDetractor_controller')
+        controllers.appendChild(detractor_controller)
+
+        #           <actuators>
+        actuators = xml.createElement('actuators')
+        detractor_controller.appendChild(actuators)
+
+        #               <differential_steering>
+        dif_steering = xml.createElement('differential_steering')
+        dif_steering.setAttribute('implementation','default')
+        actuators.appendChild(dif_steering)
+
+        #               <leds>
+        leds = xml.createElement('leds')
+        leds.setAttribute('implementation','default')
+        leds.setAttribute('medium','leds')
+        actuators.appendChild(leds)
+        #           </actuators
+
+        #           <sensors>
+        sensors = xml.createElement('sensors')
+        detractor_controller.appendChild(sensors)
+
+        #               <footbot_proximity>
+        fb_prox = xml.createElement('footbot_proximity')
+        fb_prox.setAttribute('implementation','default')
+        fb_prox.setAttribute('show_rays',str(self.SHOW_PROX_RAYS))
+        sensors.appendChild(fb_prox)
+
+        #               <positioning>
+        fb_positioning = xml.createElement('positioning')
+        fb_positioning.setAttribute('implementation','default')
+        sensors.appendChild(fb_positioning)
+
+        #               <footbot_motor_ground>
+        fb_mg = xml.createElement('footbot_motor_ground')
+        fb_mg.setAttribute('implementation','rot_z_only')
+        sensors.appendChild(fb_mg)
+        #           </sensors
+
+        #           <params>
+        params = xml.createElement('params')
+        detractor_controller.appendChild(params)
+
+        #               <settings>
+        params_settings = xml.createElement('settings')
+        params_settings.setAttribute('DestinationNoiseStdev', str(self.DN_SD))
+        params_settings.setAttribute('FoodDistanceTolerance', str(self.FDT))
+        params_settings.setAttribute('NestAngleTolerance', str(self.NAT))
+        params_settings.setAttribute('NestDistanceTolerance', str(self.NDT))
+        params_settings.setAttribute('PositionNoiseStdev', str(self.PN_SD))
+        params_settings.setAttribute('ResultsDirectoryPath', self.RD_PATH)
+        params_settings.setAttribute('RobotForwardSpeed', str(self.BOT_FW_SPD))
+        params_settings.setAttribute('RobotRotationSpeed', str(self.BOT_ROT_SPD))
+        params_settings.setAttribute('SearchStepSize', str(self.SSS))
+        params_settings.setAttribute('TargetAngleTolerance', str(self.TAT))
+        params_settings.setAttribute('TargetDistanceTolerance', str(self.TDT))
+        params_settings.setAttribute('UseQZones', str(self.UQZ))
+        params_settings.setAttribute('MergeMode', str(self.MM))
+        params_settings.setAttribute('FFdetectionAcc', str(self.FF_ACC))
+        params_settings.setAttribute('RFdetectionAcc', str(self.RF_ACC))
+        params.appendChild(params_settings)
+        #           </params>
+        #       </Detractor_controller>
+
         #   </controllers>
 
         #   <loop_functions>
@@ -439,6 +513,7 @@ class C_XML_CONFIG:
         lf_cpfa.setAttribute('RateOfSiteFidelity', str(self.RSF))
         lf_cpfa.setAttribute('UninformedSearchVariation', str(self.USV))
         loops.appendChild(lf_cpfa)
+        #       </CPFA>
 
         #       <settings>
         lf_settings = xml.createElement('settings')
@@ -475,6 +550,13 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('Densify', str(self.DENSIFY))
         loops.appendChild(lf_settings)
         #       </settings>
+
+        #       <detractor_settings>
+        lf_detractor_settings = xml.createElement('detractor_settings')
+        lf_detractor_settings.setAttribute('AttackerNestPosition', str(self.ATK_NEST_POS))
+        loops.appendChild(lf_detractor_settings)
+        #       </detractor_settings>
+
         #   </loop_functions>
 
         #   <arena>
@@ -659,6 +741,7 @@ class C_XML_CONFIG:
         #                   </controller>
         #               </foot-bot>
         #           </entity>
+        #       </distribute>
         ############## FB group 3 #################
         #       <distribute>
             fb3_distribution = xml.createElement('distribute')
@@ -698,6 +781,47 @@ class C_XML_CONFIG:
         #               </foot-bot>
         #           </entity>
         #       </distribute>
+
+        ############## FB detractors #################
+        #       <distribute>
+            detractor_distribution = xml.createElement('distribute')
+            arena.appendChild(detractor_distribution)
+        #           <position>
+            detractor_position = xml.createElement('position')
+            detractor_position.setAttribute('center', '0.0,0.0,0.0')
+            detractor_position.setAttribute('distances','0.3,0.3,0.0')
+            detractor_position.setAttribute('layout','2,3,1')
+            detractor_position.setAttribute('method','grid')
+            detractor_distribution.appendChild(detractor_position)
+        #           </position
+
+        #           <orientation>
+            detractor_orientation = xml.createElement('orientation')
+            detractor_orientation.setAttribute('method','constant')
+            detractor_orientation.setAttribute('values','0.0,0.0,0.0')
+            detractor_distribution.appendChild(detractor_orientation)
+        #           </orientation>
+
+        #           <entity>
+            entity_d = xml.createElement('entity')
+            entity_d.setAttribute('quantity', str(self.BOTS_PER_GROUP))
+            entity_d.setAttribute('max_trials','100')
+            detractor_distribution.appendChild(entity_d)
+
+        #               <foot-bot>
+            fb_d = xml.createElement('foot-bot')
+            fb_d.setAttribute('id','fb_detractor')
+            entity_d.appendChild(fb_d)
+
+        #                   <controller>
+            cont_fb_d = xml.createElement('controller')
+            cont_fb_d.setAttribute('config','Detractor')
+            fb_d.appendChild(cont_fb_d)
+        #                   </controller>
+        #               </foot-bot>
+        #           </entity>
+        #       </distribute>
+
         #   </arena>
 
         #   <physics_engines>
@@ -758,7 +882,7 @@ class C_XML_CONFIG:
 
         xml_str = xml.toprettyxml(indent = "\t")
 
-        xml_filename = "./experiments/CPFA_DoS_Simulation.xml"
+        xml_filename = "./experiments/Misleading_Trail_1.xml"
 
         with open(xml_filename, "w") as f:
             f.write(xml_str)
