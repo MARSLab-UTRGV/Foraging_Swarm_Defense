@@ -165,32 +165,44 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
     Num_robots = footbots.size();
     argos::LOG<<"Number of robots="<<Num_robots<<endl;
 
+	int bot_count = 0;
+
 	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
 		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
 		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
 		if(c != nullptr) {
-			cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
+			// cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
 			CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
 			Detractor_controller* c3 = dynamic_cast<Detractor_controller*>(c);
 			if(c2 != nullptr) {
 				c2->SetLoopFunctions(this);
-				cout << "CPFA_controller cast successful" << endl;
+				// cout << "CPFA_controller cast successful" << endl;
+				bool isHolding = c2->IsHoldingFood();
+				if(isHolding)cout << "Robot holding food." << endl;
+				else cout << "Robot NOT holding food." << endl;
+				cout << "Bot count = " << bot_count << endl;
+				bot_count++;
 			}
 			else {
-				cout << "CPFA_controller cast failed" << endl;
-				cout << "Actual type of c2: " << typeid(c2).name() << endl;
+				// cout << "CPFA_controller cast failed" << endl;
+				// cout << "Actual type of c2: " << typeid(c2).name() << endl;
 			}
 			if(c3 != nullptr) {
 				c3->SetLoopFunctions(this);
-				cout << "Detractor_controller cast successful" << endl;
+				// cout << "Detractor_controller cast successful" << endl;
+				bool isHolding = c3->IsHoldingFood();
+				if(isHolding)cout << "Robot holding food." << endl;
+				else cout << "Robot NOT holding food." << endl;
+				cout << "Bot count = " << bot_count << endl;
+				bot_count++;
 			}
 			else {
-				cout << "Detractor_controller cast failed" << endl;
-				cout << "Actual type of c3: " << typeid(c3).name() << endl;
+				// cout << "Detractor_controller cast failed" << endl;
+				// cout << "Actual type of c3: " << typeid(c3).name() << endl;
 			}
 		}
 		else {
-			cout << "BaseController cast failed" << endl;
+			// cout << "BaseController cast failed" << endl;
 		}
 	}
 
