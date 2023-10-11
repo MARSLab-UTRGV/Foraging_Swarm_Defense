@@ -31,6 +31,7 @@ class Detractor_controller : public BaseController {
 		bool IsHoldingFakeFood();	// Ryan Luna 11/12/22
 		bool IsUsingSiteFidelity();
 		bool IsInTheNest();
+		bool IsInTheBadNest();
 
 		Real FoodDistanceTolerance;
 
@@ -39,6 +40,7 @@ class Detractor_controller : public BaseController {
 		size_t     GetSearchingTime();//qilu 09/26/2016
 		size_t      GetTravelingTime();//qilu 09/26/2016
 		string      GetStatus();//qilu 09/26/2016
+		string 		GetDetractorStatus();
 		size_t      startTime;//qilu 09/26/2016
 
 		/* quarantine zone functions */		// Ryan Luna 12/28/22
@@ -76,6 +78,7 @@ class Detractor_controller : public BaseController {
 		CColor        TrailColor;
 
 		bool isInformed;
+		bool isWronglyInformed;
 		bool isHoldingFood;
 		bool isHoldingFakeFood;		// Ryan Luna 11/12/22
 		bool isUsingSiteFidelity;
@@ -99,21 +102,38 @@ class Detractor_controller : public BaseController {
         
   
 		/* iAnt Detractor state variable */
-		enum Detractor_state {
+		enum CPFA_state {
 			DEPARTING = 0,
 			SEARCHING = 1,
 			RETURNING = 2,
 			SURVEYING = 3
-		} Detractor_state;
+		}	CPFA_state;
 
-		/* iAnt Detractor state functions */
-		void Detract();
+		enum Detractor_state {
+			_HOME_			= 0,			// robot is at its home (attacker) nest
+			_DEPARTING_ 	= 1,			// departing from the attacker nest to the defender nest
+			_DELIVERING_	= 2,			// delivering fake food and deploying false pheromone trail
+			_RETURNING_		= 3,			// returning to the attacker nest from the defender nest after delivering fake food
+		}	Detractor_state;
+
+		bool isDetractor;					// boolean to set at initialization to determine if robot is a detractor or not
+		argos::CVector2 badNestPos;			// location of the attacker nest (used when laying pheromone trails back to bad nest position.
+
+		/* iAnt CPFA state functions */
+		void CPFA();
 		void Departing();
 		void Searching();
 		void Returning();
 		void Surveying();
+		
+		/* iAnt Detractor state functions */
+		void Detract();
+		void Home_d();
+		void Departing_d();
+		void Delivering_d();
+		void Returning_d();
 
-		/* Detractor helper functions */
+		/* CPFA/Detractor helper functions */
 		void SetRandomSearchLocation();
 		void SetHoldingFood();
 		void SetLocalResourceDensity();

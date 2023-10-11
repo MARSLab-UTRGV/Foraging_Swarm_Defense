@@ -5,7 +5,7 @@
 #include <argos3/plugins/robots/foot-bot/simulator/footbot_entity.h>
 #include <argos3/core/simulator/entity/floor_entity.h>
 #include <source/CPFA/CPFA_controller.h>
-#include <source/CPFA/Detractor_controller.h>
+// #include <source/CPFA/Detractor_controller.h>
 #include <argos3/plugins/simulator/entities/cylinder_entity.h>
 #include <source/Base/Food.h>	// Ryan Luna 11/10/22
 #include <source/Base/Nest.h>	// Ryan Luna 1/24/23
@@ -177,6 +177,9 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		bool terminate;
 		bool densify;
 
+		CVector3 ForagingAreaSize;
+		bool IsNearRobot(const CVector2& position);
+
 
 	private:
 
@@ -192,6 +195,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		bool IsCollidingWithNest(argos::CVector2 p);
 		bool IsCollidingWithAtkNest(argos::CVector2 p);		// Ryan Luna 09/20/23
 		bool IsCollidingWithFood(argos::CVector2 p);
+		CVector3 GenEntityPosition();		// generate a position to move entity to (outside foraging arena) when captured
 		double score;
 		int PrintFinalScore;
 };

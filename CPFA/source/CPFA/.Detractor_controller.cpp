@@ -1,9 +1,14 @@
 #include "Detractor_controller.h"
 #include <unistd.h>
 
+/****************************************************************************/
+/*                           CONSTRUCTOR                                    */
+/****************************************************************************/
+
 Detractor_controller::Detractor_controller() :
 	RNG(argos::CRandom::CreateRNG("argos")),
 	isInformed(false),
+	isWronglyInformed(false),
 	isHoldingFood(false),
 	isHoldingFakeFood(false),	// Ryan Luna 11/12/22
 	isUsingSiteFidelity(false),
@@ -11,7 +16,8 @@ Detractor_controller::Detractor_controller() :
 	ResourceDensity(0),
 	MaxTrailSize(50),
 	SearchTime(0),
-	Detractor_state(DEPARTING),
+	CPFA_state(DEPARTING),
+	Detractor_state(_HOME_),
 	LoopFunctions(NULL),
 	survey_count(0),
 	isUsingPheromone(0),
@@ -27,6 +33,9 @@ Detractor_controller::Detractor_controller() :
 {
 }
 
+/****************************************************************************/
+/*                           MAIN ARGOS FUNCTIONS                           */
+/****************************************************************************/
 void Detractor_controller::Init(argos::TConfigurationNode &node) {
 	compassSensor   = GetSensor<argos::CCI_PositioningSensor>("positioning");
 	wheelActuator   = GetActuator<argos::CCI_DifferentialSteeringActuator>("differential_steering");
@@ -52,60 +61,29 @@ void Detractor_controller::Init(argos::TConfigurationNode &node) {
 
 	argos::CVector2 p(GetPosition());
 	SetStartPosition(argos::CVector3(p.GetX(), p.GetY(), 0.0));
-	
 	FoodDistanceTolerance *= FoodDistanceTolerance;
-	SetIsHeadingToNest(true);
-	/**
-	 * Let robots start to search immediately	- qilu 10/21/2016 
-	 * 
-	 * No need to check for QZones during initialization, as none should exist		- Ryan Luna 01/25/23
-	*/
-	SetTarget(p);
-    controllerID= GetId();
-    m_pcLEDs   = GetActuator<CCI_LEDsActuator>("leds");
-    controllerID= GetId();//qilu 07/26/2016
-	m_pcLEDs->SetAllColors(CColor::GREEN);
-}
+	controllerID= GetId();
+	m_pcLEDs   = GetActuator<CCI_LEDsActuator>("leds");
 
-// Ryan Luna 12/28/22
-void Detractor_controller::ClearLocalFoodList(){
-	LocalFoodList.clear();
-}
+	if (!isDetractor){
 
-// Ryan Luna 12/28/22
-void Detractor_controller::ClearZoneList(){
-	QZoneList.clear();
-}
-
-// Ryan Luna 12/28/22
-void Detractor_controller::AddZone(QZone newZone){
-	QZoneList.push_back(newZone);
-}
-
-// Ryan Luna 12/28/22
-void Detractor_controller::AddLocalFood(Food newFood){
-	LocalFoodList.push_back(newFood);
-}
-
-// Ryan Luna 12/28/22
-void Detractor_controller::RemoveZone(QZone Z){
-	int i = 0;
-	for(QZone z : QZoneList){
-		if(Z.GetLocation() == z.GetLocation()){
-			QZoneList.erase(QZoneList.begin()+i);
-		}
-		i++;
-	}
-}
-
-// Ryan Luna 12/28/22 
-void Detractor_controller::RemoveLocalFood(Food F){
-	int i = 0;
-	for(Food f : LocalFoodList){
-		if(F.GetLocation() == f.GetLocation()){
-			LocalFoodList.erase(LocalFoodList.begin()+i);
-		}
-		i++;
+		SetIsHeadingToNest(true);
+		/**
+		 * Let robots start to search immediately	- qilu 10/21/2016 
+		 * 
+		 * No need to check for QZones during initialization, as none should exist		- Ryan Luna 01/25/23
+		*/
+		SetTarget(p);
+		m_pcLEDs->SetAllColors(CColor::GREEN);
+	} else {
+		SetIsHeadingToNest(false);
+		/**
+		 * The robot starts in the nest in the _HOME_ detractor state.
+		 * In this state function, the target should be set to the good nest after the robot picks up the fake food
+		 */
+		SetTarget(p);
+		m_pcLEDs->SetAllColors(CColor::RED);
+		badNestPos = LoopFunctions->AttackerNestPosition;
 	}
 }
 
@@ -123,7 +101,10 @@ void Detractor_controller::ControlStep() {
 	previous_position = GetPosition();
 
 	//UpdateTargetRayList();
-	Detract();
+
+	if (isDetractor){Detract();} 
+	else {CPFA();}
+
 	Move();
 }
 
@@ -154,22 +135,21 @@ void Detractor_controller::Reset() {
 	isGivingUpSearch = false;
 }
 
+/****************************************************************************/
+/*                           CPFA FUNCTIONS                                 */
+/****************************************************************************/
+
 bool Detractor_controller::IsHoldingFood() {
 		return isHoldingFood;
-}
-
-// Ryan Luna 11/12/22
-bool Detractor_controller::IsHoldingFakeFood(){
-	return isHoldingFakeFood;
 }
 
 bool Detractor_controller::IsUsingSiteFidelity() {
 		return isUsingSiteFidelity;
 }
 
-void Detractor_controller::Detract() {
+void Detractor_controller::CPFA() {
 	
-	switch(Detractor_state) {
+	switch(CPFA_state) {
 		// depart from nest after food drop off or simulation start
 		case DEPARTING:
 			// if (GetId().compare("fb21") == 0){
@@ -233,7 +213,7 @@ void Detractor_controller::Departing()
 			if(SimulationTick()%(5*SimulationTicksPerSecond())==0 && randomNumber < LoopFunctions->ProbabilityOfSwitchingToSearching){
 				Stop();
 				SearchTime = 0;
-				Detractor_state = SEARCHING;
+				CPFA_state = SEARCHING;
 				travelingTime+=SimulationTick()-startTime;//qilu 10/22
 				startTime = SimulationTick();//qilu 10/22
 				
@@ -259,7 +239,7 @@ void Detractor_controller::Departing()
 	/* Are we informed? I.E. using site fidelity or pheromones. */	
 	if(isInformed && distanceToTarget < TargetDistanceTolerance) {
 		SearchTime = 0;
-		Detractor_state = SEARCHING;
+		CPFA_state = SEARCHING;
 		travelingTime+=SimulationTick()-startTime;//qilu 10/22
 		startTime = SimulationTick();//qilu 10/22
 
@@ -296,7 +276,7 @@ void Detractor_controller::Searching() {
 				LoopFunctions->FidelityList.erase(controllerID);
 				isUsingSiteFidelity = false; 
 				updateFidelity = false; 
-				Detractor_state = RETURNING;
+				CPFA_state = RETURNING;
 				searchingTime+=SimulationTick()-startTime;
 				startTime = SimulationTick();
 		
@@ -380,13 +360,12 @@ void Detractor_controller::Surveying() {
 	else {
 		SetIsHeadingToNest(false); // Turn on error for this
 		SetTarget(LoopFunctions->NestPosition); 
-		Detractor_state = RETURNING;
+		CPFA_state = RETURNING;
 		survey_count = 0; // Reset
                 searchingTime+=SimulationTick()-startTime;//qilu 10/22
                 startTime = SimulationTick();//qilu 10/22
 	}
 }
-
 
 /*****
  * RETURNING: Stay in this state until the robot has returned to the nest.
@@ -563,7 +542,7 @@ void Detractor_controller::Returning() {
       	}
 
 	isGivingUpSearch = false;
-	Detractor_state = DEPARTING;   
+	CPFA_state = DEPARTING;   
 	isHoldingFood = false;
 	isHoldingFakeFood = false;	// Ryan Luna 11/12/22 
 	travelingTime+=SimulationTick()-startTime;//qilu 10/22
@@ -636,33 +615,6 @@ void Detractor_controller::SetRandomSearchLocation() {
 	}
 }
 
-/**
- * Helper function to check whether the referenced target is in a Quarantine Zone
- * in the bot's QZoneList.
- * 
- * Ryan Luna 01/25/23
-*/
-bool Detractor_controller::TargetInQZone(CVector2 target){
-	bool badLocation = false;
-
-	int count = 0;
-	
-	// cout << "Entering TargetInQZone() loop, checking if target is in a QZone" << endl;
-	
-	// iterate through the bot's QZoneList
-	for (QZone qz : QZoneList){		
-		// pythagorean theorem to get distance between two points
-		Real d = sqrt( pow( abs(target.GetX()) - abs(qz.GetLocation().GetX()), 2) + pow( abs(target.GetY()) - abs(qz.GetLocation().GetY()), 2) );
-		
-		if (d <= qz.GetRadius()){	// point is inside qzone
-			badLocation = true;
-			break;
-		}
-	}
-	// cout << "Exited TargetInQZone()..." << endl;
-	return badLocation;
-}
-
 /*****
  * Check if the iAnt is finding food. This is defined as the iAnt being within
  * the distance tolerance of the position of a food item. If the iAnt has found
@@ -711,7 +663,7 @@ void Detractor_controller::SetHoldingFood() {
 										LoopFunctions->FidelityList.erase(controllerID);
 										isUsingSiteFidelity = false; 
 										updateFidelity = false; 
-										Detractor_state = RETURNING;
+										CPFA_state = RETURNING;
 										searchingTime+=SimulationTick()-startTime;
 										startTime = SimulationTick();
 									}
@@ -734,7 +686,7 @@ void Detractor_controller::SetHoldingFood() {
 					if (LoopFunctions->FoodList[i].GetType() == Food::FAKE){	// Ryan Luna 11/12/22
 						isHoldingFakeFood = true;
 					}
-					Detractor_state = SURVEYING;
+					CPFA_state = SURVEYING;
 					j = i + 1;
 					searchingTime+=SimulationTick()-startTime;
 					startTime = SimulationTick();
@@ -938,21 +890,28 @@ argos::Real Detractor_controller::GetBound(argos::Real value, argos::Real min, a
 size_t Detractor_controller::GetSearchingTime(){//qilu 10/22
     return searchingTime;
 }
+
 size_t Detractor_controller::GetTravelingTime(){//qilu 10/22
     return travelingTime;
 }
 
 string Detractor_controller::GetStatus(){//qilu 10/22
     //DEPARTING, SEARCHING, RETURNING
-    if (Detractor_state == DEPARTING) return "DEPARTING";
-    else if (Detractor_state ==SEARCHING)return "SEARCHING";
-    else if (Detractor_state == RETURNING)return "RETURNING";
-    else if (Detractor_state == SURVEYING) return "SURVEYING";
+    if (CPFA_state == DEPARTING) return "DEPARTING";
+    else if (CPFA_state ==SEARCHING)return "SEARCHING";
+    else if (CPFA_state == RETURNING)return "RETURNING";
+    else if (CPFA_state == SURVEYING) return "SURVEYING";
     //else if (MPFA_state == INACTIVE) return "INACTIVE";
     else return "SHUTDOWN";
-    
 }
 
+string Detractor_controller::GetDetractorStatus(){
+	if (Detractor_state == _HOME_) return "HOME";
+	else if (Detractor_state == _DEPARTING_) return "DEPARTING";
+	else if (Detractor_state == _DELIVERING_) return "DELIVERING";
+	else if (Detractor_state == _RETURNING_) return "RETURNING";
+	else return "SHUTDOWN";
+}
 
 /*****
  * Return the Poisson cumulative probability at a given k and lambda.
@@ -998,4 +957,191 @@ void Detractor_controller::UpdateTargetRayList() {
 	}
 }
 
+/**
+ * Helper function to check whether the referenced target is in a Quarantine Zone
+ * in the bot's QZoneList.
+ * 
+ * Ryan Luna 01/25/23
+*/
+bool Detractor_controller::TargetInQZone(CVector2 target){
+	bool badLocation = false;
+
+	int count = 0;
+	
+	// cout << "Entering TargetInQZone() loop, checking if target is in a QZone" << endl;
+	
+	// iterate through the bot's QZoneList
+	for (QZone qz : QZoneList){		
+		// pythagorean theorem to get distance between two points
+		Real d = sqrt( pow( abs(target.GetX()) - abs(qz.GetLocation().GetX()), 2) + pow( abs(target.GetY()) - abs(qz.GetLocation().GetY()), 2) );
+		
+		if (d <= qz.GetRadius()){	// point is inside qzone
+			badLocation = true;
+			break;
+		}
+	}
+	// cout << "Exited TargetInQZone()..." << endl;
+	return badLocation;
+}
+
+/****************************************************************************/
+/*                       FAKE FOOD FUNCTIONS                                */
+/****************************************************************************/
+
+// Ryan Luna 11/12/22
+bool Detractor_controller::IsHoldingFakeFood(){
+	return isHoldingFakeFood;
+}
+
+// Ryan Luna 12/28/22
+void Detractor_controller::ClearLocalFoodList(){
+	LocalFoodList.clear();
+}
+
+// Ryan Luna 12/28/22
+void Detractor_controller::ClearZoneList(){
+	QZoneList.clear();
+}
+
+// Ryan Luna 12/28/22
+void Detractor_controller::AddZone(QZone newZone){
+	QZoneList.push_back(newZone);
+}
+
+// Ryan Luna 12/28/22
+void Detractor_controller::AddLocalFood(Food newFood){
+	LocalFoodList.push_back(newFood);
+}
+
+// Ryan Luna 12/28/22
+void Detractor_controller::RemoveZone(QZone Z){
+	int i = 0;
+	for(QZone z : QZoneList){
+		if(Z.GetLocation() == z.GetLocation()){
+			QZoneList.erase(QZoneList.begin()+i);
+		}
+		i++;
+	}
+}
+
+// Ryan Luna 12/28/22 
+void Detractor_controller::RemoveLocalFood(Food F){
+	int i = 0;
+	for(Food f : LocalFoodList){
+		if(F.GetLocation() == f.GetLocation()){
+			LocalFoodList.erase(LocalFoodList.begin()+i);
+		}
+		i++;
+	}
+}
+
+/****************************************************************************/
+/*                       DETRACTOR FUNCTIONS                                */
+/****************************************************************************/
+
+void Detractor_controller::Detract(){
+
+	switch(Detractor_state){
+
+		case _HOME_:
+			Home_d();
+			break;
+
+		case _DEPARTING_:
+			Departing_d();
+			break;
+		
+		case _DELIVERING_:
+			Delivering_d();
+			break;
+
+		case _RETURNING_:
+			Returning_d();
+			break;
+	}
+}
+
+/* Set holding fake food if detractor is at its home nest */
+void Detractor_controller::Home_d(){
+	isHoldingFood = false;
+	isHoldingFakeFood = true;
+	FoodBeingHeld = Food(badNestPos, Food::FAKE);
+
+	/*TODO: Make sure qt functions updates to visualize the fake food on the robot when it picks it up */
+
+	SetTarget(LoopFunctions->NestPosition);
+	Detractor_state = _DEPARTING_;
+}
+
+/* Attacker is heading to the good nest */
+void Detractor_controller::Departing_d(){
+	argos::Real distanceToTarget = (GetPosition() - GetTarget()).Length();
+	argos::Real randomNumber = RNG->Uniform(argos::CRange<argos::Real>(0.0, 1.0));
+
+	if (SimulationTick() % (SimulationTicksPerSecond()/2) == 0 && distanceToTarget < TargetDistanceTolerance){
+		//argos::LOG << "Attacker arrived at the good nest" << endl;
+		if (IsInTheNest()){
+			Detractor_state = _DELIVERING_;
+		} else {
+			Detractor_state = _DEPARTING_;
+			SetTarget(LoopFunctions->NestPosition);
+		}
+	}
+}
+
+/* Place fake food in nest and plant false pheromone trail to bad nest location */
+void Detractor_controller::Delivering_d(){
+
+	if (IsInTheNest() && isHoldingFakeFood){
+
+		/* Deposit fake food */
+		isHoldingFood = false;
+		isHoldingFakeFood = false;
+		FoodBeingHeld = Food();
+
+		/*TODO: Make sure qt functions updates to visualize the fake food removed from the robot when it drops it off */
+
+		TrailToShare.push_back(badNestPos);
+		TrailToShare.push_back(LoopFunctions->NestPosition);
+		argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+		Pheromone sharedPheromone(badNestPos, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood);
+		LoopFunctions->PheromoneList.push_back(sharedPheromone);
+		sharedPheromone.Deactivate(); // make sure this won't get re-added later...
+		TrailToShare.clear();
+		
+		SetTarget(badNestPos);
+		Detractor_state = _RETURNING_;
+	}
+
+}
+
+void Detractor_controller::Returning_d(){
+	
+	if (IsInTheBadNest()){
+		Detractor_state = _HOME_;
+	}
+	// Take a small step towards the nest so we don't overshoot by too much is we miss it
+    else if(IsAtTarget()){
+        //argos::LOG<<"heading to true in returning"<<endl;
+        //SetIsHeadingToNest(false); // Turn off error for this
+        //SetTarget(LoopFunctions->NestPosition);
+
+        //randomly search for the nest
+        argos::Real USCV = LoopFunctions->UninformedSearchVariation.GetValue();
+        argos::Real rand = RNG->Gaussian(USCV);
+
+        argos::CRadians rotation(rand);
+        argos::CRadians angle1(rotation);
+        argos::CRadians angle2(GetHeading());
+        argos::CRadians turn_angle(angle1 + angle2);
+        argos::CVector2 turn_vector(SearchStepSize, turn_angle);
+        SetTarget(turn_vector + GetPosition());
+    }
+}
+
+bool Detractor_controller::IsInTheBadNest(){
+
+	argos::Real distanceToNest = (GetPosition() - badNestPos).SquareLength();
+	return distanceToNest < NestDistanceTolerance;
+}
 REGISTER_CONTROLLER(Detractor_controller, "Detractor_controller")

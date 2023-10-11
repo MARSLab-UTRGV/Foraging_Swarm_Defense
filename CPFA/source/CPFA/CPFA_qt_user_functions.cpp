@@ -18,6 +18,7 @@ void CPFA_qt_user_functions::DrawOnRobot(CFootBotEntity& entity) {
 	// modified to draw fake food	** Ryan Luna 11/12/22
 	if(c->IsHoldingFood()) {
 		if(c->IsHoldingFakeFood()){
+			// LOG << c->GetId() << ": Is holding fake food." << endl;
 			DrawCylinder(CVector3(0.0, 0.0, 0.3), CQuaternion(), loopFunctions.FoodRadius, 0.025, CColor::PURPLE);	
 		} else {
 			DrawCylinder(CVector3(0.0, 0.0, 0.3), CQuaternion(), loopFunctions.FoodRadius, 0.025, CColor::BLACK);
@@ -84,7 +85,7 @@ void CPFA_qt_user_functions::DrawNest() {
 	/* Draw the nest on the arena. */
 	//DrawCircle(nest_3d, CQuaternion(), loopFunctions.NestRadius, CColor::RED);
     DrawCylinder(nest_3d, CQuaternion(), loopFunctions.NestRadius, 0.008, CColor::GREEN);
-	DrawCylinder(atk_nest_3d, CQuaternion(), loopFunctions.NestRadius, 0.008, CColor::GRAY20 	);
+	DrawCylinder(atk_nest_3d, CQuaternion(), loopFunctions.NestRadius/2, 0.008, CColor::RED);
 }
 
 void CPFA_qt_user_functions::DrawQuarantineZone() {			// Ryan Luna 1/24/23

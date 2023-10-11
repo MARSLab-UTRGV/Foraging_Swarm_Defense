@@ -32,11 +32,12 @@ class C_XML_CONFIG:
         self.BOT_DEFAULT_DIST =  True                    # Use default distribution found in original CPFA tests
                                                          # If this method is used, self.BOT_COUNT is ignored and 24 bots
                                                          # will be used instead in grid distribution mode
-        self.BOT_COUNT =         24                      # total bot count
+        self.BOT_COUNT =         4                      # total bot count
         self.BOTS_PER_GROUP =    self.BOT_COUNT/4        # number of bots per group * DEFAULT DISTRIBUTION ONLY*
         self.BOT_DIST_RAD =      1.5                     # Bot distribution radius (uniform distribution in central area)
 
-        self.ARENA_SIZE =        (10,10,1)               # (x,y,z)
+        self.ARENA_SIZE =        (10,10,1)               # (x,y,z) foraging area size
+        self.TOTAL_SIZE =        (12,10,1)               # to allow space for holding area for capture bots
 
         # Visualization Settings
         self.CAM_HEIGHT =        35                      # simulation camera height
@@ -103,6 +104,7 @@ class C_XML_CONFIG:
         atkNest_x = self.ARENA_SIZE[0]/2-1
         atkNest_y = self.ARENA_SIZE[1]/2-1
         self.ATK_NEST_POS =      (atkNest_x,atkNest_y)   # Attacker nest location
+        self.NUM_DETRACTORS =   1                        # Number of detractor robots
         
         self.NEST_RAD =          0.25                    # Nest radius
         self.VFP =               0                       # Variable food placement
@@ -189,6 +191,9 @@ class C_XML_CONFIG:
 
     # generates arena size string for xml based on self.ARENA_SIZE
     def arenaSize(self):
+        return str(self.TOTAL_SIZE[0])+','+str(self.TOTAL_SIZE[1])+','+str(self.TOTAL_SIZE[2])
+    
+    def foragingAreaSize(self):
         return str(self.ARENA_SIZE[0])+','+str(self.ARENA_SIZE[1])+','+str(self.ARENA_SIZE[2])
 
     # generates wall size string for each wall face based on self.ARENA_SIZE
@@ -425,75 +430,6 @@ class C_XML_CONFIG:
         params.appendChild(params_settings)
         #           </params>
         #       </CPFA_controller>
-
-        #       <Detractor_controller>
-        detractor_controller = xml.createElement('Detractor_controller')
-        detractor_controller.setAttribute('id','Detractor')
-        detractor_controller.setAttribute('library','build/source/CPFA/libDetractor_controller')
-        controllers.appendChild(detractor_controller)
-
-        #           <actuators>
-        actuators = xml.createElement('actuators')
-        detractor_controller.appendChild(actuators)
-
-        #               <differential_steering>
-        dif_steering = xml.createElement('differential_steering')
-        dif_steering.setAttribute('implementation','default')
-        actuators.appendChild(dif_steering)
-
-        #               <leds>
-        leds = xml.createElement('leds')
-        leds.setAttribute('implementation','default')
-        leds.setAttribute('medium','leds')
-        actuators.appendChild(leds)
-        #           </actuators
-
-        #           <sensors>
-        sensors = xml.createElement('sensors')
-        detractor_controller.appendChild(sensors)
-
-        #               <footbot_proximity>
-        fb_prox = xml.createElement('footbot_proximity')
-        fb_prox.setAttribute('implementation','default')
-        fb_prox.setAttribute('show_rays',str(self.SHOW_PROX_RAYS))
-        sensors.appendChild(fb_prox)
-
-        #               <positioning>
-        fb_positioning = xml.createElement('positioning')
-        fb_positioning.setAttribute('implementation','default')
-        sensors.appendChild(fb_positioning)
-
-        #               <footbot_motor_ground>
-        fb_mg = xml.createElement('footbot_motor_ground')
-        fb_mg.setAttribute('implementation','rot_z_only')
-        sensors.appendChild(fb_mg)
-        #           </sensors
-
-        #           <params>
-        params = xml.createElement('params')
-        detractor_controller.appendChild(params)
-
-        #               <settings>
-        params_settings = xml.createElement('settings')
-        params_settings.setAttribute('DestinationNoiseStdev', str(self.DN_SD))
-        params_settings.setAttribute('FoodDistanceTolerance', str(self.FDT))
-        params_settings.setAttribute('NestAngleTolerance', str(self.NAT))
-        params_settings.setAttribute('NestDistanceTolerance', str(self.NDT))
-        params_settings.setAttribute('PositionNoiseStdev', str(self.PN_SD))
-        params_settings.setAttribute('ResultsDirectoryPath', self.RD_PATH)
-        params_settings.setAttribute('RobotForwardSpeed', str(self.BOT_FW_SPD))
-        params_settings.setAttribute('RobotRotationSpeed', str(self.BOT_ROT_SPD))
-        params_settings.setAttribute('SearchStepSize', str(self.SSS))
-        params_settings.setAttribute('TargetAngleTolerance', str(self.TAT))
-        params_settings.setAttribute('TargetDistanceTolerance', str(self.TDT))
-        params_settings.setAttribute('UseQZones', str(self.UQZ))
-        params_settings.setAttribute('MergeMode', str(self.MM))
-        params_settings.setAttribute('FFdetectionAcc', str(self.FF_ACC))
-        params_settings.setAttribute('RFdetectionAcc', str(self.RF_ACC))
-        params.appendChild(params_settings)
-        #           </params>
-        #       </Detractor_controller>
-
         #   </controllers>
 
         #   <loop_functions>
@@ -548,12 +484,13 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('FakeClusterWidthY', str(self.FCL_Y))
         lf_settings.setAttribute('FilenameHeader', str(self.fname_header))
         lf_settings.setAttribute('Densify', str(self.DENSIFY))
+        lf_settings.setAttribute('ForagingAreaSize', self.foragingAreaSize())
         loops.appendChild(lf_settings)
         #       </settings>
 
         #       <detractor_settings>
         lf_detractor_settings = xml.createElement('detractor_settings')
-        lf_detractor_settings.setAttribute('AttackerNestPosition', str(self.ATK_NEST_POS))
+        lf_detractor_settings.setAttribute('AttackerNestPosition', f'{self.ATK_NEST_POS[0]:.1f},{self.ATK_NEST_POS[1]:.1f}')
         loops.appendChild(lf_detractor_settings)
         #       </detractor_settings>
 
@@ -788,7 +725,7 @@ class C_XML_CONFIG:
             arena.appendChild(detractor_distribution)
         #           <position>
             detractor_position = xml.createElement('position')
-            detractor_position.setAttribute('center', '0.0,0.0,0.0')
+            detractor_position.setAttribute('center', f'{self.ATK_NEST_POS[0]:.1f},{self.ATK_NEST_POS[1]:.1f},0.0')
             detractor_position.setAttribute('distances','0.3,0.3,0.0')
             detractor_position.setAttribute('layout','2,3,1')
             detractor_position.setAttribute('method','grid')
@@ -804,18 +741,18 @@ class C_XML_CONFIG:
 
         #           <entity>
             entity_d = xml.createElement('entity')
-            entity_d.setAttribute('quantity', str(self.BOTS_PER_GROUP))
+            entity_d.setAttribute('quantity', str(self.NUM_DETRACTORS))
             entity_d.setAttribute('max_trials','100')
             detractor_distribution.appendChild(entity_d)
 
         #               <foot-bot>
             fb_d = xml.createElement('foot-bot')
-            fb_d.setAttribute('id','fb_detractor')
+            fb_d.setAttribute('id','dt')
             entity_d.appendChild(fb_d)
 
         #                   <controller>
             cont_fb_d = xml.createElement('controller')
-            cont_fb_d.setAttribute('config','Detractor')
+            cont_fb_d.setAttribute('config','CPFA')
             fb_d.appendChild(cont_fb_d)
         #                   </controller>
         #               </foot-bot>

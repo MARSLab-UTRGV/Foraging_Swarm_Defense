@@ -113,11 +113,13 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "UseFakeFoodDoS",				UseFakeFoodDoS);				// Ryan Luna 11/13/22
 	argos::GetNodeAttribute(settings_node, "FilenameHeader",				FilenameHeader);				// Ryan Luna 12/06/22
     argos::GetNodeAttribute(settings_node, "Densify", 						densify);						// Ryan Luna 02/08/22
+	argos::GetNodeAttribute(settings_node, "ForagingAreaSize",				ForagingAreaSize);
 	FoodRadiusSquared = FoodRadius*FoodRadius;
 
 	argos::TConfigurationNode atk_node = argos::GetNode(node, "detractor_settings");
 
 	argos::GetNodeAttribute(atk_node, "AttackerNestPosition",				AttackerNestPosition);
+	LOG << "LoopFunctions -> AttackerNestPosition = " << AttackerNestPosition << '.' << endl;
 
     //Number of distributed foods ** modified ** Ryan Luna 11/13/22
     if (FoodDistribution == 1){
@@ -144,7 +146,8 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
     
 
 	// calculate the forage range and compensate for the robot's radius of 0.085m
-	argos::CVector3 ArenaSize = GetSpace().GetArenaSize();
+	// argos::CVector3 ArenaSize = GetSpace().GetArenaSize();
+	argos::CVector3 ArenaSize = ForagingAreaSize;
 	argos::Real rangeX = (ArenaSize.GetX() / 2.0) - 0.085 - 0.1; // ryan luna 12/08/22 ** take away 0.1 so robots avoid getting to close to the wall
 	argos::Real rangeY = (ArenaSize.GetY() / 2.0) - 0.085 - 0.1;
 	ForageRangeX.Set(-rangeX, rangeX);
@@ -165,28 +168,21 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
     Num_robots = footbots.size();
     argos::LOG<<"Number of robots="<<Num_robots<<endl;
 
+	/*TODO: Can only move one entity, need to set up multiple positions to move multiple entities.*/
 	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
 		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
 		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
 		if(c != nullptr) {
-			cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
+			// cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
 			CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
-			Detractor_controller* c3 = dynamic_cast<Detractor_controller*>(c);
 			if(c2 != nullptr) {
 				c2->SetLoopFunctions(this);
-				cout << "CPFA_controller cast successful" << endl;
+
+				// cout << "CPFA_controller cast successful" << endl;
 			}
 			else {
 				cout << "CPFA_controller cast failed" << endl;
 				cout << "Actual type of c2: " << typeid(c2).name() << endl;
-			}
-			if(c3 != nullptr) {
-				c3->SetLoopFunctions(this);
-				cout << "Detractor_controller cast successful" << endl;
-			}
-			else {
-				cout << "Detractor_controller cast failed" << endl;
-				cout << "Actual type of c3: " << typeid(c3).name() << endl;
 			}
 		}
 		else {
@@ -201,7 +197,6 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	ForageList.clear(); 
 	last_time_in_minutes=0;
 }
-
 
 void CPFA_loop_functions::Reset() {
 	if(VariableFoodPlacement == 0) {
@@ -233,7 +228,6 @@ void CPFA_loop_functions::Reset() {
 		if(c != nullptr) {
 			cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
 			CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
-			Detractor_controller* c3 = dynamic_cast<Detractor_controller*>(c);
 			if(c2 != nullptr) {
 				MoveEntity(footBot.GetEmbodiedEntity(), c2->GetStartPosition(), argos::CQuaternion(), false);
 				c2->Reset();
@@ -242,15 +236,6 @@ void CPFA_loop_functions::Reset() {
 			else {
 				cout << "CPFA_controller cast failed" << endl;
 				cout << "Actual type of c2: " << typeid(c2).name() << endl;
-			}
-			if(c3 != nullptr) {
-				MoveEntity(footBot.GetEmbodiedEntity(), c3->GetStartPosition(), argos::CQuaternion(), false);
-				c3->Reset();
-				cout << "Detractor_controller cast successful" << endl;
-			}
-			else {
-				cout << "Detractor_controller cast failed" << endl;
-				cout << "Actual type of c3: " << typeid(c3).name() << endl;
 			}
 		}
 		else {
@@ -370,7 +355,6 @@ void CPFA_loop_functions::PostExperiment() {
 			if(c != nullptr) {
 				cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
 				CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
-				Detractor_controller* c3 = dynamic_cast<Detractor_controller*>(c);
 				if(c2 != nullptr) {
 					CollisionTime += c2->GetCollisionTime();
 					cout << "CPFA_controller cast successful" << endl;
@@ -378,14 +362,6 @@ void CPFA_loop_functions::PostExperiment() {
 				else {
 					cout << "CPFA_controller cast failed" << endl;
 					cout << "Actual type of c2: " << typeid(c2).name() << endl;
-				}
-				if(c3 != nullptr) {
-					CollisionTime += c3->GetCollisionTime();
-					cout << "Detractor_controller cast successful" << endl;
-				}
-				else {
-					cout << "Detractor_controller cast failed" << endl;
-					cout << "Actual type of c3: " << typeid(c3).name() << endl;
 				}
 			}
 			else {
@@ -435,7 +411,6 @@ void CPFA_loop_functions::PostExperiment() {
 		TerminateCount	<< 1 << ", ";
 	}
 }
-
 
 argos::CColor CPFA_loop_functions::GetFloorColor(const argos::CVector2 &c_pos_on_floor) {
 	return argos::CColor::WHITE;
@@ -656,7 +631,6 @@ void CPFA_loop_functions::RandomFakeFoodDistribution(){
 	}
 }
 
- 
 void CPFA_loop_functions::ClusterFoodDistribution() {
     // FoodList.clear();
 	argos::Real     foodOffset  = 3.0 * FoodRadius;
@@ -969,7 +943,6 @@ bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t
 	return false;
 }
 
-  
 bool CPFA_loop_functions::IsCollidingWithNest(argos::CVector2 p) {
 	argos::Real nestRadiusPlusBuffer = NestRadius + FoodRadius;
 	argos::Real NRPB_squared = nestRadiusPlusBuffer * nestRadiusPlusBuffer;
@@ -1069,6 +1042,77 @@ void CPFA_loop_functions::ConfigureFromGenome(Real* g)
 
 void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 	AttackerNest.CaptureRobot(robot_id);
+
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+
+	/*TODO: Can only move one entity, need to set up multiple positions to move multiple entities.*/
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		// BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+		if (footBot.GetId() == robot_id){
+			BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+			if (c != nullptr){
+				CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
+				if (c2 != nullptr){
+
+					CEmbodiedEntity& cEmbodiedEntity = footBot.GetEmbodiedEntity();
+
+					MoveEntity(
+							cEmbodiedEntity,
+							GenEntityPosition(),			// New position
+							argos::CQuaternion()			// New orientation (identity quaternion means no rotation)
+						);
+
+					c2->SetAsCaptured();
+
+					LOG << footBot.GetId() << ": Captured and moved." << endl;
+
+				} else {
+					LOG << "CPFA_controller cast failed." << endl;
+				}
+			} else {
+				LOG << "BaseController cast failed." << endl;
+			}
+		}
+	}
+
+}
+
+CVector3 CPFA_loop_functions::GenEntityPosition(){
+	argos::CVector2 placementPosition;
+
+    // Define the holding area ranges
+    argos::CRange<argos::Real> HoldingRangeX(5.15, 5.9);
+    argos::CRange<argos::Real> HoldingRangeY(-4.9, 4.9);
+
+	// Generate a random placement within the holding area
+	placementPosition.Set(RNG->Uniform(HoldingRangeX), RNG->Uniform(HoldingRangeY));
+
+	// make sure it isn't colliding with anything (like another robot)
+	while(IsNearRobot(placementPosition)) {
+		placementPosition.Set(RNG->Uniform(HoldingRangeX), RNG->Uniform(HoldingRangeY));
+	}
+
+	return CVector3(placementPosition.GetX(), placementPosition.GetY(), 0.0);
+}
+
+bool CPFA_loop_functions::IsNearRobot(const argos::CVector2& position) {
+	const Real footBotRadius = 0.085;
+	const Real buf = 0.01;
+	const Real minDistance = footBotRadius + buf;
+	
+    // Loop through all robots and check their positions
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+		CVector2 robotPosition = c->GetPosition();
+        if(Distance(position, robotPosition) < minDistance) {
+            return true; // Too close to a robot
+        }
+	}
+
+    return false; // Not close to any robot
 }
 
 REGISTER_LOOP_FUNCTIONS(CPFA_loop_functions, "CPFA_loop_functions")
