@@ -1,5 +1,5 @@
-#ifndef IANT_PHEROMONE_H
-#define IANT_PHEROMONE_H
+#ifndef PHEROMONE_H
+#define PHEROMONE_H
 
 #include <argos3/core/utility/math/vector2.h>
 
@@ -14,7 +14,8 @@ class Pheromone {
     public:
 
         /* constructor function */
-        Pheromone(argos::CVector2 newLocation, std::vector<argos::CVector2> newTrail, argos::Real newTime, argos::Real newDecayRate, size_t density, bool fake);
+        Pheromone(      argos::CVector2 newLocation, std::vector<argos::CVector2> newTrail, argos::Real newTime, 
+                        argos::Real newDecayRate, size_t density, bool fake, std::string creator_id);
 
         /* public helper functions */
         void                         Update(argos::Real time);
@@ -26,13 +27,19 @@ class Pheromone {
         size_t                       GetResourceDensity();
         bool                          IsActive();
         bool                         IsMisleading();
+        std::string                  GetCreatorId();
+        argos::Real                  GetEstTravelTime();
+        void                         SetReturned(bool val);
+        bool                         HasReturnedARobot();
+        void                         SetEstTravelTime(argos::Real estTravel);
         argos::CVector2              location;
         size_t ResourceDensity;
 
 	private:
-
+        
         /* pheromone position variables */
 
+        argos::Real                  GetBaseTravelTime();
         std::vector<argos::CVector2> trail;
         /* pheromone component variables */
         argos::Real lastUpdated;
@@ -40,6 +47,9 @@ class Pheromone {
         argos::Real weight;
         argos::Real threshold;
         bool isAtkPheromone;
+        std::string creator_id;
+        argos::Real est_travel_time;
+        bool returned;          // bool flag set when a robot has returned from traveling the trail
 };
 
-#endif /* IANT_PHEROMONE_H */
+#endif //PHEROMONE_H

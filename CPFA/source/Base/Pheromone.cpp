@@ -10,12 +10,21 @@
  *
  * The remaining variables always start with default values.
  *****/
-Pheromone::Pheromone(argos::CVector2              newLocation,
-                             std::vector<argos::CVector2> newTrail,
-                             argos::Real                  newTime,
-                             argos::Real                  newDecayRate,
-                             size_t                       density,
-                             bool                         fake)
+
+/*TODO: make "smart" pheromone trails (creator_id, max_return_time, no_return_flag)*/
+Pheromone::Pheromone(   argos::CVector2              newLocation,
+                        std::vector<argos::CVector2> newTrail,
+                        argos::Real                  newTime,
+                        argos::Real                  newDecayRate,
+                        size_t                       density,
+                        bool                         fake,
+                        std::string                  creator_id):
+                        
+                        /* standard initializations */
+                        returned(false),        // flag set when a robot has returned from traveling the trail
+                        weight(1.0),            // pheromone is at full strength when created
+                        threshold(0.001),       // pheromone is considered inactive when weight < threshold
+                        est_travel_time(0.0)    // default is 0 (not sure if we need to keep track of this here)
 {
     if (fake){
         /* required initializations */
@@ -25,10 +34,8 @@ Pheromone::Pheromone(argos::CVector2              newLocation,
         lastUpdated = newTime;
         decayRate   = newDecayRate;
         ResourceDensity = density;
-        /* standardized initializations */
-        weight      = 1.0;
-        threshold   = 0.001;
-        cout << "In Pheromone.cpp: Trail to attacker nest created..." << endl;
+        this->creator_id  = creator_id;
+        // cout << "In Pheromone.cpp: Trail to attacker nest created..." << endl;
     }else{
         /* required initializations */
         isAtkPheromone = false;
@@ -37,9 +44,7 @@ Pheromone::Pheromone(argos::CVector2              newLocation,
         lastUpdated = newTime;
         decayRate   = newDecayRate;
         ResourceDensity = density;
-        /* standardized initializations */
-        weight      = 1.0;
-        threshold   = 0.001;
+        this->creator_id  = creator_id;
         // cout << "In Pheromone.cpp: Trail to real resource created..." << endl;
     }
 }
@@ -100,4 +105,36 @@ size_t  Pheromone::GetResourceDensity(){
  *****/
 bool Pheromone::IsActive() {
 	return (weight > threshold);
+}
+
+/*****
+ * Return the ID of the robot that created this pheromone.
+ *****/
+std::string Pheromone::GetCreatorId() {
+    return creator_id;
+}
+
+/*****
+ * Return the maximum amount of time any robot has spent traveling & returning this trail (as long as they returned).
+ *****/
+argos::Real Pheromone::GetEstTravelTime() {
+    return est_travel_time;
+}
+
+void Pheromone::SetEstTravelTime(argos::Real estTravel){
+    est_travel_time = estTravel;
+}
+
+/*****
+ * Set the returned flag to true.
+ *****/
+void Pheromone::SetReturned(bool val) {
+    returned = val;
+}
+
+/*****
+ * Has a robot returned from traveling this trail?
+ *****/
+bool Pheromone::HasReturnedARobot() {
+    return returned;
 }

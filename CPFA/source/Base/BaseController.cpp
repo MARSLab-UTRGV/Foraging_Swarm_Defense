@@ -98,6 +98,7 @@ void BaseController::SetTarget(argos::CVector2 t) {
 		x = GetPosition().GetX();
 		y = GetPosition().GetY();
 		SetRightTurn(37.5);
+		// LOGERR << "Target out of range, turning right" << std::endl;
 	}
 
 	TargetPosition = argos::CVector2(x, y);

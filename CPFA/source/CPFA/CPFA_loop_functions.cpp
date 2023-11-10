@@ -1,4 +1,5 @@
 #include "CPFA_loop_functions.h"
+#include <Python.h>
 
 CPFA_loop_functions::CPFA_loop_functions() :
 	RNG(argos::CRandom::CreateRNG("argos")),
@@ -39,6 +40,7 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	FoodRadius(0.05),
 	FoodRadiusSquared(0.0025),
 	NestRadius(0.12),
+	AtkNestRadius(NestRadius/2),
 	NestRadiusSquared(0.0625),
 	NestElevation(0.01),
 	// We are looking at a 4 by 4 square (3 targets + 2*1/2 target gaps)
@@ -60,7 +62,8 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	AltClusterLength(0),
 	UseFakeFoodOnly(false),
 	numFalsePositives(0),
-	numQZones(0)
+	numQZones(0),
+	k(1)		// initially k = 1 (no effect on estimation)
 {}
 
 void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {	
@@ -114,12 +117,19 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "FilenameHeader",				FilenameHeader);				// Ryan Luna 12/06/22
     argos::GetNodeAttribute(settings_node, "Densify", 						densify);						// Ryan Luna 02/08/22
 	argos::GetNodeAttribute(settings_node, "ForagingAreaSize",				ForagingAreaSize);
+	// argos::GetNodeAttribute(settings_node, 'BotFwdSpeed',					BotFwdSpeed);
+	argos::GetNodeAttribute(settings_node, "EstTravelTimeTolerance",		T_tolerance);
 	FoodRadiusSquared = FoodRadius*FoodRadius;
 
 	argos::TConfigurationNode atk_node = argos::GetNode(node, "detractor_settings");
 
-	argos::GetNodeAttribute(atk_node, "AttackerNestPosition",				AttackerNestPosition);
-	LOG << "LoopFunctions -> AttackerNestPosition = " << AttackerNestPosition << '.' << endl;
+	argos::GetNodeAttribute(atk_node, "NumAtkNests",					NumAtkNests);
+	// argos::GetNodeAttribute(atk_node, "AtkNest1Position",				AtkNest1Position);
+	// argos::GetNodeAttribute(atk_node, "AtkNest2Position",				AtkNest2Position);
+	// argos::GetNodeAttribute(atk_node, "AtkNest3Position",				AtkNest3Position);
+	// argos::GetNodeAttribute(atk_node, "AtkNest4Position",				AtkNest4Position);
+	argos::GetNodeAttribute(atk_node, "AtkNestRadius",					AtkNestRadius);
+
 
     //Number of distributed foods ** modified ** Ryan Luna 11/13/22
     if (FoodDistribution == 1){
@@ -157,10 +167,13 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	
 	if(abs(NestPosition.GetX()) < -1){ //quad arena
 		NestRadius *= sqrt(1 + log(ArenaWidth)/log(2));
+		AtkNestRadius = NestRadius/2;
 	}else{
 		NestRadius *= sqrt(log(ArenaWidth)/log(2));
+		AtkNestRadius = NestRadius/2;
 	}
 	argos::LOG<<"NestRadius="<<NestRadius<<endl;
+	argos::LOG<<"AtkNestRadius="<<AtkNestRadius<<endl;
 
 	MainNest.SetLocation(NestPosition);	// Ryan Luna 1/24/23
     
@@ -168,7 +181,6 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
     Num_robots = footbots.size();
     argos::LOG<<"Number of robots="<<Num_robots<<endl;
 
-	/*TODO: Can only move one entity, need to set up multiple positions to move multiple entities.*/
 	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
 		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
 		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
@@ -191,11 +203,90 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	}
 
    	NestRadiusSquared = NestRadius*NestRadius;
+	AtkNestRadiusSquared = AtkNestRadius*AtkNestRadius;
+
+	/**
+	 * Distribute atk nests randomly one quadrant of the arena at a time (ignoring innermost subquadrants).
+	 */
+	DistributeAtkNests();
 	
     SetFoodDistribution();
   
 	ForageList.clear(); 
 	last_time_in_minutes=0;
+
+	/**
+	 * This is a test to see if I can execute python code in here.
+	 */
+
+	Py_Initialize();
+	if(Py_IsInitialized()){
+		// LOG << "Python version: " << Py_GetVersion() << endl;
+	} else {
+		LOGERR << "ERROR: Python failed to initialize." << endl;
+		exit(1);
+	}
+
+	PyObject *pName, *pModule, *pFunc, *pCallFunc, *pArgs;
+	PyObject *sys = PyImport_ImportModule("sys");
+	PyObject *path = PyObject_GetAttrString(sys, "path");
+	PyList_Append(path, PyUnicode_FromString("/home/Ryan/Foraging_Swarm_Defense/CPFA/source/CPFA"));
+	PyObject *repr = PyObject_Repr(path);
+	const char* s = PyUnicode_AsUTF8(repr);
+	// LOG << "Python path: " << s << endl;
+	Py_DECREF(repr);
+	Py_DECREF(path);
+	Py_DECREF(sys);
+
+	// Load the module
+	pName = PyUnicode_FromString("cpfa_test");
+	if (pName == NULL) {
+		LOG << "Error converting module name to PyUnicode" << std::endl;
+		Py_Finalize();
+		return;
+	}
+
+	pModule = PyImport_Import(pName);
+	Py_DECREF(pName);
+
+	if (pModule == NULL) {
+		LOG << "Failed to load Python module" << std::endl;
+		Py_Finalize();
+		return;
+	}
+
+	// Load the function from the module
+	pFunc = PyObject_GetAttrString(pModule, "test_func");
+	Py_DECREF(pModule);
+
+	if (pFunc == NULL || !PyCallable_Check(pFunc)) {
+		if (PyErr_Occurred()) {
+			PyErr_Print();
+		}
+		LOG << "Failed to load Python function" << std::endl;
+		Py_XDECREF(pFunc);
+		Py_Finalize();
+		return;
+	}
+
+	// Call the function
+	pCallFunc = PyObject_CallObject(pFunc, NULL);
+	Py_DECREF(pFunc);
+
+	if (pCallFunc == NULL) {
+		LOG << "Function call failed" << std::endl;
+		Py_Finalize();
+		return;
+	}
+
+	// Convert the result to C++ type and print
+	Real func_out = PyFloat_AsDouble(pCallFunc);
+	Py_DECREF(pCallFunc);
+
+	LOG << "func_out: " << func_out << std::endl;
+
+	Py_Finalize();
+
 }
 
 void CPFA_loop_functions::Reset() {
@@ -226,12 +317,12 @@ void CPFA_loop_functions::Reset() {
 		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
 		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
 		if(c != nullptr) {
-			cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
+			// cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
 			CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
 			if(c2 != nullptr) {
 				MoveEntity(footBot.GetEmbodiedEntity(), c2->GetStartPosition(), argos::CQuaternion(), false);
 				c2->Reset();
-				cout << "CPFA_controller cast successful" << endl;
+				// cout << "CPFA_controller cast successful" << endl;
 			}
 			else {
 				cout << "CPFA_controller cast failed" << endl;
@@ -242,7 +333,6 @@ void CPFA_loop_functions::Reset() {
 			cout << "BaseController cast failed" << endl;
 		}
 	}
-
 }
 
 void CPFA_loop_functions::PreStep() {
@@ -276,12 +366,68 @@ void CPFA_loop_functions::PreStep() {
 }
 
 void CPFA_loop_functions::PostStep() {
-	// do nothing
+	// check pheromone list and certain frequency to see if robots are returning within time frame
+
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+
+	// this is where we will check to see which trail a robot is following
+	for (size_t i = 0; i < trailLog.size(); i++) {
+		
+		// here we do the math for travel time estimation
+		CVector2 trailPos = get<1>(trailLog[i]).GetLocation();
+		Real trailLength = sqrt( pow( abs(NestPosition.GetX()) - abs(trailPos.GetX()), 2) + pow( abs(NestPosition.GetY()) - abs(trailPos.GetY()), 2) );
+		Real T_est = trailLength * 2 * k;	// multiply by 2 to get distance to and from the target location
+
+		// get current travel time (current_time - start_time)
+		Real cur_travel_time = getSimTimeInSeconds() - std::get<2>(trailLog[i]);
+
+		if (cur_travel_time > (T_est * (1+T_tolerance))){
+			// if the robot has taken too long to return, we will flag the bot as missing and form a vote against the creator of the trail
+
+			// TODO: We will run the DBSCAN here, and start a vote against the creator of the trail and the creators of the neighboring trails (points) within its cluster.
+
+			// TODO: We must keep in mind how to construct this code dynamically, so that we can create a graph of clusters whose edges represent common creator ids (e.g. atk_nests will likely have a lot of common creator ids between them).
+
+		}
+	}
+
 }
 
 void CPFA_loop_functions::Terminate(){
 	terminate = true;
-	cout << "Terminating program" << endl;
+	LOGERR << "Terminating Simulation..." << endl;
+}
+
+bool CPFA_loop_functions::AllRobotsCaptured(){
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+
+		if(c != nullptr) {
+
+			CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
+			if(c2 != nullptr) {
+
+				if (footBot.GetId().find("fb") != string::npos){
+
+					if (!c2->IsCaptured()) return false;	// there is at least one robot not captured yet...
+				}
+			}
+			else {
+				cout << "CPFA_controller cast failed" << endl;
+				cout << "Actual type of c2: " << typeid(c2).name() << endl;
+			}
+		}
+		else {
+			cout << "BaseController cast failed" << endl;
+		}
+		
+	}
+
+	return true;
 }
 
 bool CPFA_loop_functions::IsExperimentFinished() {
@@ -290,6 +436,12 @@ bool CPFA_loop_functions::IsExperimentFinished() {
 	if(FoodList.size() == 0 || GetSpace().GetSimulationClock() >= MaxSimTime) {
 		isFinished = true;
 		// PostExperiment();
+	}
+
+	if (AllRobotsCaptured()){
+		isFinished = true;
+		LOG << "All robots captured. Ending simulation." << endl;
+		safeTermination = true;
 	}
 
 	if (terminate) {isFinished = true;}
@@ -353,11 +505,11 @@ void CPFA_loop_functions::PostExperiment() {
 			argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
 			BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
 			if(c != nullptr) {
-				cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
+				// cout << "Type of BaseController pointer: " << typeid(c).name() << endl;
 				CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
 				if(c2 != nullptr) {
 					CollisionTime += c2->GetCollisionTime();
-					cout << "CPFA_controller cast successful" << endl;
+					// cout << "CPFA_controller cast successful" << endl;
 				}
 				else {
 					cout << "CPFA_controller cast failed" << endl;
@@ -386,10 +538,11 @@ void CPFA_loop_functions::PostExperiment() {
 
 		// Write to file ** Ryan Luna 11/17/22
 		ofstream DataOut((FilenameHeader+"AttackData.txt").c_str(), ios::app);
+		LOG << "Writing to file: " << FilenameHeader+"AttackData.txt" << endl;
 		if (DataOut.tellp() == 0){
 
 			DataOut 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
-							<< "Real Food Collected, Real Food Collection Rate (per second), " << endl;
+							<< "Total Robots Captured, Robots Captured (per second)" << endl;
 
 							// << "Fake Food Collected, Fake Food Collection Rate (per second), " 
 							// << "Real Food Trails Created, Fake Food Trails Created, False Positives, QZones" << endl;
@@ -398,7 +551,7 @@ void CPFA_loop_functions::PostExperiment() {
 		TotalFoodCollected = RealFoodCollected + FakeFoodCollected;
 
 		DataOut 	<< getSimTimeInSeconds() << ',' << TotalFoodCollected << ',' << TotalFoodCollected/getSimTimeInSeconds() << ','
-						<< RealFoodCollected << ',' << RealFoodCollected/getSimTimeInSeconds() << ',' << endl;
+						<< AttackerNest.GetNumCapturedRobots() << ',' << AttackerNest.GetNumCapturedRobots()/getSimTimeInSeconds() << endl;
 						
 						// << FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
 						// << numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << ',' << MainNest.GetZoneList().size() << endl;
@@ -429,6 +582,8 @@ void CPFA_loop_functions::UpdatePheromoneList() {
 		PheromoneList[i].Update(t);
 		if(PheromoneList[i].IsActive()) {
 			new_p_list.push_back(PheromoneList[i]);
+		} else {
+			inactivePheromoneList.push_back(PheromoneList[i]);
 		}
 	}
 
@@ -593,6 +748,54 @@ void CPFA_loop_functions::AlternateFakeFoodDistribution(){
 		SouthClusterPosition.SetX(SouthClusterPosition.GetX() + (SouthClusterX * foodOffset));
 		SouthClusterPosition.SetY(SouthClusterPosition.GetY() + foodOffset);
 	}
+
+}
+
+void CPFA_loop_functions::DistributeAtkNests(){
+
+	double L = static_cast<double>(ForagingAreaSize.GetX()); // Cast to double for division
+	LOG << "Foraging Area Size = " << ForagingAreaSize.GetX() << "x" << ForagingAreaSize.GetY() << endl;
+
+    // Define the bounds for the outer region of each primary quadrant
+    // Assuming the center of the arena is (0,0) and the arena is a square
+    double outer_bound = L / 2; // The outermost edge of the arena
+    double inner_bound = L / 4; // The inner boundary for the outer region
+
+    // Loop through each quadrant to place one attack nest
+    for (size_t i = 0; i < 4; ++i) { // Ensure 4 nests
+        double x_min, x_max, y_min, y_max;
+
+        // Determine the bounds for the outer region of the current quadrant
+        if (i == 0) { // Top Right Quadrant
+            x_min = inner_bound + (AtkNestRadius + 0.1);
+            x_max = outer_bound - (AtkNestRadius + 0.1);
+            y_min = inner_bound + (AtkNestRadius + 0.1);
+            y_max = outer_bound - (AtkNestRadius + 0.1);
+        } else if (i == 1) { // Bottom Left Quadrant
+            x_min = -outer_bound + (AtkNestRadius + 0.1);
+            x_max = -inner_bound - (AtkNestRadius + 0.1);
+            y_min = -outer_bound + (AtkNestRadius + 0.1);
+            y_max = -inner_bound - (AtkNestRadius + 0.1);
+        } else if (i == 2) { // Bottom Right Quadrant
+            x_min = inner_bound + (AtkNestRadius + 0.1);
+            x_max = outer_bound - (AtkNestRadius + 0.1);
+            y_min = -outer_bound + (AtkNestRadius + 0.1);
+            y_max = -inner_bound - (AtkNestRadius + 0.1);
+        } else if (i == 3) { // Top Left Quadrant
+            x_min = -outer_bound + (AtkNestRadius + 0.1);
+            x_max = -inner_bound - (AtkNestRadius + 0.1);
+            y_min = inner_bound + (AtkNestRadius + 0.1);
+            y_max = outer_bound - (AtkNestRadius + 0.1);
+        }
+
+        // Generate random coordinates within the outer region of the selected quadrant
+        argos::Real x = RNG->Uniform(CRange<argos::Real>(x_min, x_max));
+        argos::Real y = RNG->Uniform(CRange<argos::Real>(y_min, y_max));
+
+        // Create the nest position and add it to the list
+        CVector2 nestPosition(x, y);
+        AtkNestPositions.push_back(nestPosition);
+    }
 
 }
 
@@ -951,10 +1154,20 @@ bool CPFA_loop_functions::IsCollidingWithNest(argos::CVector2 p) {
 }
 
 bool CPFA_loop_functions::IsCollidingWithAtkNest(argos::CVector2 p) {
-	argos::Real nestRadiusPlusBuffer = NestRadius + FoodRadius;
+	argos::Real nestRadiusPlusBuffer = AtkNestRadius + FoodRadius;
 	argos::Real NRPB_squared = nestRadiusPlusBuffer * nestRadiusPlusBuffer;
 
-      return ( (p - AttackerNestPosition).SquareLength() < NRPB_squared ) ;
+    //   return ( 	(p - AtkNest1Position).SquareLength() < NRPB_squared ||
+	//   			(p - AtkNest2Position).SquareLength() < NRPB_squared ||
+	// 			(p - AtkNest3Position).SquareLength() < NRPB_squared ||
+	// 			(p - AtkNest4Position).SquareLength() < NRPB_squared	);
+
+	for (size_t i = 0; i < AtkNestPositions.size(); ++i) {
+		if ((p - AtkNestPositions[i]).SquareLength() < NRPB_squared) {
+			return true;
+		}
+	}
+	return false;
 }
 
 bool CPFA_loop_functions::IsCollidingWithFood(argos::CVector2 p) {
@@ -1045,7 +1258,6 @@ void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 
 	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
 
-	/*TODO: Can only move one entity, need to set up multiple positions to move multiple entities.*/
 	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
 		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
 		// BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
@@ -1056,12 +1268,59 @@ void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 				if (c2 != nullptr){
 
 					CEmbodiedEntity& cEmbodiedEntity = footBot.GetEmbodiedEntity();
+					
+					try {
 
-					MoveEntity(
-							cEmbodiedEntity,
-							GenEntityPosition(),			// New position
-							argos::CQuaternion()			// New orientation (identity quaternion means no rotation)
-						);
+						CVector3 newPosition = GenEntityPosition();
+						argos::CVector3& curPosition = footBot.GetEmbodiedEntity().GetOriginAnchor().Position;
+						size_t tryCount = 0;
+						const size_t tryLimit = 10;
+						const Real positionThreshold = 0.001; 	// Threshold for considering positions as equal 
+																// (for precision errors when comparing floating point numbers)
+
+						/**
+						 * GPT: The multiplication of positionThreshold with itself
+						 * is done to compare the squared distance between the new position and the 
+						 * current position against the squared threshold.
+						 */
+    					while ((newPosition - curPosition).SquareLength() > positionThreshold * positionThreshold) {
+
+							newPosition = GenEntityPosition();
+
+							// if (robot_id == "fb22") {
+							// 	LOG << "fb22: " << newPosition << endl;
+							// }
+							
+							// Attempt to move the entity
+							MoveEntity(
+								cEmbodiedEntity,
+								newPosition,          			// New position
+								argos::CQuaternion()          	// New orientation (identity quaternion means no rotation)
+							);
+
+							curPosition = footBot.GetEmbodiedEntity().GetOriginAnchor().Position;
+
+							// if (newPosition == curPosition) break;		// We can just exit here once these values match
+
+							if (tryCount > tryLimit){
+								LOGERR << "ERROR: Failed to move entity " << footBot.GetId() << endl;
+								Terminate();
+								break;
+							}
+
+							tryCount++;
+						}
+						
+					} catch (const argos::CARGoSException& ex) {
+						// Log the exception details
+						LOGERR << "Exception when moving entity: " << ex.what() << endl;
+					} catch (std::exception& ex) {
+						// Catch any other exceptions that might be thrown
+						LOGERR << "Standard exception when moving entity: " << ex.what() << endl;
+					} catch (...) {
+						// Catch any other non-standard exceptions
+						LOGERR << "An unknown exception occurred when moving entity" << endl;
+					}
 
 					c2->SetAsCaptured();
 
@@ -1081,9 +1340,10 @@ void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 CVector3 CPFA_loop_functions::GenEntityPosition(){
 	argos::CVector2 placementPosition;
 
+
     // Define the holding area ranges
-    argos::CRange<argos::Real> HoldingRangeX(5.15, 5.9);
-    argos::CRange<argos::Real> HoldingRangeY(-4.9, 4.9);
+    argos::CRange<argos::Real> HoldingRangeX(5.15, 5.85);
+    argos::CRange<argos::Real> HoldingRangeY(-4.85, 4.85);
 
 	// Generate a random placement within the holding area
 	placementPosition.Set(RNG->Uniform(HoldingRangeX), RNG->Uniform(HoldingRangeY));
@@ -1093,6 +1353,7 @@ CVector3 CPFA_loop_functions::GenEntityPosition(){
 		placementPosition.Set(RNG->Uniform(HoldingRangeX), RNG->Uniform(HoldingRangeY));
 	}
 
+	// LOG << "PlacementPosition: " << CVector3(placementPosition.GetX(), placementPosition.GetY(), 0.0) << endl;
 	return CVector3(placementPosition.GetX(), placementPosition.GetY(), 0.0);
 }
 
@@ -1107,12 +1368,44 @@ bool CPFA_loop_functions::IsNearRobot(const argos::CVector2& position) {
 		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
 		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
 		CVector2 robotPosition = c->GetPosition();
-        if(Distance(position, robotPosition) < minDistance) {
+		// Real d = sqrt( pow( abs(position.GetX()) - abs(robotPosition.GetX()), 2) + pow( abs(position.GetY()) - abs(robotPosition.GetY()), 2) );
+		Real d = sqrt( pow(position.GetX() - robotPosition.GetX(), 2) + pow(position.GetY() - robotPosition.GetY(), 2) );
+
+        if(d < minDistance) {
+			LOG << "Too close to robot " << footBot.GetId() << endl;
             return true; // Too close to a robot
         }
 	}
 
     return false; // Not close to any robot
+}
+
+CVector2 CPFA_loop_functions::GetNestLocation(){
+	return NestPosition;
+}
+
+// Real CPFA_loop_functions::GetBotFwdSpeed(){
+// 	return BotFwdSpeed;
+// }
+
+void CPFA_loop_functions::PushToTrailLog(std::string bot_id, Pheromone P, Real startTime){
+	trailLog.push_back(make_tuple(bot_id, P, startTime, false));
+}
+
+void CPFA_loop_functions::PopFromTrailLog(std::string bot_id){
+	for (size_t i = 0; i < trailLog.size(); i++){
+		if (get<0>(trailLog[i]) == bot_id){
+			trailLog.erase(trailLog.begin() + i);
+		}
+	}
+}
+
+vector<CVector3> CPFA_loop_functions::GetAtkNestList(){
+	vector<CVector3> AtkNestList3d;
+	for (CVector2 atkNestPos : AtkNestPositions){
+		AtkNestList3d.push_back(CVector3(atkNestPos.GetX(), atkNestPos.GetY(), 0.0));
+	}
+	return AtkNestList3d;
 }
 
 REGISTER_LOOP_FUNCTIONS(CPFA_loop_functions, "CPFA_loop_functions")

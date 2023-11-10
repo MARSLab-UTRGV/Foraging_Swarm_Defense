@@ -39,6 +39,8 @@ class CPFA_controller : public BaseController {
 
 		Real FoodDistanceTolerance;
 
+		bool IsCaptured();
+
 		void SetLoopFunctions(CPFA_loop_functions* lf);
   
 		size_t     GetSearchingTime();//qilu 09/26/2016
@@ -58,6 +60,8 @@ class CPFA_controller : public BaseController {
 		void RemoveZone(QZone Z);
 		void RemoveLocalFood(Food F);
 		bool TargetInQZone(CVector2 target);
+
+		void SetDetractorStartPosition(CVector2 newStartPosition);	// to be set in the loop functions
 
 	private:
 
@@ -91,6 +95,8 @@ class CPFA_controller : public BaseController {
 		bool isUsingSiteFidelity;
 		bool isGivingUpSearch;
 		bool QZoneStrategy;		// to turn ON/OFF Quarantine Zones
+
+		CVector2 AtkNestPos;
   
 		size_t ResourceDensity;
 		size_t MaxTrailSize;
@@ -100,6 +106,8 @@ class CPFA_controller : public BaseController {
 		QZone* CurrentZone;		// Ryan Luna 01/30/23
 		bool UseQZones;			// Ryan Luna 02/05/23
 		size_t MergeMode;
+
+		bool UseMTAtk;
   
 		size_t           searchingTime; //qilu 09/26
 		size_t           travelingTime;//qilu 09/26
@@ -153,6 +161,9 @@ class CPFA_controller : public BaseController {
 		void SetFidelityList(argos::CVector2 newFidelity);
 		void SetFidelityList();
 		bool SetTargetPheromone();
+		bool TargetOutOfBounds(CVector2 p);
+
+		void SetInitAtkNestPos(CVector2 P);
 
 		argos::Real GetExponentialDecay(argos::Real value, argos::Real time, argos::Real lambda);
 		argos::Real GetBound(argos::Real value, argos::Real min, argos::Real max);
@@ -166,6 +177,10 @@ class CPFA_controller : public BaseController {
 		string results_full_path;
 		bool isUsingPheromone;
 		bool isCaptured;
+
+		bool reachedInformedTarget;
+
+		Real footbotRadius = 0.085;		// from argos documentation
 
 		unsigned int survey_count;
 		/* Pointer to the LEDs actuator */

@@ -69,23 +69,117 @@ void CPFA_qt_user_functions::DrawOnArena(CFloorEntity& entity) {
  * object is not initialized this function should not be called.
  *****/
 void CPFA_qt_user_functions::DrawNest() {
+
+	/* GOOD NEST */
+
 	/* 2d cartesian coordinates of the nest */
 	Real x_coordinate = loopFunctions.NestPosition.GetX();
 	Real y_coordinate = loopFunctions.NestPosition.GetY();
-	Real atk_x_coordinate = loopFunctions.AttackerNestPosition.GetX();
-	Real atk_y_coordinate = loopFunctions.AttackerNestPosition.GetY();
-
+	
 	/* required: leaving this 0.0 will draw the nest inside of the floor */
 	Real elevation = loopFunctions.NestElevation;
 
 	/* 3d cartesian coordinates of the nest */
 	CVector3 nest_3d(x_coordinate, y_coordinate, elevation);
-	CVector3 atk_nest_3d(atk_x_coordinate, atk_y_coordinate, elevation);
-
+	
 	/* Draw the nest on the arena. */
-	//DrawCircle(nest_3d, CQuaternion(), loopFunctions.NestRadius, CColor::RED);
-    DrawCylinder(nest_3d, CQuaternion(), loopFunctions.NestRadius, 0.008, CColor::GREEN);
-	DrawCylinder(atk_nest_3d, CQuaternion(), loopFunctions.NestRadius/2, 0.008, CColor::RED);
+	DrawCylinder(nest_3d, CQuaternion(), loopFunctions.NestRadius, 0.008, CColor::GREEN);
+
+	/* ATTACK NEST(S) */
+
+	vector<CVector3> AtkNestList = loopFunctions.GetAtkNestList();
+	for (size_t i = 0; i < AtkNestList.size(); i++) {
+		/* 2d cartesian coordinates of the nest */
+		Real atk_x_coordinate = AtkNestList[i].GetX();
+		Real atk_y_coordinate = AtkNestList[i].GetY();
+
+		/* 3d cartesian coordinates of the nest */
+		CVector3 atk_nest_3d(atk_x_coordinate, atk_y_coordinate, elevation);
+
+		/* Draw the nest on the arena. */
+		DrawCylinder(atk_nest_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	}
+
+	// switch(loopFunctions.NumAtkNests){
+	// 	case 1:{
+	// 		Real atk_x_coordinate = loopFunctions.AtkNest1Position.GetX();
+	// 		Real atk_y_coordinate = loopFunctions.AtkNest1Position.GetY();
+
+	// 		/* 3d cartesian coordinates of the nest */
+	// 		CVector3 atk_nest_3d(atk_x_coordinate, atk_y_coordinate, elevation);
+
+	// 		/* Draw the nest on the arena. */
+	// 		DrawCylinder(atk_nest_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		break;
+	// 	}
+	// 	case 2:{
+	// 		Real atk_x1_coordinate = loopFunctions.AtkNest1Position.GetX();
+	// 		Real atk_y1_coordinate = loopFunctions.AtkNest1Position.GetY();
+
+	// 		Real atk_x2_coordinate = loopFunctions.AtkNest2Position.GetX();
+	// 		Real atk_y2_coordinate = loopFunctions.AtkNest2Position.GetY();
+
+	// 		/* 3d cartesian coordinates of the nest */
+	// 		CVector3 atk_nest1_3d(atk_x1_coordinate, atk_y1_coordinate, elevation);
+	// 		CVector3 atk_nest2_3d(atk_x2_coordinate, atk_y2_coordinate, elevation);
+
+	// 		/* Draw the nests on the arena. */
+	// 		DrawCylinder(atk_nest1_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		DrawCylinder(atk_nest2_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		break;
+	// 	}
+	// 	case 3:{
+	// 		Real atk_x1_coordinate = loopFunctions.AtkNest1Position.GetX();
+	// 		Real atk_y1_coordinate = loopFunctions.AtkNest1Position.GetY();
+
+	// 		Real atk_x2_coordinate = loopFunctions.AtkNest2Position.GetX();
+	// 		Real atk_y2_coordinate = loopFunctions.AtkNest2Position.GetY();
+
+	// 		Real atk_x3_coordinate = loopFunctions.AtkNest3Position.GetX();
+	// 		Real atk_y3_coordinate = loopFunctions.AtkNest3Position.GetY();
+
+	// 		/* 3d cartesian coordinates of the nest */
+	// 		CVector3 atk_nest1_3d(atk_x1_coordinate, atk_y1_coordinate, elevation);
+	// 		CVector3 atk_nest2_3d(atk_x2_coordinate, atk_y2_coordinate, elevation);
+	// 		CVector3 atk_nest3_3d(atk_x3_coordinate, atk_y3_coordinate, elevation);
+
+	// 		/* Draw the nests on the arena. */
+	// 		DrawCylinder(atk_nest1_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		DrawCylinder(atk_nest2_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		DrawCylinder(atk_nest3_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		break;
+	// 	}
+	// 	case 4:{
+
+	// 		Real atk_x1_coordinate = loopFunctions.AtkNest1Position.GetX();
+	// 		Real atk_y1_coordinate = loopFunctions.AtkNest1Position.GetY();
+
+	// 		Real atk_x2_coordinate = loopFunctions.AtkNest2Position.GetX();
+	// 		Real atk_y2_coordinate = loopFunctions.AtkNest2Position.GetY();
+
+	// 		Real atk_x3_coordinate = loopFunctions.AtkNest3Position.GetX();
+	// 		Real atk_y3_coordinate = loopFunctions.AtkNest3Position.GetY();
+
+	// 		Real atk_x4_coordinate = loopFunctions.AtkNest4Position.GetX();
+	// 		Real atk_y4_coordinate = loopFunctions.AtkNest4Position.GetY();
+
+	// 		/* 3d cartesian coordinates of the nest */
+	// 		CVector3 atk_nest1_3d(atk_x1_coordinate, atk_y1_coordinate, elevation);
+	// 		CVector3 atk_nest2_3d(atk_x2_coordinate, atk_y2_coordinate, elevation);
+	// 		CVector3 atk_nest3_3d(atk_x3_coordinate, atk_y3_coordinate, elevation);
+	// 		CVector3 atk_nest4_3d(atk_x4_coordinate, atk_y4_coordinate, elevation);
+
+	// 		/* Draw the nests on the arena. */
+	// 		DrawCylinder(atk_nest1_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		DrawCylinder(atk_nest2_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		DrawCylinder(atk_nest3_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		DrawCylinder(atk_nest4_3d, CQuaternion(), loopFunctions.AtkNestRadius, 0.008, CColor::RED);
+	// 		break;
+	// 	}
+	// 	default:
+	// 		break;
+	// }
+
 }
 
 void CPFA_qt_user_functions::DrawQuarantineZone() {			// Ryan Luna 1/24/23

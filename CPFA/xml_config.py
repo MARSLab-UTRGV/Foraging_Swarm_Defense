@@ -32,9 +32,15 @@ class C_XML_CONFIG:
         self.BOT_DEFAULT_DIST =  True                    # Use default distribution found in original CPFA tests
                                                          # If this method is used, self.BOT_COUNT is ignored and 24 bots
                                                          # will be used instead in grid distribution mode
-        self.BOT_COUNT =         4                      # total bot count
+        self.USE_MISLEADING_TRAIL_ATTACK = False         # Use misleading trail attack
+
+        self.T_BOT_COUNT =       32                      # total bot count
+        self.D_BOT_COUNT =       0                       # detractor bot count
+        self.BOT_COUNT =         self.T_BOT_COUNT        # normal bot count (not detractors)
         self.BOTS_PER_GROUP =    self.BOT_COUNT/4        # number of bots per group * DEFAULT DISTRIBUTION ONLY*
         self.BOT_DIST_RAD =      1.5                     # Bot distribution radius (uniform distribution in central area)
+        self.BOT_LAYOUT =        (2,4)                   # Bot layout (x,y) * DEFAULT DISTRIBUTION ONLY*
+        self.D_BOT_LAYOUT =      (0,0)                   # Detractor bot layout (x,y) * DEFAULT DISTRIBUTION ONLY*
 
         self.ARENA_SIZE =        (10,10,1)               # (x,y,z) foraging area size
         self.TOTAL_SIZE =        (12,10,1)               # to allow space for holding area for capture bots
@@ -103,16 +109,68 @@ class C_XML_CONFIG:
 
         atkNest_x = self.ARENA_SIZE[0]/2-1
         atkNest_y = self.ARENA_SIZE[1]/2-1
-        self.ATK_NEST_POS =      (atkNest_x,atkNest_y)   # Attacker nest location
-        self.NUM_DETRACTORS =   1                        # Number of detractor robots
+        self.ATK_NEST1_POS =      (atkNest_x,atkNest_y)         # Attacker nest_1 location
+        self.ATK_NEST2_POS =      (-atkNest_x,atkNest_y)        # Attacker nest_2 location
+        self.ATK_NEST3_POS =      (-atkNest_x,-atkNest_y)       # Attacker nest_3 location
+        self.ATK_NEST4_POS =      (atkNest_x,-atkNest_y)        # Attacker nest_4 location
+        self.NUM_DETRACTORS_NEST1 =   0                         # Number of detractor robots in nest_1
+        self.NUM_DETRACTORS_NEST2 =   0                         # Number of detractor robots in nest_2
+        self.NUM_DETRACTORS_NEST3 =   0                         # Number of detractor robots in nest_3
+        self.NUM_DETRACTORS_NEST4 =   0                         # Number of detractor robots in nest_4
+        self.USE_MTATK =            "false"                     # Turn on/off misleading trail attack
+        self.NUM_ATK_NESTS =    1                               # Number of attacker nests (MAX = 4)
         
         self.NEST_RAD =          0.25                    # Nest radius
+        self.ATK_NEST_RAD =      self.NEST_RAD/2         # Attacker nest radius
+        self.TTT =               0.15                    # Travel Time Tolerance
+
         self.VFP =               0                       # Variable food placement
         self.FOOD_RAD =          0.05                    # Food radius
         self.DENSIFY =           "false"                 # Turn ON/OFF dense clusters
 
         self.fname_header = "\0"                         # Filename Header
         self.num_iterations = iterations                 # Number of Experiment Iterations
+
+    def setDetractorPercentage(self, percent):
+        if percent > 100 or percent < 0:
+            raise Exception("ERROR: Invalid detractor percentage given...")
+        self.D_BOT_COUNT = math.floor(self.T_BOT_COUNT * (percent/100))
+        self.BOT_COUNT = self.T_BOT_COUNT - self.D_BOT_COUNT
+        self.BOTS_PER_GROUP = self.BOT_COUNT/4
+
+    def genBotLayouts(self, groups=4):
+        # Calculate the number of bots for each group
+        bots_per_group = [self.BOT_COUNT // groups + (1 if x < self.BOT_COUNT % groups else 0) for x in range(groups)]
+        
+        # Initialize an empty list to hold tuples of layout strings and bot counts
+        layout_info = []
+        
+        # Define a function to calculate the layout for a given count
+        def calculate_layout(count):
+            if count < 4:
+                # If we have less than 4 bots, we just place them in a single row.
+                return 1, count
+            # We start looking for factors from the square root downward
+            for i in range(int(count**0.5), 1, -1):
+                if count % i == 0:
+                    return i, count // i
+            # If no factor pair was found and the number is prime or nearly prime,
+            # we force a 2-row layout for numbers greater than 3.
+            return 2, (count + 1) // 2
+
+        # Calculate the layout for each group of normal bots
+        for count in bots_per_group:
+            x, y = calculate_layout(count)
+            layout_string = f"{x},{y},1"
+            layout_info.append((layout_string, count))
+
+        # Calculate the layout for the detractor group (assuming it's a single group)
+        x, y = calculate_layout(self.D_BOT_COUNT)
+        detractor_layout_string = f"{x},{y},1"
+        layout_info.append((detractor_layout_string, self.D_BOT_COUNT))
+
+        # Return the list of tuples
+        return layout_info
 
     def setDistribution(self, distribution):
         if distribution == 0:   # random
@@ -167,6 +225,14 @@ class C_XML_CONFIG:
             self.UQZ = "true"
         else:
             self.UQZ = "false"
+
+    def UseMisleadingTrailAttack(self, useMTA):
+        if (useMTA):
+            self.USE_MTATK = "true"
+            self.USE_MISLEADING_TRAIL_ATTACK = True
+        else:
+            self.USE_MTATK = "false"
+            self.USE_MISLEADING_TRAIL_ATTACK = False
     
     def Densify(self, dense):
         if dense:
@@ -226,105 +292,48 @@ class C_XML_CONFIG:
             return str(self.ARENA_SIZE[0]/2)+','+str(self.ARENA_SIZE[1]/2)+',0'
         else:
             raise Exception("ERROR: limit name unidentified for botUPosition()\n")
+        
+    def getNumDetractors(self):
+        return self.NUM_DETRACTORS_NEST1+self.NUM_DETRACTORS_NEST2+self.NUM_DETRACTORS_NEST3+self.NUM_DETRACTORS_NEST4
 
     def setFname(self):
 
         dist = ''
         num_real_food = 0
-        num_fake_food = 0
         dense = ''
         
-        if self.RFD == 0 and self.FFD == 0:
-            dist = 'R-rand_F-rand'
+        if self.RFD == 0:
+            dist = 'R-rand'
             num_real_food = self.NUM_RF
-            num_fake_food = self.NUM_FF
-
-        elif self.RFD == 0 and self.FFD == 1:
-            dist = 'R-rand_F-cl'
-            num_real_food = self.NUM_RF
-            num_fake_food = self.FCL_X * self.FCL_Y * self.NUM_FCL
         
-        elif self.RFD == 0 and self.FFD == 2:
-            dist = 'R-rand_F-pl'
-            num_real_food = self.NUM_RF
-            num_fake_food = self.NUM_PLAW_FF
-        
-        elif self.RFD == 1 and self.FFD == 0:
-            dist = 'R-cl_F-rand'
+        elif self.RFD == 1:
+            dist = 'R-cl'
             num_real_food = self.RCL_X * self.RCL_Y * self.NUM_RCL
-            num_fake_food = self.NUM_FF
-        
-        elif self.RFD == 1 and self.FFD == 1:
-            dist = 'R-cl_F-cl'
-            num_real_food = self.RCL_X * self.RCL_Y * self.NUM_RCL
-            num_fake_food = self.FCL_X * self.FCL_Y * self.NUM_FCL
-        
-        elif self.RFD == 1 and self.FFD == 2:
-            dist = 'R-cl_F-pl'
-            num_real_food = self.RCL_X * self.RCL_Y * self.NUM_RCL
-            num_fake_food = self.NUM_PLAW_FF
        
-        elif self.RFD == 2 and self.FFD == 0:
-            dist = 'R-pl_F-rand'
+        elif self.RFD == 2:
+            dist = 'R-pl'
             num_real_food = self.NUM_PLAW_RF
-            num_fake_food = self.NUM_FF
-        
-        elif self.RFD == 2 and self.FFD == 1:
-            dist = 'R-pl_F-cl'
-            num_real_food = self.NUM_PLAW_RF
-            num_fake_food = self.FCL_X * self.FCL_Y * self.NUM_FCL
-        
-        elif self.RFD == 2 and self.FFD == 2:
-            dist = 'R-pl_F-pl'
-            num_real_food = self.NUM_PLAW_RF
-            num_fake_food = self.NUM_PLAW_FF
 
         else:
             raise Exception("ERROR: Invalid distribution method used.\n")
 
-        if (self.USE_FF_ONLY == 'true'):
-            if self.DENSIFY == "true":
-                dense = 'density-high'
-            else:
-                dense = 'density-std'
-
-            path = self.RD_PATH
-            alg = f'CPFA'
-            bot_count = f'r{self.BOT_COUNT}'
-            rfc = f'rfc0'
-            ffc = f'ffc{num_fake_food}'
-            arena = f'{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}'
-            time = f'time{self.MAX_SIM_TIME}'
-            iter = f'iter{self.num_iterations}'
-
-            self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
+        if self.DENSIFY == "true":
+            dense = 'density-high'
         else:
-            path = self.RD_PATH
-            alg = f'CPFA'
-            bot_count = f'r{self.BOT_COUNT}'
-            rfc = f'rfc{num_real_food}'
-            ffc = f'ffc{num_fake_food}'
-            arena = f'{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}'
-            time = f'time{self.MAX_SIM_TIME}'
-            iter = f'iter{self.num_iterations}'
+            dense = 'density-std'
 
-            if self.USE_FF_DOS == "false" and self.UQZ == "false":
-                st = 'st-0'
-                ffc = 'ffc0'
-            elif self.USE_FF_DOS == "true" and self.UQZ == "false":
-                st = 'st-1'
-            elif self.USE_FF_DOS == "true" and self.UQZ == "true":
-                if self.MM == 1:
-                    st = 'st-2'
-                else:
-                    st = 'st-3'
+        path = self.RD_PATH
+        alg = f'CPFA'
+        bot_count = f'r{self.T_BOT_COUNT}'
+        detractor_count = f'd{self.D_BOT_COUNT}'
+        atk_nest_count = f'atk{self.NUM_ATK_NESTS}'
+        rfc = f'rfc{num_real_food}'
+        arena = f'{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}'
+        time = f'time{self.MAX_SIM_TIME}'
+        iter = f'iter{self.num_iterations}'
 
-            self.fname_header = f'{path}{alg}_{st}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
-            # self.fname_header = f'{path}{alg}_{dist}_{bot_count}_{rfc}_{ffc}_{arena}_{time}_{iter}_'
+        self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{detractor_count}_{atk_nest_count}_{rfc}_{arena}_{time}_{iter}_'
 
-    
-        self.fname_header = self.fname_header + f'ffacc{int(self.FF_ACC*100)}_'
-        
         return self.fname_header
 
     def setBotCount(self,botCount):
@@ -427,6 +436,11 @@ class C_XML_CONFIG:
         params_settings.setAttribute('MergeMode', str(self.MM))
         params_settings.setAttribute('FFdetectionAcc', str(self.FF_ACC))
         params_settings.setAttribute('RFdetectionAcc', str(self.RF_ACC))
+        params_settings.setAttribute('UseMisleadingTrailAttack', str(self.USE_MTATK))
+        params_settings.setAttribute('AtkNest1Position', f'{self.ATK_NEST1_POS[0]:.1f},{self.ATK_NEST1_POS[1]:.1f}')
+        params_settings.setAttribute('AtkNest2Position', f'{self.ATK_NEST2_POS[0]:.1f},{self.ATK_NEST2_POS[1]:.1f}')
+        params_settings.setAttribute('AtkNest3Position', f'{self.ATK_NEST3_POS[0]:.1f},{self.ATK_NEST3_POS[1]:.1f}')
+        params_settings.setAttribute('AtkNest4Position', f'{self.ATK_NEST4_POS[0]:.1f},{self.ATK_NEST4_POS[1]:.1f}')
         params.appendChild(params_settings)
         #           </params>
         #       </CPFA_controller>
@@ -485,12 +499,18 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('FilenameHeader', str(self.fname_header))
         lf_settings.setAttribute('Densify', str(self.DENSIFY))
         lf_settings.setAttribute('ForagingAreaSize', self.foragingAreaSize())
+        lf_settings.setAttribute('EstTravelTimeTolerance', str(self.TTT))
         loops.appendChild(lf_settings)
         #       </settings>
 
         #       <detractor_settings>
         lf_detractor_settings = xml.createElement('detractor_settings')
-        lf_detractor_settings.setAttribute('AttackerNestPosition', f'{self.ATK_NEST_POS[0]:.1f},{self.ATK_NEST_POS[1]:.1f}')
+        lf_detractor_settings.setAttribute("NumAtkNests", str(self.NUM_ATK_NESTS))
+        lf_detractor_settings.setAttribute('AtkNest1Position', f'{self.ATK_NEST1_POS[0]:.1f},{self.ATK_NEST1_POS[1]:.1f}')
+        lf_detractor_settings.setAttribute('AtkNest2Position', f'{self.ATK_NEST2_POS[0]:.1f},{self.ATK_NEST2_POS[1]:.1f}')
+        lf_detractor_settings.setAttribute('AtkNest3Position', f'{self.ATK_NEST3_POS[0]:.1f},{self.ATK_NEST3_POS[1]:.1f}')
+        lf_detractor_settings.setAttribute('AtkNest4Position', f'{self.ATK_NEST4_POS[0]:.1f},{self.ATK_NEST4_POS[1]:.1f}')
+        lf_detractor_settings.setAttribute('AtkNestRadius', str(self.ATK_NEST_RAD))
         loops.appendChild(lf_detractor_settings)
         #       </detractor_settings>
 
@@ -562,203 +582,53 @@ class C_XML_CONFIG:
         wall_w.appendChild(body_w)
 
         if (self.BOT_DEFAULT_DIST):
+
+            layouts = self.genBotLayouts()
+
+            centers = [('1,1,0.0'), ('1,-1,0.0'), ('-1,1,0.0'), ('-1,-1,0.0')]  # Centers for 4 groups
+            entity_ids = ['fb0', 'fb1', 'fb2', 'fb3']  # Entity IDs for 4 groups
+
+            # If there are detractors, add their layout information
+            if self.D_BOT_COUNT > 0:
+                centers.append(('0.0,0.0,0.0'))  # Center for detractors
+                entity_ids.append('dt')  # Entity ID for detractors
+
+            # Loop through each group and the detractors
+            for i, (center, entity_id) in enumerate(zip(centers, entity_ids)):
+                # Create <distribute> element
+                distribution = xml.createElement('distribute')
+                arena.appendChild(distribution)
+                
+                # Create <position> element
+                position = xml.createElement('position')
+                position.setAttribute('center', center)
+                position.setAttribute('distances', '0.3,0.3,0.0')
+                position.setAttribute('layout', layouts[i][0])
+                position.setAttribute('method', 'grid')
+                distribution.appendChild(position)
+                
+                # Create <orientation> element
+                orientation = xml.createElement('orientation')
+                orientation.setAttribute('method', 'constant')
+                orientation.setAttribute('values', '0.0,0.0,0.0')
+                distribution.appendChild(orientation)
+                
+                # Create <entity> element
+                entity = xml.createElement('entity')
+                entity.setAttribute('quantity', str(layouts[i][1]))
+                entity.setAttribute('max_trials', '100')
+                distribution.appendChild(entity)
+                
+                # Create <foot-bot> element
+                foot_bot = xml.createElement('foot-bot')
+                foot_bot.setAttribute('id', entity_id)
+                entity.appendChild(foot_bot)
+                
+                # Create <controller> element
+                controller = xml.createElement('controller')
+                controller.setAttribute('config', 'CPFA')
+                foot_bot.appendChild(controller)
         
-        ############## FB group 0 #################
-        #       <distribute>
-            fb0_distribution = xml.createElement('distribute')
-            arena.appendChild(fb0_distribution)
-        #           <position>
-            fb0_position = xml.createElement('position')
-            fb0_position.setAttribute('center', '1,1,0.0')
-            fb0_position.setAttribute('distances','0.3,0.3,0.0')
-            fb0_position.setAttribute('layout','2,3,1')
-            fb0_position.setAttribute('method','grid')
-            fb0_distribution.appendChild(fb0_position)
-        #           </position
-
-        #           <orientation>
-            fb0_orientation = xml.createElement('orientation')
-            fb0_orientation.setAttribute('method','constant')
-            fb0_orientation.setAttribute('values','0.0,0.0,0.0')
-            fb0_distribution.appendChild(fb0_orientation)
-        #           </orientation>
-
-        #           <entity>
-            entity0 = xml.createElement('entity')
-            entity0.setAttribute('quantity', str(self.BOTS_PER_GROUP))
-            entity0.setAttribute('max_trials','100')
-            fb0_distribution.appendChild(entity0)
-
-        #               <foot-bot>
-            fb0 = xml.createElement('foot-bot')
-            fb0.setAttribute('id','fb0')
-            entity0.appendChild(fb0)
-
-        #                   <controller>
-            cont_fb0 = xml.createElement('controller')
-            cont_fb0.setAttribute('config','CPFA')
-            fb0.appendChild(cont_fb0)
-        #                   </controller>
-        #               </foot-bot>
-        #           </entity>
-        #       </distribute>
-        ############## FB group 1 #################
-        #       <distribute>
-            fb1_distribution = xml.createElement('distribute')
-            arena.appendChild(fb1_distribution)
-        #           <position>
-            fb1_position = xml.createElement('position')
-            fb1_position.setAttribute('center', '1,-1,0.0')
-            fb1_position.setAttribute('distances','0.3,0.3,0.0')
-            fb1_position.setAttribute('layout','2,3,1')
-            fb1_position.setAttribute('method','grid')
-            fb1_distribution.appendChild(fb1_position)
-        #           </position
-
-        #           <orientation>
-            fb1_orientation = xml.createElement('orientation')
-            fb1_orientation.setAttribute('method','constant')
-            fb1_orientation.setAttribute('values','0.0,0.0,0.0')
-            fb1_distribution.appendChild(fb1_orientation)
-        #           </orientation>
-
-        #           <entity>
-            entity1 = xml.createElement('entity')
-            entity1.setAttribute('quantity', str(self.BOTS_PER_GROUP))
-            entity1.setAttribute('max_trials','100')
-            fb1_distribution.appendChild(entity1)
-
-        #               <foot-bot>
-            fb1 = xml.createElement('foot-bot')
-            fb1.setAttribute('id','fb1')
-            entity1.appendChild(fb1)
-
-        #                   <controller>
-            cont_fb1 = xml.createElement('controller')
-            cont_fb1.setAttribute('config','CPFA')
-            fb1.appendChild(cont_fb1)
-        #                   </controller>
-        #               </foot-bot>
-        #           </entity>
-        ############## FB group 2 #################
-        #       <distribute>
-            fb2_distribution = xml.createElement('distribute')
-            arena.appendChild(fb2_distribution)
-        #           <position>
-            fb2_position = xml.createElement('position')
-            fb2_position.setAttribute('center', '-1,1,0.0')
-            fb2_position.setAttribute('distances','0.3,0.3,0.0')
-            fb2_position.setAttribute('layout','2,3,1')
-            fb2_position.setAttribute('method','grid')
-            fb2_distribution.appendChild(fb2_position)
-        #           </position
-
-        #           <orientation>
-            fb2_orientation = xml.createElement('orientation')
-            fb2_orientation.setAttribute('method','constant')
-            fb2_orientation.setAttribute('values','0.0,0.0,0.0')
-            fb2_distribution.appendChild(fb2_orientation)
-        #           </orientation>
-
-        #           <entity>
-            entity2 = xml.createElement('entity')
-            entity2.setAttribute('quantity', str(self.BOTS_PER_GROUP))
-            entity2.setAttribute('max_trials','100')
-            fb2_distribution.appendChild(entity2)
-
-        #               <foot-bot>
-            fb2 = xml.createElement('foot-bot')
-            fb2.setAttribute('id','fb2')
-            entity2.appendChild(fb2)
-
-        #                   <controller>
-            cont_fb2 = xml.createElement('controller')
-            cont_fb2.setAttribute('config','CPFA')
-            fb2.appendChild(cont_fb2)
-        #                   </controller>
-        #               </foot-bot>
-        #           </entity>
-        #       </distribute>
-        ############## FB group 3 #################
-        #       <distribute>
-            fb3_distribution = xml.createElement('distribute')
-            arena.appendChild(fb3_distribution)
-        #           <position>
-            fb3_position = xml.createElement('position')
-            fb3_position.setAttribute('center', '-1,-1,0.0')
-            fb3_position.setAttribute('distances','0.3,0.3,0.0')
-            fb3_position.setAttribute('layout','2,3,1')
-            fb3_position.setAttribute('method','grid')
-            fb3_distribution.appendChild(fb3_position)
-        #           </position
-
-        #           <orientation>
-            fb3_orientation = xml.createElement('orientation')
-            fb3_orientation.setAttribute('method','constant')
-            fb3_orientation.setAttribute('values','0.0,0.0,0.0')
-            fb3_distribution.appendChild(fb3_orientation)
-        #           </orientation>
-
-        #           <entity>
-            entity3 = xml.createElement('entity')
-            entity3.setAttribute('quantity', str(self.BOTS_PER_GROUP))
-            entity3.setAttribute('max_trials','100')
-            fb3_distribution.appendChild(entity3)
-
-        #               <foot-bot>
-            fb3 = xml.createElement('foot-bot')
-            fb3.setAttribute('id','fb3')
-            entity3.appendChild(fb3)
-
-        #                   <controller>
-            cont_fb3 = xml.createElement('controller')
-            cont_fb3.setAttribute('config','CPFA')
-            fb3.appendChild(cont_fb3)
-        #                   </controller>
-        #               </foot-bot>
-        #           </entity>
-        #       </distribute>
-
-        ############## FB detractors #################
-        #       <distribute>
-            detractor_distribution = xml.createElement('distribute')
-            arena.appendChild(detractor_distribution)
-        #           <position>
-            detractor_position = xml.createElement('position')
-            detractor_position.setAttribute('center', f'{self.ATK_NEST_POS[0]:.1f},{self.ATK_NEST_POS[1]:.1f},0.0')
-            detractor_position.setAttribute('distances','0.3,0.3,0.0')
-            detractor_position.setAttribute('layout','2,3,1')
-            detractor_position.setAttribute('method','grid')
-            detractor_distribution.appendChild(detractor_position)
-        #           </position
-
-        #           <orientation>
-            detractor_orientation = xml.createElement('orientation')
-            detractor_orientation.setAttribute('method','constant')
-            detractor_orientation.setAttribute('values','0.0,0.0,0.0')
-            detractor_distribution.appendChild(detractor_orientation)
-        #           </orientation>
-
-        #           <entity>
-            entity_d = xml.createElement('entity')
-            entity_d.setAttribute('quantity', str(self.NUM_DETRACTORS))
-            entity_d.setAttribute('max_trials','100')
-            detractor_distribution.appendChild(entity_d)
-
-        #               <foot-bot>
-            fb_d = xml.createElement('foot-bot')
-            fb_d.setAttribute('id','dt')
-            entity_d.appendChild(fb_d)
-
-        #                   <controller>
-            cont_fb_d = xml.createElement('controller')
-            cont_fb_d.setAttribute('config','CPFA')
-            fb_d.appendChild(cont_fb_d)
-        #                   </controller>
-        #               </foot-bot>
-        #           </entity>
-        #       </distribute>
-
         #   </arena>
 
         #   <physics_engines>
@@ -780,7 +650,6 @@ class C_XML_CONFIG:
         leds.setAttribute('id','leds')
         media.appendChild(leds)
         #   </media>
-
 
         if (self.VISUAL):
             #   <visualization>
@@ -823,3 +692,222 @@ class C_XML_CONFIG:
 
         with open(xml_filename, "w") as f:
             f.write(xml_str)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ############## FB group 0 #################
+        # #       <distribute>
+        #     fb0_distribution = xml.createElement('distribute')
+        #     arena.appendChild(fb0_distribution)
+        # #           <position>
+        #     fb0_position = xml.createElement('position')
+        #     fb0_position.setAttribute('center', '1,1,0.0')
+        #     fb0_position.setAttribute('distances','0.3,0.3,0.0')
+        #     fb0_position.setAttribute('layout',layouts[0][0])
+        #     fb0_position.setAttribute('method','grid')
+        #     fb0_distribution.appendChild(fb0_position)
+        # #           </position
+
+        # #           <orientation>
+        #     fb0_orientation = xml.createElement('orientation')
+        #     fb0_orientation.setAttribute('method','constant')
+        #     fb0_orientation.setAttribute('values','0.0,0.0,0.0')
+        #     fb0_distribution.appendChild(fb0_orientation)
+        # #           </orientation>
+
+        # #           <entity>
+        #     entity0 = xml.createElement('entity')
+        #     entity0.setAttribute('quantity', str(layouts[0][1]))
+        #     entity0.setAttribute('max_trials','100')
+        #     fb0_distribution.appendChild(entity0)
+
+        # #               <foot-bot>
+        #     fb0 = xml.createElement('foot-bot')
+        #     fb0.setAttribute('id','fb0')
+        #     entity0.appendChild(fb0)
+
+        # #                   <controller>
+        #     cont_fb0 = xml.createElement('controller')
+        #     cont_fb0.setAttribute('config','CPFA')
+        #     fb0.appendChild(cont_fb0)
+        # #                   </controller>
+        # #               </foot-bot>
+        # #           </entity>
+        # #       </distribute>
+        # ############## FB group 1 #################
+        # #       <distribute>
+        #     fb1_distribution = xml.createElement('distribute')
+        #     arena.appendChild(fb1_distribution)
+        # #           <position>
+        #     fb1_position = xml.createElement('position')
+        #     fb1_position.setAttribute('center', '1,-1,0.0')
+        #     fb1_position.setAttribute('distances','0.3,0.3,0.0')
+        #     fb1_position.setAttribute('layout',layouts[1][0])
+        #     fb1_position.setAttribute('method','grid')
+        #     fb1_distribution.appendChild(fb1_position)
+        # #           </position
+
+        # #           <orientation>
+        #     fb1_orientation = xml.createElement('orientation')
+        #     fb1_orientation.setAttribute('method','constant')
+        #     fb1_orientation.setAttribute('values','0.0,0.0,0.0')
+        #     fb1_distribution.appendChild(fb1_orientation)
+        # #           </orientation>
+
+        # #           <entity>
+        #     entity1 = xml.createElement('entity')
+        #     entity1.setAttribute('quantity', str(layouts[1][1]))
+        #     entity1.setAttribute('max_trials','100')
+        #     fb1_distribution.appendChild(entity1)
+
+        # #               <foot-bot>
+        #     fb1 = xml.createElement('foot-bot')
+        #     fb1.setAttribute('id','fb1')
+        #     entity1.appendChild(fb1)
+
+        # #                   <controller>
+        #     cont_fb1 = xml.createElement('controller')
+        #     cont_fb1.setAttribute('config','CPFA')
+        #     fb1.appendChild(cont_fb1)
+        # #                   </controller>
+        # #               </foot-bot>
+        # #           </entity>
+        # ############## FB group 2 #################
+        # #       <distribute>
+        #     fb2_distribution = xml.createElement('distribute')
+        #     arena.appendChild(fb2_distribution)
+        # #           <position>
+        #     fb2_position = xml.createElement('position')
+        #     fb2_position.setAttribute('center', '-1,1,0.0')
+        #     fb2_position.setAttribute('distances','0.3,0.3,0.0')
+        #     fb2_position.setAttribute('layout',layouts[2][0])
+        #     fb2_position.setAttribute('method','grid')
+        #     fb2_distribution.appendChild(fb2_position)
+        # #           </position
+
+        # #           <orientation>
+        #     fb2_orientation = xml.createElement('orientation')
+        #     fb2_orientation.setAttribute('method','constant')
+        #     fb2_orientation.setAttribute('values','0.0,0.0,0.0')
+        #     fb2_distribution.appendChild(fb2_orientation)
+        # #           </orientation>
+
+        # #           <entity>
+        #     entity2 = xml.createElement('entity')
+        #     entity2.setAttribute('quantity', str(layouts[2][1]))
+        #     entity2.setAttribute('max_trials','100')
+        #     fb2_distribution.appendChild(entity2)
+
+        # #               <foot-bot>
+        #     fb2 = xml.createElement('foot-bot')
+        #     fb2.setAttribute('id','fb2')
+        #     entity2.appendChild(fb2)
+
+        # #                   <controller>
+        #     cont_fb2 = xml.createElement('controller')
+        #     cont_fb2.setAttribute('config','CPFA')
+        #     fb2.appendChild(cont_fb2)
+        # #                   </controller>
+        # #               </foot-bot>
+        # #           </entity>
+        # #       </distribute>
+        # ############## FB group 3 #################
+        # #       <distribute>
+        #     fb3_distribution = xml.createElement('distribute')
+        #     arena.appendChild(fb3_distribution)
+        # #           <position>
+        #     fb3_position = xml.createElement('position')
+        #     fb3_position.setAttribute('center', '-1,-1,0.0')
+        #     fb3_position.setAttribute('distances','0.3,0.3,0.0')
+        #     fb3_position.setAttribute('layout',layouts[3][0])
+        #     fb3_position.setAttribute('method','grid')
+        #     fb3_distribution.appendChild(fb3_position)
+        # #           </position
+
+        # #           <orientation>
+        #     fb3_orientation = xml.createElement('orientation')
+        #     fb3_orientation.setAttribute('method','constant')
+        #     fb3_orientation.setAttribute('values','0.0,0.0,0.0')
+        #     fb3_distribution.appendChild(fb3_orientation)
+        # #           </orientation>
+
+        # #           <entity>
+        #     entity3 = xml.createElement('entity')
+        #     entity3.setAttribute('quantity', str(layouts[3][1]))
+        #     entity3.setAttribute('max_trials','100')
+        #     fb3_distribution.appendChild(entity3)
+
+        # #               <foot-bot>
+        #     fb3 = xml.createElement('foot-bot')
+        #     fb3.setAttribute('id','fb3')
+        #     entity3.appendChild(fb3)
+
+        # #                   <controller>
+        #     cont_fb3 = xml.createElement('controller')
+        #     cont_fb3.setAttribute('config','CPFA')
+        #     fb3.appendChild(cont_fb3)
+        # #                   </controller>
+        # #               </foot-bot>
+        # #           </entity>
+        # #       </distribute>
+
+
+
+        # ################################################
+        # ############ DETRACTOR DISTRIBUTION ############
+        # ################################################
+
+        # #       <distribute>
+        #     dt_distribution = xml.createElement('distribute')
+        #     arena.appendChild(dt_distribution)
+        # #           <position>
+        #     dt_position = xml.createElement('position')
+        #     dt_position.setAttribute('center', '0.0,0.0,0.0')
+        #     dt_position.setAttribute('distances','0.3,0.3,0.0')
+        #     dt_position.setAttribute('layout',layouts[-1][0])
+        #     dt_position.setAttribute('method','grid')
+        #     dt_distribution.appendChild(dt_position)
+        # #           </position
+
+        # #           <orientation>
+        #     dt_orientation = xml.createElement('orientation')
+        #     dt_orientation.setAttribute('method','constant')
+        #     dt_orientation.setAttribute('values','0.0,0.0,0.0')
+        #     dt_distribution.appendChild(dt_orientation)
+        # #           </orientation>
+
+        # #           <entity>
+        #     entity_dt = xml.createElement('entity')
+        #     entity_dt.setAttribute('quantity', str(layouts[-1][1]))
+        #     entity_dt.setAttribute('max_trials','100')
+        #     dt_distribution.appendChild(entity_dt)
+
+        # #               <foot-bot>
+        #     dt = xml.createElement('foot-bot')
+        #     dt.setAttribute('id','dt')
+        #     entity_dt.appendChild(dt)
+
+        # #                   <controller>
+        #     cont_dt = xml.createElement('controller')
+        #     cont_dt.setAttribute('config','CPFA')
+        #     dt.appendChild(cont_dt)
+        # #                   </controller>
+        # #               </foot-bot>
+        # #           </entity>
+        # #       </distribute>
+
+
+
+        # ################################################
+        # ################################################

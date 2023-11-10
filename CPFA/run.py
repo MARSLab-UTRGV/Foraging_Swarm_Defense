@@ -9,28 +9,17 @@ np.set_printoptions(suppress=True)
 SIM_TIME = []
 TOTAL_FOOD_COLLECTED = []
 TOTAL_COLLECTION_RATE = []
-REAL_FOOD_COLLECTED = []
-REAL_COLLECTION_RATE = []
-FAKE_FOOD_COLLECTED = []
-FAKE_COLLECTION_RATE = []
-REAL_PTRAILS_CREATED = []
+ROBOTS_CAPTURED = []
+ROBOT_CAPTURE_RATE = []
 FAKE_PTRAILS_CREATED = []
-FALSE_POSITIVES = []
-QZONES_CREATED = []
 
 def Read(fname):
     count = 0
     SIM_TIME.clear()
     TOTAL_FOOD_COLLECTED.clear()
     TOTAL_COLLECTION_RATE.clear()
-    REAL_FOOD_COLLECTED.clear()
-    REAL_COLLECTION_RATE.clear()
-    FAKE_FOOD_COLLECTED.clear()
-    FAKE_COLLECTION_RATE.clear()
-    REAL_PTRAILS_CREATED.clear()
-    FAKE_PTRAILS_CREATED.clear()
-    FALSE_POSITIVES.clear()
-    QZONES_CREATED.clear()
+    ROBOTS_CAPTURED.clear()
+    ROBOT_CAPTURE_RATE.clear()
     
     with open(fname) as f:
         for line in f.readlines():
@@ -40,1967 +29,34 @@ def Read(fname):
             SIM_TIME.append(data[0])
             TOTAL_FOOD_COLLECTED.append(data[1])
             TOTAL_COLLECTION_RATE.append(data[2])
-            REAL_FOOD_COLLECTED.append(data[3])
-            REAL_COLLECTION_RATE.append(data[4])
-            FAKE_FOOD_COLLECTED.append(data[5])
-            FAKE_COLLECTION_RATE.append(data[6])
-            REAL_PTRAILS_CREATED.append(data[7])
-            FAKE_PTRAILS_CREATED.append(data[8])
-            FALSE_POSITIVES.append(data[9])
-            QZONES_CREATED.append(data[10])
+            ROBOTS_CAPTURED.append(data[3])
+            ROBOT_CAPTURE_RATE.append(data[4])
 
-def PlotExp1(flist, maxRealFood, maxFakeFood):
-
-    RFClist = []
-    FFClist = []
-    for filename in flist:
-        Read(filename)
-        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
-        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
-    
-    RFCdata = []
-    for r in RFClist:
-        RFCdata.append((round(np.mean(r),1),np.std(r)))
-    FFCdata = []
-    for f in FFClist:
-        FFCdata.append((round(np.mean(f),1),np.std(f)))
-
-    num_clusters = ['1','2','3','4','5']
-
-    data = [
-        ('CPFA\n(Standard)',            (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),    # Real Food Collected Means
-                                        (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),    # Real Food Collected StdDeviation
-                                        (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),    # Fake Food Collected Means
-                                        (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1])),   # Fake Food Collected StdDeviation
-
-        ('CPFA\n(+ Fake Resources)',    (RFCdata[1][0],RFCdata[4][0],RFCdata[7][0],RFCdata[10][0],RFCdata[13][0]),
-                                        (RFCdata[1][1],RFCdata[4][1],RFCdata[7][1],RFCdata[10][1],RFCdata[13][1]),
-                                        (FFCdata[1][0],FFCdata[4][0],FFCdata[7][0],FFCdata[10][0],FFCdata[13][0]),
-                                        (FFCdata[1][1],FFCdata[4][1],FFCdata[7][1],FFCdata[10][1],FFCdata[13][1])),
-
-        ('CPFA\n(+ QZones)',            (RFCdata[3][0],RFCdata[6][0],RFCdata[9][0],RFCdata[12][0],RFCdata[15][0]),
-                                        (RFCdata[3][1],RFCdata[6][1],RFCdata[9][1],RFCdata[12][1],RFCdata[15][1]),
-                                        (FFCdata[3][0],FFCdata[6][0],FFCdata[9][0],FFCdata[12][0],FFCdata[15][0]),
-                                        (FFCdata[3][1],FFCdata[6][1],FFCdata[9][1],FFCdata[12][1],FFCdata[15][1]))
-    ]
-
-    x = np.arange(len(num_clusters))
-    width=0.3
-    multiplier=0
-
-    fig,ax=plt.subplots(figsize=(10,8),nrows=2, sharex=True)
-    labelsize = 9
-
-    offset = width * multiplier
-    rect1 = ax[0].bar(x+offset, data[0][1], width, align="center", yerr=data[0][2], ecolor='orange', label=data[0][0], edgecolor='black', color='blue', zorder=10)
-    rect2 = ax[1].bar(x+offset, data[0][3], width, align="center", yerr=data[0][4], ecolor='orange', label=data[0][0], edgecolor='black', hatch='xx', color='blue', zorder=10)
-    ax[0].bar_label(rect1,padding=10, fontsize=labelsize)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect3 = ax[0].bar(x+offset, data[1][1], width, align="center", yerr=data[1][2], ecolor='orange', label=data[1][0], edgecolor='black', color='green', zorder=10)
-    rect4 = ax[1].bar(x+offset, data[1][3], width, align="center", yerr=data[1][4], ecolor='orange', label=data[1][0], edgecolor='black', hatch='xx', color='green', zorder=10)
-    ax[0].bar_label(rect3,padding=10, fontsize=labelsize)
-    ax[1].bar_label(rect4,padding=-15, fontsize=labelsize)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect5 = ax[0].bar(x+offset, data[2][1], width, align="center", yerr=data[2][2], ecolor='orange', label=data[2][0], edgecolor='black', color='red', zorder=10)
-    rect6 = ax[1].bar(x+offset, data[2][3], width, align="center", yerr=data[2][4], ecolor='orange', label=data[2][0], edgecolor='black', hatch='xx', color='red', zorder=10)
-    ax[0].bar_label(rect5,padding=10, fontsize=labelsize)
-    ax[1].bar_label(rect6,padding=-15, fontsize=labelsize)
-    multiplier+=1
-
-    
-    fig.legend(loc='lower center', bbox_to_anchor=(0.525,0.1), ncols=2)
-
-    ax[0].set_ylim(0,maxRealFood)
-    ax[0].set_ylabel('Real Resources Collected')
-    ax[1].set_ylim(0,maxFakeFood)
-    ax[1].set_ylabel('Fake Resources Collected')
-    ax[1].invert_yaxis()
-
-    ax[1].set_xticks(x+width, num_clusters)
-    ax[1].xaxis.tick_bottom()
-    ax[1].set_xlabel('Number of Fake Resource Clusters (6x6)')
-
-    ax[0].set_title('Foraging Results by Number of Fake Resource Clusters')
-
-    fig.tight_layout()
-    fig.subplots_adjust(hspace=0)
-
-    plt.savefig('results/Experiment_1-classic.png')
-
-def PlotExp1_v2(flist, rdpath, maxRealFood, maxFakeFood):
-
-    RFClist = []
-    FFClist = []
+def GetFoodCollected(flist, rdpath):
+    TFClist = []
+    Caplist = []
 
     for filename in flist:
         Read(filename)
-        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
-        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
-    
-    RFCdata = []
-    for r in RFClist:
-        RFCdata.append((round(np.mean(r),1),np.std(r)))
-    FFCdata = []
-    for f in FFClist:
-        FFCdata.append((round(np.mean(f),1),np.std(f)))
-
-    x_tick_labels = ['1','2','3','4','5']
-
-
-    data1 = [
-        ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),    # Real Food Collected Means
-                                        (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),    # Real Food Collected StdDeviation
-                                        (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),    # Fake Food Collected Means
-                                        (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1])),   # Fake Food Collected StdDeviation
-
-        ('$FA_{RF}$',                   (RFCdata[1][0],RFCdata[4][0],RFCdata[7][0],RFCdata[10][0],RFCdata[13][0]),
-                                        (RFCdata[1][1],RFCdata[4][1],RFCdata[7][1],RFCdata[10][1],RFCdata[13][1]),
-                                        (FFCdata[1][0],FFCdata[4][0],FFCdata[7][0],FFCdata[10][0],FFCdata[13][0]),
-                                        (FFCdata[1][1],FFCdata[4][1],FFCdata[7][1],FFCdata[10][1],FFCdata[13][1])),
-
-        ('$FA_{QZ}$',                   (RFCdata[2][0],RFCdata[5][0],RFCdata[8][0],RFCdata[11][0],RFCdata[14][0]),
-                                        (RFCdata[2][1],RFCdata[5][1],RFCdata[8][1],RFCdata[11][1],RFCdata[14][1]),
-                                        (FFCdata[2][0],FFCdata[5][0],FFCdata[8][0],FFCdata[11][0],FFCdata[14][0]),
-                                        (FFCdata[2][1],FFCdata[5][1],FFCdata[8][1],FFCdata[11][1],FFCdata[14][1])),
-
-        ('$FA_{QZ\_M}$',                (RFCdata[3][0],RFCdata[6][0],RFCdata[9][0],RFCdata[12][0],RFCdata[15][0]),
-                                        (RFCdata[3][1],RFCdata[6][1],RFCdata[9][1],RFCdata[12][1],RFCdata[15][1]),
-                                        (FFCdata[3][0],FFCdata[6][0],FFCdata[9][0],FFCdata[12][0],FFCdata[15][0]),
-                                        (FFCdata[3][1],FFCdata[6][1],FFCdata[9][1],FFCdata[12][1],FFCdata[15][1]))
-    ]
-
-    x = np.arange(len(x_tick_labels))
-    width=0.23
-    multiplier=0
-
-    fig,ax=plt.subplots(figsize=(14,10),nrows=2, sharex=True)
-    labelsize = 14
-    textsize = 23
-    top_plt_pad = -125
-    bottom_plt_pad = -25
-    top_labelcolor = 'white'
-    bottom_labelcolor = 'black'
-    bar_zorder = 0
-    label_zorder = 15
-    b_label_rotation = 30
-
-    offset = width * multiplier
-    rect1 = ax[0].bar(x+offset, data1[0][1], width, align="center", yerr=data1[0][2], ecolor='orange', label=data1[0][0], edgecolor='black', color='blue', zorder=bar_zorder)
-    ax[0].bar_label(rect1,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect3 = ax[0].bar(x+offset, data1[1][1], width, align="center", yerr=data1[1][2], ecolor='orange', label=data1[1][0], edgecolor='black', color='green', zorder=bar_zorder)
-    rect4 = ax[1].bar(x+offset, data1[1][3], width, align="center", yerr=data1[1][4], ecolor='orange', label=data1[1][0], edgecolor='black', hatch='xx', color='green', zorder=bar_zorder)
-    ax[0].bar_label(rect3,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    ax[1].bar_label(rect4,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect5 = ax[0].bar(x+offset, data1[2][1], width, align="center", yerr=data1[2][2], ecolor='orange', label=data1[2][0], edgecolor='black', color='red', zorder=bar_zorder)
-    rect6 = ax[1].bar(x+offset, data1[2][3], width, align="center", yerr=data1[2][4], ecolor='orange', label=data1[2][0], edgecolor='black', hatch='xx', color='red', zorder=bar_zorder)
-    ax[0].bar_label(rect5,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    ax[1].bar_label(rect6,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect7 = ax[0].bar(x+offset, data1[3][1], width, align="center", yerr=data1[3][2], ecolor='orange', label=data1[3][0], edgecolor='black', color='purple', zorder=bar_zorder)
-    rect8 = ax[1].bar(x+offset, data1[3][3], width, align="center", yerr=data1[3][4], ecolor='orange', label=data1[3][0], edgecolor='black', hatch='xx', color='purple', zorder=bar_zorder)
-    ax[0].bar_label(rect7,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    ax[1].bar_label(rect8,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-    
-    # ax[0].legend(loc='lower left', ncols=2, fontsize=textsize, bbox_to_anchor=(0, -0.1), zorder = 20)
-
-    # First get the handles and labels from the axes
-    handles1, labels1 = ax[0].get_legend_handles_labels()
-    plt.legend(handles1, labels1, loc='lower left', ncol=2, fontsize=textsize)
-
-    # ax[0].set_ylim(0,maxRealFood)
-    ax[0].set_ylabel('Real Resources Collected', fontsize=textsize)
-    ax[1].set_ylim(0,65)
-    ax[1].set_ylabel('Fake Resources Collected', fontsize=textsize)
-    ax[1].invert_yaxis()
-
-    ax[1].set_xticks(x+width, x_tick_labels, fontsize=labelsize)
-    ax[1].xaxis.tick_bottom()
-    ax[1].set_xlabel('Number of Fake Food Clusters (6x6)', fontsize=textsize)
-
-    # ax[0].set_title('Foraging Results by Maximum Simulation Time')
-
-    fig.tight_layout()
-    fig.subplots_adjust(hspace=0)
-
-    plt.savefig(f'{rdpath}Experiment_1.png')
-
-def PrintExp1_data(flist, rdpath, maxRealFood, maxFakeFood):
-
-    RFClist = []
-    FFClist = []
-
-    for filename in flist:
-        Read(filename)
-        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
-        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
-    
-    RFCdata = []
-    for r in RFClist:
-        RFCdata.append((round(np.mean(r),1),np.std(r)))
-    FFCdata = []
-    for f in FFClist:
-        FFCdata.append((round(np.mean(f),1),np.std(f)))
-
-    x_tick_labels = ['1','2','3','4','5']
-
-
-    data1 = [
-        ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),    # Real Food Collected Means
-                                        (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),    # Real Food Collected StdDeviation
-                                        (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),    # Fake Food Collected Means
-                                        (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1])),   # Fake Food Collected StdDeviation
-
-        ('$FA_{RF}$',                   (RFCdata[1][0],RFCdata[4][0],RFCdata[7][0],RFCdata[10][0],RFCdata[13][0]),
-                                        (RFCdata[1][1],RFCdata[4][1],RFCdata[7][1],RFCdata[10][1],RFCdata[13][1]),
-                                        (FFCdata[1][0],FFCdata[4][0],FFCdata[7][0],FFCdata[10][0],FFCdata[13][0]),
-                                        (FFCdata[1][1],FFCdata[4][1],FFCdata[7][1],FFCdata[10][1],FFCdata[13][1])),
-
-        ('$FA_{QZ}$',                   (RFCdata[2][0],RFCdata[5][0],RFCdata[8][0],RFCdata[11][0],RFCdata[14][0]),
-                                        (RFCdata[2][1],RFCdata[5][1],RFCdata[8][1],RFCdata[11][1],RFCdata[14][1]),
-                                        (FFCdata[2][0],FFCdata[5][0],FFCdata[8][0],FFCdata[11][0],FFCdata[14][0]),
-                                        (FFCdata[2][1],FFCdata[5][1],FFCdata[8][1],FFCdata[11][1],FFCdata[14][1])),
-
-        ('$FA_{QZ\_M}$',                (RFCdata[3][0],RFCdata[6][0],RFCdata[9][0],RFCdata[12][0],RFCdata[15][0]),
-                                        (RFCdata[3][1],RFCdata[6][1],RFCdata[9][1],RFCdata[12][1],RFCdata[15][1]),
-                                        (FFCdata[3][0],FFCdata[6][0],FFCdata[9][0],FFCdata[12][0],FFCdata[15][0]),
-                                        (FFCdata[3][1],FFCdata[6][1],FFCdata[9][1],FFCdata[12][1],FFCdata[15][1]))
-    ]
-
-    # print(f'{data1}\n\n')
-
-    # sim_types = ['FA_R', 'FA_RF', 'FA_QZ', 'FA_RF_M']
-    # std_means = {}
-    # for sim in data1:
-    #     std_real = sim[2]
-    #     std_fake = sim[4]
-    #     avg_std_real = sum(std_real) / len(std_real)
-    #     avg_std_fake = sum(std_fake) / len(std_fake)
-    #     std_means[sim[0]] = {'Real': avg_std_real, 'Fake': avg_std_fake}
-    #     print(f'{sim[0]}: Real: {avg_std_real:.2f}, Fake: {avg_std_fake:.2f}')
-
-    # print(f'<Number of Fake Food Clusters>,<Simulation Type>,<Real Food Collected Mean>,<Real Food Collected Standard Deviation>,<Fake Food Collected Mean>,<Fake Food Collected Standard Deviation>')
-
-    # for num_fcl in range(5):
-    #     for d in data1:
-    #         print(f'{num_fcl+1},{d[0]},{d[1][num_fcl]},{d[2][num_fcl]},{d[3][num_fcl]},{d[4][num_fcl]}')
-
-    ###### FA_RF vs FA_QZ ######
-
-    # avg_diffs_real = []
-    # for i in range(5):
-    #     avg_diffs_real.append(((data1[2][1][i]-data1[1][1][i])/data1[1][1][i])*100)
-
-    # print(f'avg_diffs_real: {avg_diffs_real}')
-    # print(f'Avg Dif Real: {np.mean(avg_diffs_real)}')
-
-    # avg_diffs_fake = []
-    # for i in range(5):
-    #     avg_diffs_fake.append(((data1[2][3][i]-data1[1][3][i])/data1[1][3][i])*100)
-
-    # print(f'avg_diffs_fake: {avg_diffs_fake}')
-    # print(f'Avg Dif Fake: {np.mean(avg_diffs_fake)}')
-
-    ###########################
-
-    ####### FA_QZ vs FA_R #######
-
-    # avg_diffs_real = []
-    # for i in range(5):
-    #     avg_diffs_real.append(((data1[2][1][i]-data1[0][1][i])/data1[0][1][i])*100)
-
-    # print(f'avg_diffs_real: {avg_diffs_real}')
-    # print(f'Avg Acc Real: {100+np.mean(avg_diffs_real)}')
-
-    ###### FA_QZ_M vs FA_QZ ######
-
-    # avg_diffs_real = []
-    # for i in range(5):
-    #     avg_diffs_real.append(((data1[2][1][i]-data1[3][1][i])/data1[3][1][i])*100)
-
-    # print(f'avg_diffs_real: {avg_diffs_real}')
-    # print(f'Avg Dif Real: {np.mean(avg_diffs_real)}')
-
-    # avg_diffs_fake = []
-    # for i in range(5):
-    #     avg_diffs_fake.append(((data1[2][3][i]-data1[3][3][i])/data1[3][3][i])*100)
-
-    # print(f'avg_diffs_fake: {avg_diffs_fake}')
-    # print(f'Avg Dif Fake: {np.mean(avg_diffs_fake)}')
-
-    ########################### 
-
-    ######### stdev #########
-    fa_rf_avg  = np.mean(data1[1][2])
-    print(f'FA_RF Avg: {fa_rf_avg}')
-    fa_qz_avg  = np.mean(data1[2][2])
-    print(f'FA_QZ Avg: {fa_qz_avg}')
-    fa_qzm_avg = np.mean(data1[3][2])
-    print(f'FA_QZ_M Avg: {fa_qzm_avg}')
-    avg_dif_rfqz = (fa_rf_avg-fa_qz_avg)/fa_rf_avg
-    print(f'Avg Dif RF-QZ: {avg_dif_rfqz*100}%')
-    avg_dif_rfqzm = (fa_rf_avg-fa_qzm_avg)/fa_rf_avg
-    print(f'Avg Dif RF-QZM: {avg_dif_rfqzm*100}%')
-
-def PrintExp2_data(flist, rdpath, maxRealFood, maxFakeFood):
-
-    RFClist = []
-    FFClist = []
-
-    for filename in flist:
-        Read(filename)
-        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
-        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
-    
-    RFCdata = []
-    for r in RFClist:
-        RFCdata.append((round(np.mean(r),1),np.std(r)))
-    FFCdata = []
-    for f in FFClist:
-        FFCdata.append((round(np.mean(f),1),np.std(f)))
-
-    x_tick_labels = ['10','15','20','25','30']
-
-
-    data1 = [
-        ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[4][0],RFCdata[8][0],RFCdata[12][0],RFCdata[16][0]),    # Real Food Collected Means
-                                        (RFCdata[0][1],RFCdata[4][1],RFCdata[8][1],RFCdata[12][1],RFCdata[16][1]),    # Real Food Collected StdDeviation
-                                        (FFCdata[0][0],FFCdata[4][0],FFCdata[8][0],FFCdata[12][0],FFCdata[16][0]),    # Fake Food Collected Means
-                                        (FFCdata[0][1],FFCdata[4][1],FFCdata[8][1],FFCdata[12][1],FFCdata[16][1])),   # Fake Food Collected StdDeviation
-
-        ('$FA_{RF}$',                   (RFCdata[1][0],RFCdata[5][0],RFCdata[9][0],RFCdata[13][0],RFCdata[17][0]),
-                                        (RFCdata[1][1],RFCdata[5][1],RFCdata[9][1],RFCdata[13][1],RFCdata[17][1]),
-                                        (FFCdata[1][0],FFCdata[5][0],FFCdata[9][0],FFCdata[13][0],FFCdata[17][0]),
-                                        (FFCdata[1][1],FFCdata[5][1],FFCdata[9][1],FFCdata[13][1],FFCdata[17][1])),
-
-        ('$FA_{QZ}$',                   (RFCdata[2][0],RFCdata[6][0],RFCdata[10][0],RFCdata[14][0],RFCdata[18][0]),
-                                        (RFCdata[2][1],RFCdata[6][1],RFCdata[10][1],RFCdata[14][1],RFCdata[18][1]),
-                                        (FFCdata[2][0],FFCdata[6][0],FFCdata[10][0],FFCdata[14][0],FFCdata[18][0]),
-                                        (FFCdata[2][1],FFCdata[6][1],FFCdata[10][1],FFCdata[14][1],FFCdata[18][1])),
-
-        ('$FA_{QZ\_M}$',                (RFCdata[3][0],RFCdata[7][0],RFCdata[11][0],RFCdata[15][0],RFCdata[19][0]),
-                                        (RFCdata[3][1],RFCdata[7][1],RFCdata[11][1],RFCdata[15][1],RFCdata[19][1]),
-                                        (FFCdata[3][0],FFCdata[7][0],FFCdata[11][0],FFCdata[15][0],FFCdata[19][0]),
-                                        (FFCdata[3][1],FFCdata[7][1],FFCdata[11][1],FFCdata[15][1],FFCdata[19][1]))
-    ]
-
-    # print(f'{data1}\n\n')
-
-    # sim_types = ['FA_R', 'FA_RF', 'FA_QZ', 'FA_RF_M']
-    # std_means = {}
-    # for sim in data1:
-    #     std_real = sim[2]
-    #     std_fake = sim[4]
-    #     avg_std_real = sum(std_real) / len(std_real)
-    #     avg_std_fake = sum(std_fake) / len(std_fake)
-    #     std_means[sim[0]] = {'Real': avg_std_real, 'Fake': avg_std_fake}
-    #     print(f'{sim[0]}: Real: {avg_std_real:.2f}, Fake: {avg_std_fake:.2f}')
-
-    print(f'<Maximum Simulation Time>,<Simulation Type>,<Real Food Collected Mean>,<Real Food Collected Standard Deviation>,<Fake Food Collected Mean>,<Fake Food Collected Standard Deviation>')
-
-    for t in range(5):
-        for d in data1:
-            print(f'{x_tick_labels[t]},{d[0]},{d[1][t]},{d[2][t]},{d[3][t]},{d[4][t]}')
-
-    ###### FA_RF vs FA_QZ ######
-
-    # avg_diffs_real = []
-    # for i in range(5):
-    #     avg_diffs_real.append(((data1[2][1][i]-data1[1][1][i])/data1[1][1][i])*100)
-
-    # print(f'avg_diffs_real: {avg_diffs_real}')
-    # print(f'Avg Dif Real: {np.mean(avg_diffs_real)}')
-
-    # avg_diffs_fake = []
-    # for i in range(5):
-    #     avg_diffs_fake.append(((data1[2][3][i]-data1[1][3][i])/data1[1][3][i])*100)
-
-    # print(f'avg_diffs_fake: {avg_diffs_fake}')
-    # print(f'Avg Dif Fake: {np.mean(avg_diffs_fake)}')
-
-    ###########################
-
-    ####### FA_QZ vs FA_R #######
-
-    # avg_diffs_real = []
-    # for i in range(5):
-    #     avg_diffs_real.append(((data1[2][1][i]-data1[0][1][i])/data1[0][1][i])*100)
-
-    # print(f'avg_diffs_real: {avg_diffs_real}')
-    # print(f'Avg Acc Real: {100+np.mean(avg_diffs_real)}')
-
-    ###### FA_QZ_M vs FA_QZ ######
-
-    # avg_diffs_real = []
-    # for i in range(5):
-    #     avg_diffs_real.append(((data1[2][1][i]-data1[3][1][i])/data1[3][1][i])*100)
-
-    # print(f'avg_diffs_real: {avg_diffs_real}')
-    # print(f'Avg Dif Real: {np.mean(avg_diffs_real)}')
-
-    # avg_diffs_fake = []
-    # for i in range(5):
-    #     avg_diffs_fake.append(((data1[2][3][i]-data1[3][3][i])/data1[3][3][i])*100)
-
-    # print(f'avg_diffs_fake: {avg_diffs_fake}')
-    # print(f'Avg Dif Fake: {np.mean(avg_diffs_fake)}')
-
-    ########################### 
-
-    ######### stdev #########
-    # fa_rf_avg  = np.mean(data1[1][2])
-    # print(f'FA_RF Avg: {fa_rf_avg}')
-    # fa_qz_avg  = np.mean(data1[2][2])
-    # print(f'FA_QZ Avg: {fa_qz_avg}')
-    # fa_qzm_avg = np.mean(data1[3][2])
-    # print(f'FA_QZ_M Avg: {fa_qzm_avg}')
-    # avg_dif_rfqz = (fa_rf_avg-fa_qz_avg)/fa_rf_avg
-    # print(f'Avg Dif RF-QZ: {avg_dif_rfqz*100}%')
-    # avg_dif_rfqzm = (fa_rf_avg-fa_qzm_avg)/fa_rf_avg
-    # print(f'Avg Dif RF-QZM: {avg_dif_rfqzm*100}%')
-
-def PlotExp2_v1(flist, rdpath, maxRealFood, maxFakeFood):
-
-    RFClist = []
-    FFClist = []
-    for filename in flist:
-        Read(filename)
-        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
-        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
-    
-    RFCdata = []
-    for r in RFClist:
-        RFCdata.append((round(np.mean(r),1),np.std(r)))
-        # print(f'{round(np.mean(r),1)} +- {np.std(r)}')
-    FFCdata = []
-    for f in FFClist:
-        FFCdata.append((round(np.mean(f),1),np.std(f)))
-        # print(f'{round(np.mean(f),1)} +- {np.std(f)}')
-
-    x_tick_labels = ['10','15','20','25','30']
-
-
-    data = [
-        ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[4][0],RFCdata[8][0],RFCdata[12][0],RFCdata[16][0]),    # Real Food Collected Means
-                                        (RFCdata[0][1],RFCdata[4][1],RFCdata[8][1],RFCdata[12][1],RFCdata[16][1]),    # Real Food Collected StdDeviation
-                                        (FFCdata[0][0],FFCdata[4][0],FFCdata[8][0],FFCdata[12][0],FFCdata[16][0]),    # Fake Food Collected Means
-                                        (FFCdata[0][1],FFCdata[4][1],FFCdata[8][1],FFCdata[12][1],FFCdata[16][1])),   # Fake Food Collected StdDeviation
-
-        ('$FA_{RF}$',                   (RFCdata[1][0],RFCdata[5][0],RFCdata[9][0],RFCdata[13][0],RFCdata[17][0]),
-                                        (RFCdata[1][1],RFCdata[5][1],RFCdata[9][1],RFCdata[13][1],RFCdata[17][1]),
-                                        (FFCdata[1][0],FFCdata[5][0],FFCdata[9][0],FFCdata[13][0],FFCdata[17][0]),
-                                        (FFCdata[1][1],FFCdata[5][1],FFCdata[9][1],FFCdata[13][1],FFCdata[17][1])),
-
-        ('$FA_{QZ}$',                   (RFCdata[2][0],RFCdata[6][0],RFCdata[10][0],RFCdata[14][0],RFCdata[18][0]),
-                                        (RFCdata[2][1],RFCdata[6][1],RFCdata[10][1],RFCdata[14][1],RFCdata[18][1]),
-                                        (FFCdata[2][0],FFCdata[6][0],FFCdata[10][0],FFCdata[14][0],FFCdata[18][0]),
-                                        (FFCdata[2][1],FFCdata[6][1],FFCdata[10][1],FFCdata[14][1],FFCdata[18][1])),
-
-        ('$FA_{QZ\_M}$',                (RFCdata[3][0],RFCdata[7][0],RFCdata[11][0],RFCdata[15][0],RFCdata[19][0]),
-                                        (RFCdata[3][1],RFCdata[7][1],RFCdata[11][1],RFCdata[15][1],RFCdata[19][1]),
-                                        (FFCdata[3][0],FFCdata[7][0],FFCdata[11][0],FFCdata[15][0],FFCdata[19][0]),
-                                        (FFCdata[3][1],FFCdata[7][1],FFCdata[11][1],FFCdata[15][1],FFCdata[19][1]))
-    ]
-
-    x = np.arange(len(x_tick_labels))
-    width=0.23
-    multiplier=0
-
-    fig,ax=plt.subplots(figsize=(14,10),nrows=2, sharex=True)
-    labelsize = 14
-    textsize = 23
-    top_plt_pad = -125
-    bottom_plt_pad = -25
-    top_labelcolor = 'white'
-    bottom_labelcolor = 'black'
-    bar_zorder = 0
-    label_zorder = 15
-    b_label_rotation = 30
-
-    offset = width * multiplier
-    rect1 = ax[0].bar(x+offset, data[0][1], width, align="center", yerr=data[0][2], ecolor='orange', label=data[0][0], edgecolor='black', color='blue', zorder=bar_zorder)
-    ax[0].bar_label(rect1,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect3 = ax[0].bar(x+offset, data[1][1], width, align="center", yerr=data[1][2], ecolor='orange', label=data[1][0], edgecolor='black', color='green', zorder=bar_zorder)
-    rect4 = ax[1].bar(x+offset, data[1][3], width, align="center", yerr=data[1][4], ecolor='orange', label=data[1][0], edgecolor='black', hatch='xx', color='green', zorder=bar_zorder)
-    ax[0].bar_label(rect3,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    ax[1].bar_label(rect4,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect5 = ax[0].bar(x+offset, data[2][1], width, align="center", yerr=data[2][2], ecolor='orange', label=data[2][0], edgecolor='black', color='red', zorder=bar_zorder)
-    rect6 = ax[1].bar(x+offset, data[2][3], width, align="center", yerr=data[2][4], ecolor='orange', label=data[2][0], edgecolor='black', hatch='xx', color='red', zorder=bar_zorder)
-    ax[0].bar_label(rect5,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    ax[1].bar_label(rect6,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect7 = ax[0].bar(x+offset, data[3][1], width, align="center", yerr=data[3][2], ecolor='orange', label=data[3][0], edgecolor='black', color='purple', zorder=bar_zorder)
-    rect8 = ax[1].bar(x+offset, data[3][3], width, align="center", yerr=data[3][4], ecolor='orange', label=data[3][0], edgecolor='black', hatch='xx', color='purple', zorder=bar_zorder)
-    ax[0].bar_label(rect7,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    ax[1].bar_label(rect8,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-    
-    # ax[0].legend(loc='lower left', ncols=2, fontsize=textsize, bbox_to_anchor=(0, -0.1), zorder = 20)
-
-    # First get the handles and labels from the axes
-    handles1, labels1 = ax[0].get_legend_handles_labels()
-    plt.legend(handles1, labels1, loc='lower left', ncol=2, fontsize=textsize)
-
-    # ax[0].set_ylim(0,maxRealFood)
-    ax[0].set_ylabel('Real Resources Collected', fontsize=textsize)
-    ax[1].set_ylim(0,85)
-    ax[1].set_ylabel('Fake Resources Collected', fontsize=textsize, labelpad = 11)
-    ax[1].invert_yaxis()
-
-    ax[1].set_xticks(x+width, x_tick_labels, fontsize=labelsize)
-    ax[1].xaxis.tick_bottom()
-    ax[1].set_xlabel('Max Simulation Time (minutes)', fontsize=textsize)
-
-    # ax[0].set_title('Foraging Results by Maximum Simulation Time')
-
-    fig.tight_layout()
-    fig.subplots_adjust(hspace=0)
-
-    # plt.savefig('results/Experiment_2.png')
-    plt.savefig(f'{rdpath}/Experiment_2.png')
-
-def PlotExp3_v3(flist, rdpath, maxRealFood, maxFakeFood, x_ticks):
-
-    RFClist = []
-    FFClist = []
-    FPlist = []
-
-    for filename in flist:
-        Read(filename)
-        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
-        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
-        # FFClist.append(np.random.randint(0,108,(1,60)).astype(float))
-        FPlist.append(np.array(FALSE_POSITIVES).astype(float))
-        # FPlist.append(np.random.randint(0,90,(1,60)).astype(float))
-
-    # for i in range(len(RFClist)):
-    #     for j in range(len(REAL_FOOD_COLLECTED)):
-    #         RFClist[i][j] = RFClist[i][j]-FPlist[i][j]
-    #         FFClist[i][j] = FFClist[i][j]+FPlist[i][j]
-    
-    RFCdata = []
-    for r in RFClist:
-        RFCdata.append((round(np.mean(r),1),np.std(r)))
-    print (len(RFCdata))
-    FFCdata = []
-    for f in FFClist:
-        FFCdata.append((round(np.mean(f),1),np.std(f)))
-    print (len(FFCdata))
-    FPdata = []
-    for p in FPlist:
-        FPdata.append((round(np.mean(p),1),np.std(p)))
-    print (len(FPdata))
-    x_tick_labels = []
-    for x in x_ticks:
-        # if x*100 % 2:
-        x_tick_labels.append(f'{int(x*100)}%')
-
-
-    # data1 = [
-    #     ('$FA_{R}$',                    (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),    # Real Food Collected Means
-    #                                     (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),    # Real Food Collected StdDeviation
-    #                                     (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),    # Fake Food Collected Means
-    #                                     (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1])),   # Fake Food Collected StdDeviation
-                                        
-
-    #     ('$FA_{RF}$',                   (RFCdata[1][0],RFCdata[4][0],RFCdata[7][0],RFCdata[10][0],RFCdata[13][0]),
-    #                                     (RFCdata[1][1],RFCdata[4][1],RFCdata[7][1],RFCdata[10][1],RFCdata[13][1]),
-    #                                     (FFCdata[1][0],FFCdata[4][0],FFCdata[7][0],FFCdata[10][0],FFCdata[13][0]),
-    #                                     (FFCdata[1][1],FFCdata[4][1],FFCdata[7][1],FFCdata[10][1],FFCdata[13][1])),
-
-    #     ('$FA_{QZ}$',                   (RFCdata[2][0],RFCdata[5][0],RFCdata[8][0],RFCdata[11][0],RFCdata[14][0]),
-    #                                     (RFCdata[2][1],RFCdata[5][1],RFCdata[8][1],RFCdata[11][1],RFCdata[14][1]),
-    #                                     (FFCdata[2][0],FFCdata[5][0],FFCdata[8][0],FFCdata[11][0],FFCdata[14][0]),
-    #                                     (FFCdata[2][1],FFCdata[5][1],FFCdata[8][1],FFCdata[11][1],FFCdata[14][1])),
-
-    #     ('$FA_{QZ\_M}$',                (RFCdata[3][0],RFCdata[6][0],RFCdata[9][0],RFCdata[12][0],RFCdata[15][0]),
-    #                                     (RFCdata[3][1],RFCdata[6][1],RFCdata[9][1],RFCdata[12][1],RFCdata[15][1]),
-    #                                     (FFCdata[3][0],FFCdata[6][0],FFCdata[9][0],FFCdata[12][0],FFCdata[15][0]),
-    #                                     (FFCdata[3][1],FFCdata[6][1],FFCdata[9][1],FFCdata[12][1],FFCdata[15][1]))
-    # ]
-
-    data1 = [
-        ('$FA_{R}$',                (RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0],RFCdata[0][0]),
-                                    (RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1],RFCdata[0][1]),
-                                    (FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0],FPdata[0][0]),
-                                    (FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1],FPdata[0][1]),
-                                    (FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0],FFCdata[0][0]),
-                                    (FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1],FFCdata[0][1])),
-        
-        ('$FA_{FR}$',               (RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0],RFCdata[1][0]),
-                                    (RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1],RFCdata[1][1]),
-                                    (FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0],FPdata[1][0]),
-                                    (FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1],FPdata[1][1]),
-                                    (FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0],FFCdata[1][0]),
-                                    (FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1],FFCdata[1][1]))
-    ]
-
-    # RFCdata = [std, ff, qz100, qzm100, qz95, qzm95, qz90, qzm90]
-
-    # data1 = [rfc]
-
-    sim_type = ['$FA_{QZ}$','$FA_{QZ\_M}$']
-    for i in range(len(sim_type)):
-        rfc_m = []
-        rfc_s = []
-        fp_m = []
-        fp_s = []
-        ffc_m = []
-        ffc_s = []
-        for j in range(2+i,len(RFCdata),2):
-            fp_m.append(FPdata[j][0])
-            fp_s.append(FPdata[j][1])
-            rfc_m.append(RFCdata[j][0])
-            rfc_s.append(RFCdata[j][1])
-            ffc_m.append(FFCdata[j][0])
-            ffc_s.append(FFCdata[j][1])
-        data1.append((sim_type[i], tuple(rfc_m), tuple(rfc_s), tuple(fp_m), tuple(fp_s), tuple(ffc_m), tuple(ffc_s)))
-
-    x = np.arange(len(x_tick_labels))
-    width=0.4
-    multiplier=0
-
-    fig,ax=plt.subplots(figsize=(14,10),nrows=3, sharex=True)
-    labelsize = 14
-    textsize = 23
-    ticksize = 18
-    top_plt_pad = -125
-    bottom_plt_pad = 25
-    top_labelcolor = 'white'
-    bottom_labelcolor = 'black'
-    bar_zorder = 0
-    label_zorder = 15
-    b_label_rotation = 30
-
-    # offset = width * multiplier
-    # rect1 = ax[0].bar(x+offset, data1[0][1], width, align="center", yerr=data1[0][2], ecolor='orange', label=data1[0][0], edgecolor='black', color='blue', zorder=bar_zorder)
-    # ax[0].bar_label(rect1,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    # multiplier+=1
-
-    # offset = width * multiplier
-    # rect3 = ax[0].bar(x+offset, data1[1][1], width, align="center", yerr=data1[1][2], ecolor='orange', label=data1[1][0], edgecolor='black', color='green', zorder=bar_zorder)
-    # rect4 = ax[1].bar(x+offset, data1[1][3], width, align="center", yerr=data1[1][4], ecolor='orange', label=data1[1][0], edgecolor='black', hatch='xx', color='green', zorder=bar_zorder)
-    # ax[0].bar_label(rect3,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    # ax[1].bar_label(rect4,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    # multiplier+=1
-
-    offset = width * multiplier
-    rect5 = ax[0].bar(x+offset, data1[2][1], width, align="center", yerr=data1[2][2], ecolor='orange', label=data1[2][0], edgecolor='black', color='red', zorder=bar_zorder)
-    line1 = ax[0].axhline(data1[0][1][0], linestyle='dashed', color='blue', linewidth=2)
-    rect6 = ax[1].bar(x+offset, data1[2][3], width, align="center", yerr=data1[2][4], ecolor='orange', label=data1[2][0], edgecolor='black', hatch='..', color='red', zorder=bar_zorder)
-    rect7 = ax[2].bar(x+offset, data1[2][5], width, align="center", yerr=data1[2][6], ecolor='orange', label=data1[2][0], edgecolor='black', hatch='xx', color='red', zorder=bar_zorder)
-    line2 = ax[2].axhline(data1[0][1][0], linestyle='dashed', color='blue', linewidth=2)
-    # ax[0].bar_label(rect5,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    # ax[1].bar_label(rect6,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    # ax[2].bar_label(rect7,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect8 = ax[0].bar(x+offset, data1[3][1], width, align="center", yerr=data1[3][2], ecolor='orange', label=data1[3][0], edgecolor='black', color='purple', zorder=bar_zorder)
-    line3 = ax[0].axhline(data1[1][1][0], linestyle='dashed', color='green', linewidth=2)
-    rect9 = ax[1].bar(x+offset, data1[3][3], width, align="center", yerr=data1[3][4], ecolor='orange', label=data1[3][0], edgecolor='black', hatch='..', color='purple', zorder=bar_zorder)
-    rect10 = ax[2].bar(x+offset, data1[3][5], width, align="center", yerr=data1[3][6], ecolor='orange', label=data1[3][0], edgecolor='black', hatch='xx', color='purple', zorder=bar_zorder)
-    line4 = ax[2].axhline(data1[1][1][0], linestyle='dashed', color='green', linewidth=2)
-    # ax[0].bar_label(rect8,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    # ax[1].bar_label(rect9,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    # ax[2].bar_label(rect10,padding=bottom_plt_pad, fontsize=labelsize, color=bottom_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-    
-    # ax[0].legend(loc='lower left', ncols=2, fontsize=textsize, bbox_to_anchor=(0, -0.1), zorder = 20)
-
-    # First get the handles and labels from the axes
-    # handles1, labels1 = ax[0].get_legend_handles_labels()
-    # handles2, labels2 = ax[1].get_legend_handles_labels()
-    # handles3, labels3 = ax[2].get_legend_handles_labels()
-    # plt.legend(handles1, labels1, loc='lower left', ncol=2, fontsize=textsize)
-
-    # ax[0].set_ylim(0,maxRealFood)
-    ax[0].set_ylabel('Real Resources\n Collected', fontsize=textsize, labelpad=20)
-    ax[1].set_ylabel('False Positives', fontsize=textsize, labelpad=20)
-    ax[2].set_ylabel('Fake Resources\n Collected', fontsize=textsize, labelpad=20)
-
-    ax[1].set_ylim(0,90)
-
-    ax[0].tick_params(axis='both',labelsize=ticksize)
-    ax[1].tick_params(axis='both',labelsize=ticksize)
-    ax[2].tick_params(axis='both',labelsize=ticksize)
-    ax[2].tick_params(axis='x', rotation=b_label_rotation)
-
-    ax[2].set_xticks(x+width/2, x_tick_labels, fontsize=ticksize)
-    ax[2].xaxis.tick_bottom()
-    ax[2].set_xlabel('Fake Food Detection Accuracy', fontsize=textsize)
-
-
-    fig.tight_layout()
-    fig.subplots_adjust(hspace=0.1)
-
-    plt.savefig(f'{rdpath}Experiment_3.png')
-
-def PlotPheromoneExperiment_v1(flist, maxFakeFood):
-    
-    FPlist = []
-    for filename in flist:
-        Read(filename)
-        FPlist.append(np.array(FAKE_PTRAILS_CREATED).astype(float))
-    
-    FPdata = []
-    for f in FPlist:
-        FPdata.append((round(np.mean(f),1),np.std(f)))
-        print(f'{round(np.mean(f),1)} +- {np.std(f)}')
-
-    x_tick_labels = ['Standard', 'High']
-
-    data = [
-        
-    ]
-
-    # generate a boxplot using FPlist
-    bp1 = plt.boxplot(FPlist, vert=1)
-    ax = plt.gca()
-    ax.set_ylabel('Number of Pheromone Trails Created')
-    plt.xticks([1,2], x_tick_labels)
-    plt.ylim(0,maxFakeFood)
-    plt.savefig("PheromoneExperiment1_boxplot.png")
-    plt.close()
-
-def PlotArenaExperiment_v1(flist, rdpath, maxRealFood, maxFakeFood):
-
-    RFClist = []
-    FFClist = []
-    for filename in flist:
-        Read(filename)
-        RFClist.append(np.array(REAL_FOOD_COLLECTED).astype(float))
-        FFClist.append(np.array(FAKE_FOOD_COLLECTED).astype(float))
-    
-    RFCdata = []
-    for r in RFClist:
-        RFCdata.append((round(np.mean(r),1),np.std(r)))
-        print(f'{round(np.mean(r),1)} +- {np.std(r)}')
-    FFCdata = []
-    for f in FFClist:
-        FFCdata.append((round(np.mean(f),1),np.std(f)))
-        print(f'{round(np.mean(f),1)} +- {np.std(f)}')
-
-    x_tick_labels = ['6x6','7x7','8x8','9x9','10x10']
-
-    data = [
-        ('FA$_{R}$',    (RFCdata[0][0], RFCdata[1][0], RFCdata[2][0], RFCdata[3][0], RFCdata[4][0]),    # real food means
-                        (RFCdata[0][1], RFCdata[1][1], RFCdata[2][1], RFCdata[3][1], RFCdata[4][1])),   # real food stdev
-
-        ('FA$_{F}$',    (FFCdata[0][0], FFCdata[1][0], FFCdata[2][0], FFCdata[3][0], FFCdata[4][0]),    # fake food means
-                        (FFCdata[0][1], FFCdata[1][1], FFCdata[2][1], FFCdata[3][1], FFCdata[4][1])),   # fake food stdev
-    ]
-
-    x = np.arange(len(x_tick_labels))
-    width=0.23
-    multiplier=0
-
-    labelsize = 14
-    textsize = 23
-    top_plt_pad = -125
-    bottom_plt_pad = -25
-    top_labelcolor = 'white'
-    bottom_labelcolor = 'black'
-    bar_zorder = 0
-    label_zorder = 15
-    b_label_rotation = 30
-
-    fig, ax = plt.subplots()
-
-    offset = width * multiplier
-    rect1 = ax.bar(x+offset, data[0][1], width, align="center", yerr=data[0][2], ecolor='orange', label=data[0][0], edgecolor='black', color='blue', zorder=bar_zorder)
-    ax.bar_label(rect1,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-
-    offset = width * multiplier
-    rect2 = ax.bar(x+offset, data[1][1], width, align="center", yerr=data[1][2], ecolor='orange', label=data[1][0], edgecolor='black', hatch='xx', color='blue', zorder=bar_zorder)
-    ax.bar_label(rect2,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
-    multiplier+=1
-    
-    plt.legend(loc='upper left', ncol=2, fontsize=textsize)
-
-    ax.set_ylabel('Resources Collected', fontsize=textsize)
-    ax.set_xlabel('Arena Size', fontsize=textsize)
-
-    fig.tight_layout()
-    fig.subplots_adjust(hspace=0)
-
-    plt.savefig(f'{rdpath}/ArenaSize_Exp1.png')
-
-def InitialExperiment():
-    run_count = 50
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 1000
-
-    # Random Distribution Settings
-    XML.NUM_RF = 128
-    num_ff = [64,96,128,160,192]
-    XML.NUM_FF = 128
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 2
-    num_fcl = [(1,8,8),(2,8,8), (3,8,8)]
-    XML.NUM_FCL = 2
-    # Powerlaw Distribution Settings
-    XML.NUM_PLAW_RF = 128
-    num_plaw_ff = [64,96,128,160,192]
-    XML.NUM_PLAW_FF = 128
-
-    for i in reversed(range(3)): # start with powerlaw
-        # Go through all distribution methods
-        XML.setDistribution(i)
-        print(f'Main Experiment, {run_count} iterations without Fake Food, {run_count} with Fake Food.\n')
-        dmode = ""
-        if i == 0:
-            dmode = "Random"
-            # Random
-            for j in num_ff:
-            
-                XML.NUM_FF = j
-
-                # Without Fake Food
-                XML.USE_FF_DOS = "false"
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food: 0\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # With Fake Food
-                XML.USE_FF_DOS = "true"
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food: {XML.NUM_FF}\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-        elif i == 1:
-            dmode = "Cluster"
-            # Cluster
-            for j in num_fcl:
-                XML.NUM_FCL = j[0]
-                XML.FCL_X = j[1]
-                XML.FCL_Y = j[2]
-
-                # Without Fake Food
-                XML.USE_FF_DOS = "false"
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}({XML.RCL_X}x{XML.RCL_Y}), Num Fake Food Clusters: 0\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # With Fake Food
-                XML.USE_FF_DOS = "true"
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}({XML.RCL_X}x{XML.RCL_Y}), Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-
-        elif i == 2:
-            dmode = "PowerLaw"
-            # PowerLaw
-            for j in num_plaw_ff:
-                XML.NUM_PLAW_FF = j
-
-                # Without Fake Food
-                XML.USE_FF_DOS = "false"
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food: 0\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # With Fake Food
-                XML.USE_FF_DOS = "true"
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_PLAW_RF}, Num Fake Food: {XML.NUM_PLAW_FF}\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-        else:
-            raise Exception("In 'MainExperiment()': Invalid distribution mode...\n\n")
-
-def QZoneExperiment():
-    run_count = 30
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 1000
-    XML.Densify(True)
-    XML.USE_FF_DOS = "true"
-
-    # Random Distribution Settings
-    XML.NUM_RF = 108
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 1
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    num_fcl =   [(1,XML.FCL_X,XML.FCL_Y),(2,XML.FCL_X,XML.FCL_Y), (3,XML.FCL_X,XML.FCL_Y), 
-                (4,XML.FCL_X,XML.FCL_Y), (5,XML.FCL_X,XML.FCL_Y)]
-    
-    # Powerlaw Distribution Settings
-    XML.NUM_PLAW_RF = 108
-
-    for i in reversed(range(3)): # start with powerlaw
-        # Go through all distribution methods (Real Food Only)
-        XML.setDistribution(i)
-        XML.FFD = 1
-        print(f'QZone Experiment, {run_count} iterations Standard Density, {run_count} Increased Density\n')
-        dmode = ""
-        if i == 0:
-            dmode = "Random Real Food"
-            # Random
-            for j in num_fcl:
-                XML.NUM_FCL = j[0]
-                XML.FCL_X = j[1]
-                XML.FCL_Y = j[2]
-
-                # Standard Density
-                XML.UseQZone(False)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Increased Density
-                XML.UseQZone(True)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-        elif i == 1:
-            dmode = "Cluster Real Food"
-            # Cluster
-            for j in num_fcl:
-                XML.NUM_FCL = j[0]
-                XML.FCL_X = j[1]
-                XML.FCL_Y = j[2]
-
-                # Standard Density
-                XML.UseQZone(False)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}({XML.RCL_X}x{XML.RCL_Y}), Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Increased Density
-                XML.UseQZone(True)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}({XML.RCL_X}x{XML.RCL_Y}), Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-
-        elif i == 2:
-            dmode = "PowerLaw Real Food"
-            # PowerLaw
-            for j in num_fcl:
-                XML.NUM_FCL = j[0]
-                XML.FCL_X = j[1]
-                XML.FCL_Y = j[2]
-
-                # Standard Density
-                XML.UseQZone(False)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_PLAW_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Increased Density
-                XML.UseQZone(True)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_PLAW_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-        else:
-            raise Exception("In 'MainExperiment()': Invalid distribution mode...\n\n")
-
-def DensityExperiment():
-    run_count = 30
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 1000
-    XML.USE_FF_DOS = "true"
-    XML.UseQZone(False)
-
-    # Random Distribution Settings
-    XML.NUM_RF = 108
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 1
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    num_fcl =   [(1,XML.FCL_X,XML.FCL_Y),(2,XML.FCL_X,XML.FCL_Y), (3,XML.FCL_X,XML.FCL_Y), 
-                (4,XML.FCL_X,XML.FCL_Y), (5,XML.FCL_X,XML.FCL_Y)]
-    
-    # Powerlaw Distribution Settings
-    XML.NUM_PLAW_RF = 108
-
-    for i in reversed(range(3)): # start with powerlaw
-        # Go through all distribution methods (Real Food Only)
-        XML.setDistribution(i)
-        XML.FFD = 1
-        print(f'Density Experiment, {run_count} iterations standard density, {run_count} iterations increased density\n')
-        dmode = ""
-        if i == 0:
-            dmode = "Random Real Food"
-            # Random
-            for j in num_fcl:
-                XML.NUM_FCL = j[0]
-                XML.FCL_X = j[1]
-                XML.FCL_Y = j[2]
-
-                # Standard Density
-                XML.Densify(False)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Increased Density
-                XML.Densify(True)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-        elif i == 1:
-            dmode = "Cluster Real Food"
-            # Cluster
-            for j in num_fcl:
-                XML.NUM_FCL = j[0]
-                XML.FCL_X = j[1]
-                XML.FCL_Y = j[2]
-
-                # Standard Density
-                XML.Densify(False)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}({XML.RCL_X}x{XML.RCL_Y}), Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Increased Density
-                XML.Densify(True)
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}({XML.RCL_X}x{XML.RCL_Y}), Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-
-        elif i == 2:
-            dmode = "PowerLaw Real Food"
-            # PowerLaw
-            for j in num_fcl:
-                XML.NUM_FCL = j[0]
-                XML.FCL_X = j[1]
-                XML.FCL_Y = j[2]
-
-                # Standard Density
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_PLAW_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Increased Density
-                XML.createXML()
-                for k in range(run_count):
-                    print(f'Distribution: {dmode}, Iteration: {k+1}, Num Real Food: {XML.NUM_PLAW_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-                # Plot results
-                Read(XML.fname_header+'DoSData.txt')
-                Plot2(XML.fname_header)
-        else:
-            raise Exception("In 'MainExperiment()': Invalid distribution mode...\n\n")
-
-def Experiment1():
-    run_count = 30
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 900
-    XML.Densify(True)  # Use standard density for fake food
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 1
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    num_fcl =   [(1,XML.FCL_X,XML.FCL_Y),(2,XML.FCL_X,XML.FCL_Y), (3,XML.FCL_X,XML.FCL_Y), 
-                (4,XML.FCL_X,XML.FCL_Y), (5,XML.FCL_X,XML.FCL_Y)]
-
-    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
-    FFmax = num_fcl[len(num_fcl)-1][0]*num_fcl[len(num_fcl)-1][1]*num_fcl[len(num_fcl)-1][2]
-
-    flist = []
-
-    # Standard CPFA
-    XML.UseFFDoS(False)
-    XML.UseQZone(False)
-    flist.append(XML.setFname()+"DoSData.txt")
-    XML.createXML()
-    for j in range(run_count):
-        print(f'Standard CPFA, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    
-    for j in num_fcl:
-        XML.NUM_FCL = j[0]
-        XML.FCL_X = j[1]
-        XML.FCL_Y = j[2]
-        
-        # w/ Fake Food
-        XML.UseFFDoS(True)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            print(f'CPFA w/ Fake Food, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ QZones no merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 0
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            print(f'CPFA w/ QZones (no merge), Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ QZones distance-based merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 1
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            print(f'CPFA w/ QZones (DB-Merge), Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    PlotExp1(flist, RFmax, FFmax)
-
-def Experiment1_v2(rc):
-    run_count = rc
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 900
-    XML.Densify(True)  # Use increased density for fake food
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=f'results_Exp1_{run_count}it/'
-
-    if (not CheckDirectoryExists(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
-    if (not CheckDirectoryEmpty(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
-        if (input() != 'y'):
-            print('Aborting...')
-            exit()
-        else:
-            ClearDirectory(XML.RD_PATH)
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 1
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    num_fcl =   [(1,XML.FCL_X,XML.FCL_Y),(2,XML.FCL_X,XML.FCL_Y), (3,XML.FCL_X,XML.FCL_Y), 
-                (4,XML.FCL_X,XML.FCL_Y), (5,XML.FCL_X,XML.FCL_Y)]
-
-    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
-    FFmax = num_fcl[len(num_fcl)-1][0]*num_fcl[len(num_fcl)-1][1]*num_fcl[len(num_fcl)-1][2]
-
-    flist = []
-
-    # Standard CPFA
-    XML.UseFFDoS(False)
-    XML.UseQZone(False)
-    flist.append(XML.setFname()+"DoSData.txt")
-    XML.createXML()
-    for j in range(run_count):
-        time.sleep(0.05)
-        print(f'Standard CPFA, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    
-    for j in num_fcl:
-
-        # pause for 5ms to check for termination command
-        time.sleep(0.05)
-
-        XML.NUM_FCL = j[0]
-        XML.FCL_X = j[1]
-        XML.FCL_Y = j[2]
-        
-        # w/ Fake Food
-        XML.UseFFDoS(True)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ Fake Food, Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ QZones no merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 0
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ QZones (no merge), Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ QZones distance-based merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 1
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ QZones (DB-Merge), Iteration: {k+1}, Num Real Food: {XML.NUM_RF}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    PlotExp1_v2(flist, XML.RD_PATH, RFmax, FFmax)
-    CheckForTerminatedSimulations(XML.RD_PATH)
-    # PlotExp1_merge_test(flist, RFmax, FFmax)
-
-def Experiment2_v1(rc):
-    run_count = rc
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.Densify(True)  # Use standard density for fake food
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=f'results_Exp2_{run_count}it/'
-
-    if (not CheckDirectoryExists(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
-    if (not CheckDirectoryEmpty(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
-        if (input() != 'y'):
-            print('Aborting...')
-            exit()
-        else:
-            ClearDirectory(XML.RD_PATH)
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 3
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
-    FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
-
-    # Vary sim time -> 10, 15, 20, 25, 30
-    t_list = [10*60, 15*60, 20*60, 25*60, 30*60]
-
-    flist = []
-
-    for t in t_list:
-        
-        time.sleep(0.05)
-        XML.MAX_SIM_TIME = t
-
-        # Standard CPFA
-        XML.UseFFDoS(False)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for j in range(run_count):
-            time.sleep(0.05)
-            print(f'Standard CPFA, Iteration: {j+1}, Num Real Food Clusters: {XML.NUM_RCL}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ Fake Food
-        XML.UseFFDoS(True)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ Fake Food, Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ QZones no merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 0
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ QZones (no merge), Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL}, Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ QZones distance-based merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 1
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ QZones (DB-Merge), Iteration: {k+1}, Num Real Food Clusters: {XML.NUM_RCL} Num Fake Food Clusters: {XML.NUM_FCL}({XML.FCL_X}{XML.FCL_Y})\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    CheckForTerminatedSimulations(XML.RD_PATH)
-    PlotExp2_v1(flist, XML.RD_PATH, RFmax, FFmax)
-
-def Experiment3_v1(rc):
-    run_count = rc
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 900
-    XML.Densify(True)  # Use increased density for fake food
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=f'results_Exp3_v3_{run_count}it/'
-
-    if (not CheckDirectoryExists(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
-    if (not CheckDirectoryEmpty(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
-        if (input() != 'y'):
-            print('Aborting...')
-            exit()
-        else:
-            ClearDirectory(XML.RD_PATH)
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 3
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
-    FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
-
-    flist = []
-
-    # FF_acc_list = [1.0,0.8,0.6,0.4,0.2]
-    FF_acc_list = [1.0,0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.2,0.15,0.1,0.05]
-
-    # Standard CPFA
-    XML.UseFFDoS(False)
-    XML.UseQZone(False)
-    flist.append(XML.setFname()+"DoSData.txt")
-    XML.createXML()
-    for j in range(run_count):
-        time.sleep(0.05)
-        print(f'Standard CPFA, Iteration: {j+1}/{run_count}\n')
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    
-    for j in FF_acc_list:
-
-        # pause for 5ms to check for termination command
-        time.sleep(0.05)
-        
-        XML.FF_ACC = j
-
-        # w/ Fake Food
-        XML.UseFFDoS(True)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ Fake Food, Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ QZones no merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 0
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ QZones (no merge), Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-        # w/ QZones distance-based merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 1
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for k in range(run_count):
-            time.sleep(0.05)
-            print(f'CPFA w/ QZones (DB-Merge), Iteration: {k+1}/{run_count}, Fake Food Detection Accuracy: {j*100}%\n')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    #PlotExp3_v1(flist, XML.RD_PATH, RFmax, FFmax)
-    CheckForTerminatedSimulations(XML.RD_PATH)
-    # PlotExp1_merge_test(flist, RFmax, FFmax)
-
-def rePlotDensityExperiment():
-    run_count = 30
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 1000
-    XML.USE_FF_DOS = "true"
-    XML.UseQZone(False)
-
-    # Random Distribution Settings
-    XML.NUM_RF = 108
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-    
-    XML.NUM_FCL = 1
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    num_fcl =   [(1,XML.FCL_X,XML.FCL_Y),(2,XML.FCL_X,XML.FCL_Y), (3,XML.FCL_X,XML.FCL_Y), 
-                (4,XML.FCL_X,XML.FCL_Y), (5,XML.FCL_X,XML.FCL_Y)]
-    # Powerlaw Distribution Settings
-    XML.NUM_PLAW_RF = 108
-
-    for i in reversed(range(3)): # start with powerlaw
-        # Go through all distribution methods
-        XML.setDistribution(i)
-        XML.FFD = 1
-
-        for j in num_fcl:
-            XML.NUM_FCL = j[0]
-            XML.FCL_X = j[1]
-            XML.FCL_Y = j[2]
-
-            XML.setFname()
-
-            # Plot results
-            Read(XML.fname_header+'DoSData.txt')
-            Plot2(XML.fname_header)
-            VaryFFPlot2(XML.fname_header, j[0])
-
-def rePlotExperiment1_v2(rc, rd_path):
-    run_count = rc
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 900
-    XML.Densify(True)
-    XML.setBotCount(16)
-    XML.setDistribution(1)
-    XML.RD_PATH = rd_path
-    XML.UseFFOnly(False)
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-    
-    XML.NUM_FCL = 1
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    num_fcl =   [(1,XML.FCL_X,XML.FCL_Y),(2,XML.FCL_X,XML.FCL_Y), (3,XML.FCL_X,XML.FCL_Y), 
-                (4,XML.FCL_X,XML.FCL_Y), (5,XML.FCL_X,XML.FCL_Y)]
-
-    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
-    FFmax = num_fcl[len(num_fcl)-1][0]*num_fcl[len(num_fcl)-1][1]*num_fcl[len(num_fcl)-1][2]
-
-    flist = []
-
-    # Standard CPFA
-    XML.UseFFDoS(False)
-    XML.UseQZone(False)
-    flist.append(XML.setFname()+"DoSData.txt")
-
-    for j in num_fcl:
-        XML.NUM_FCL = j[0]
-        XML.FCL_X = j[1]
-        XML.FCL_Y = j[2]
-        
-        # w/ Fake Food
-        XML.UseFFDoS(True)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        
-        # w/ QZones no merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 0
-        flist.append(XML.setFname()+"DoSData.txt")
-
-        # w/ QZones distance-based merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 1
-        flist.append(XML.setFname()+"DoSData.txt")
-        
-    # PlotExp1(flist, RFmax, FFmax)
-    PlotExp1_v2(flist, XML.RD_PATH, RFmax, FFmax)
-    PrintExp1_data(flist, XML.RD_PATH, RFmax, FFmax)
-
-def rePlotExperiment2_v1(rc, rd_path):
-    run_count = rc
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.Densify(True)  # Use standard density for fake food
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH = rd_path
-    XML.UseFFOnly(False)
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 3
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
-    FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
-
-    # Vary sim time -> 10, 15, 20, 25, 30
-    time = [10*60, 15*60, 20*60, 25*60, 30*60]
-
-    flist = []
-
-    for t in time:
-        XML.MAX_SIM_TIME = t
-
-        # Standard CPFA
-        XML.UseFFDoS(False)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        
-        # w/ Fake Food
-        XML.UseFFDoS(True)
-        XML.UseQZone(False)
-        flist.append(XML.setFname()+"DoSData.txt")
-        
-        # w/ QZones no merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 0
-        flist.append(XML.setFname()+"DoSData.txt")
-
-        # w/ QZones distance-based merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 1
-        flist.append(XML.setFname()+"DoSData.txt")
-
-    PlotExp2_v1(flist, XML.RD_PATH, RFmax, FFmax)
-    PrintExp2_data(flist, XML.RD_PATH, RFmax, FFmax)
-
-def rePlotExperiment3_v2(rc, rd_path):
-    run_count = rc
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 900
-    XML.Densify(True)  # Use increased density for fake food
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=rd_path
-
-    # Cluster Distribution Settings
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 3
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
-    FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
-
-    flist = []
-
-    # FF_acc_list = [1.0,0.8,0.6,0.4,0.2]
-    FF_acc_list = [1.0,0.95,0.9,0.85,0.8,0.75,0.7,0.65,0.6,0.55,0.5,0.45,0.4,0.35,0.3,0.25,0.2,0.15,0.1,0.05]
-
-    # Standard CPFA
-    XML.UseFFDoS(False)
-    XML.UseQZone(False)
-    flist.append(XML.setFname()+"DoSData.txt")
-
-    # w/ Fake Food
-    XML.UseFFDoS(True)
-    XML.UseQZone(False)
-    flist.append(XML.setFname()+"DoSData.txt")
-    
-    for j in FF_acc_list:
-        XML.FF_ACC = j
-        
-        # w/ QZones no merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 0
-        flist.append(XML.setFname()+"DoSData.txt")
-
-        # w/ QZones distance-based merging
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.MM = 1
-        flist.append(XML.setFname()+"DoSData.txt")
-        
-    # PlotExp1(flist, RFmax, FFmax)
-    PlotExp3_v3(flist, XML.RD_PATH, RFmax, FFmax, FF_acc_list)
-    # PrintExp1_data(flist, XML.RD_PATH, RFmax, FFmax)
-
-def PheromoneExperiment_v1(rc):
-    run_count = rc
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 900
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=f'results_PhermoneExp1/'
-    XML.UseFFOnly(True)
-    XML.UseQZone(False)
-
-    if (not CheckDirectoryExists(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
-    if (not CheckDirectoryEmpty(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
-        if (input() != 'y'):
-            print('Aborting...')
-            exit()
-        else:
-            ClearDirectory(XML.RD_PATH)
-
-    # Cluster Distribution Settings
-    XML.NUM_FCL = 3
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
-
-    flist = []
-
-    XML.Densify(False)
-    flist.append(XML.setFname()+"DoSData.txt")
-    XML.createXML()
-    for i in range(run_count):
-        print(f'Running simulation {i+1}/{run_count}, Density: Standard')
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    XML.Densify(True)
-    flist.append(XML.setFname()+"DoSData.txt")
-    XML.createXML()
-    for i in range(run_count):
-        print(f'Running simulation {i+1}/{run_count}, Density: Increased')
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-    
-def ArenaSizeExperiment_v1(rc):
-    run_count = rc
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 900
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=f'results_ArenaSize_Exp1/'
-    XML.UseFFOnly(False)
-    XML.UseQZone(False)
-    XML.UseFFDoS(True)
-
-    if (not CheckDirectoryExists(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
-    if (not CheckDirectoryEmpty(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
-        if (input() != 'y'):
-            print('Aborting...')
-            exit()
-        else:
-            ClearDirectory(XML.RD_PATH)
-
-    # Cluster Distribution Settings
-    XML.NUM_FCL = 3
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    RFmax = XML.NUM_RCL*XML.RCL_X*XML.RCL_Y
-    FFmax = XML.NUM_FCL*XML.FCL_X*XML.FCL_Y
-
-    arenaSize = [(6,6,1), (7,7,1), (8,8,1), (9,9,1), (10,10,1)]
-
-    flist = []
-
-    for a in arenaSize:
-        XML.ARENA_SIZE = a
-        flist.append(XML.setFname()+"DoSData.txt")
-        XML.createXML()
-        for i in range(run_count):
-            print(f'Running simulation {i+1}/{run_count}, Arena Size: {a}')
-            os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-    
-    CheckForTerminatedSimulations(XML.RD_PATH)
-    PlotArenaExperiment_v1(flist, XML.RD_PATH, RFmax, FFmax)
-
-def testVisual():
-
-    XML = config.C_XML_CONFIG(1)
-
-    XML.VISUAL = True
-    XML.MAX_SIM_TIME = 900
-    XML.Densify(True)
-    XML.setBotCount(16)
-    XML.UseAltDistribution(False)
-    XML.setDistribution(1)
-    XML.MM = 1
-
-    for i in range (3):
-        # Cluster Distribution Settings
-        XML.NUM_RCL = 3
-        XML.RCL_X = 6
-        XML.RCL_Y = 6
-        
-        XML.NUM_FCL = 5
-        XML.FCL_X = 6
-        XML.FCL_Y = 6
-
-        XML.UseFFDoS(True)
-        XML.UseQZone(True)
-        XML.createXML()
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-def testExperiment1Visual():
-    run_count = 1
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = True
-    XML.MAX_SIM_TIME = 1000
-    XML.Densify(True)
-
-    XML.NUM_RF = 108
-    XML.NUM_RCL = 3
-    XML.RCL_X = 6
-    XML.RCL_Y = 6
-
-    XML.NUM_FCL = 1
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    num_fcl =   [(1,XML.FCL_X,XML.FCL_Y),(2,XML.FCL_X,XML.FCL_Y), (3,XML.FCL_X,XML.FCL_Y), 
-                (4,XML.FCL_X,XML.FCL_Y), (5,XML.FCL_X,XML.FCL_Y)]
-    
-    # Powerlaw Distribution Settings
-    XML.NUM_PLAW_RF = 108
-
-    for i in reversed(range(3)): # start with powerlaw
-        # Go through all distribution methods (Real Food Only)
-        XML.setDistribution(i)
-        XML.FFD = 1
-
-        
-        for j in range(3):
-
-            if j == 0:  # Standard CPFA
-                XML.UseFFDoS(False)
-                XML.UseQZone(False)
-                XML.createXML()
-                for k in range(run_count):
-                    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-            if j == 1: # w/ Fake Food
-                XML.UseFFDoS(True)
-                XML.UseQZone(False)
-                for k in num_fcl:
-                    XML.NUM_FCL = k[0]
-                    XML.FCL_X = k[1]
-                    XML.FCL_Y = k[2]
-                    XML.createXML()
-
-                    for l in range(run_count):
-                        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-            if j == 2: # w/ QZones
-                XML.UseFFDoS(True)
-                XML.UseQZone(True)
-                for k in num_fcl:
-                    XML.NUM_FCL = k[0]
-                    XML.FCL_X = k[1]
-                    XML.FCL_Y = k[2]
-                    XML.createXML()
-
-                    for l in range(run_count):
-                        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-def quickTest():
-    
-    run_count = 1
-
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = True
-    XML.Densify(False)
-    XML.UseQZone(False)
-    XML.UseFFDoS(False)
-    XML.MAX_SIM_TIME = 1500
-    XML.setDistribution(1)
-    XML.DRAW_TRAILS = 1
-    XML.RANDOM_SEED = 47972
-
-    # XML.RANDOM_SEED=120678
-    # XML.RANDOM_SEED=743490
-    # XML.RANDOM_SEED=301421
-
-    XML.createXML()
-    os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
-
-def terminationTest(rc):
-    run_count = rc
-    XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.MAX_SIM_TIME = 1500
-    XML.setDistribution(1)
-    XML.DRAW_TRAILS = 0
-    XML.RANDOM_SEED = 120678
-    XML.createXML()
-
-    for i in range(run_count):
-        time.sleep(0.25)
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-    t_count = 0
-    terminate = False
-    with open(XML.fname_header+"TerminatedCount.txt") as f:
-        for line in f.readlines():
-            data = line.strip().split(',')
-            for d in data:
-                if d == 1:
-                    t_count += 1
-                    terminate = True
-                    break
-            if terminate: 
-                break
-
-
-    
-    print(f'There were {t_count} terminations in total.\n')
-
-def Experiment3TimeTest():
-    XML = config.C_XML_CONFIG(1)
-
-    XML.VISUAL = True
-    XML.Densify(True)
-    XML.setBotCount(16)
-    XML.setDistribution(1)
-    XML.UseAltDistribution(True)
-    XML.ALT_FCL_W = 64
-    XML.ALT_FCL_L = 8
-    XML.UseFFDoS(True)
-    XML.UseQZone(True)
-    sim_time_list = (6*60,8*60,10*60,12*60)
-
-    # Without merging
-    XML.MM = 0
-    for time in sim_time_list:
-        XML.MAX_SIM_TIME = time
-        XML.createXML()
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-    
-    # With merging
-    XML.MM = 1
-    for time in sim_time_list:
-        XML.MAX_SIM_TIME = time
-        XML.createXML()
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-
-def CheckDirectoryExists(path):
+        TFClist.append(np.array(TOTAL_FOOD_COLLECTED).astype(float))
+        Caplist.append(np.array(ROBOTS_CAPTURED).astype(float))
+
+    TFCdata = []
+    for r in TFClist:
+        TFCdata.append((round(np.mean(r),1),np.std(r)))
+    Capdata = []
+    for f in Caplist:
+        Capdata.append((round(np.mean(f),1),np.std(f)))
+
+    return TFCdata 
+
+def DirectoryExists(path):
     if not os.path.exists(path):
         os.makedirs(path)
         return False
     return True
 
-def CheckDirectoryEmpty(path):
+def DirectoryEmpty(path):
     # Check if the directory is empty and return true if so, else false
     if len(os.listdir(path)) == 0:
         return True
@@ -2019,133 +75,125 @@ def ClearDirectory(path):
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
 
-def CheckForTerminatedSimulations(path):
-    # Read all files in path that end in "TerminatedCount.txt" for each run, check if any data contains a 0
-    # If so, return True, else return False
-    terminated_count = 0
-    tfile_list = []
-    for file in os.listdir(path):
-        if file.endswith("TerminatedCount.txt"):
-            with open(os.path.join(path, file)) as f:
-                for line in f.readlines():
-                    data = line.strip().split(',')
-                    for d in data:
-                        if d == '0':
-                            terminated_count += 1
-                            tfile_list.append(file)
-                            break
-    if terminated_count == 0:
-        # remove all files that end with "TerminatedCount.txt"
-        for file in os.listdir(path):
-            if file.endswith("TerminatedCount.txt"):
-                os.remove(os.path.join(path, file))
-        return False
-    else:
-        print(f'Results are invalid. Termination Count: {terminated_count}\n')
-        # print the list of filenames that resulted in 1 or more terminations
-        for file in tfile_list:
-            print(f'{file}\n')
-        return True
+######### TESTING #########
 
-def reformatResults(rd):
-    alt = False
-    # go through all files in rd
-    for file in os.listdir(rd):
-        if file.endswith("DoSData.txt"):
-            alt = False
-            if file.endswith("ffacc100_DoSData.txt"):
-                # print('IN FILE 100 acc')
-                alt = True
-            # read in the data
-            with open(os.path.join(rd, file)) as f:
-                data = f.readlines()
-            # parse the data
-            for i in range(len(data)):
-                data[i] = data[i].strip().split(',')
-            # reformat data
-            for line in data:
-                if line[0] == 'Simulation Time (seconds)':
-                    continue
-                junk = line[len(line)-1]
-                new_junk = junk
-                if alt:
-                    if len(junk) == 3:
-                        new_junk = f'{junk[0]}{junk[1]},{junk[2]}'
-                    elif len(junk) == 2:
-                        new_junk = f'{junk[0]},{junk[1]}'
-                    else:
-                        print(f'Error: {junk} in {file}')
-                else:
-                    if len(junk) == 4:
-                        new_junk = f'{junk[0]}{junk[1]},{junk[2]}{junk[3]}'
-                    elif len(junk) == 3:
-                        new_junk = f'{junk[0]},{junk[1]}{junk[2]}'
-                    elif len(junk) == 2:
-                        new_junk = f'{junk[0]},{junk[1]}'
-                    else:
-                        print(f'Error: {junk} in {file}')
-                        continue
-                line[len(line)-1] = new_junk
-            # write the reformatted data
-            with open(os.path.join(rd, file), 'w') as f:
-                for line in data:
-                    f.write(','.join(line) + '\n')
-
-def QZoneCountExperimentTest():
+def quickTest():
+    
     run_count = 1
 
     XML = config.C_XML_CONFIG(run_count)
     XML.VISUAL = True
-    XML.MAX_SIM_TIME = 900
-    XML.Densify(True)  # Use increased density for fake food
-    XML.setBotCount(16)
-    XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=f'results_qztest_{run_count}it/'
-    XML.RANDOM_SEED = 194114
+    XML.Densify(False)
+    XML.UseQZone(False)
+    XML.UseFFDoS(False)
+    XML.UseMisleadingTrailAttack(True)
+    XML.MAX_SIM_TIME = 1500
+    XML.setDistribution(1)
+    XML.DRAW_TRAILS = 1
+    # XML.NUM_DETRACTORS = 4
+    XML.NUM_ATK_NESTS = 4
 
-    if (not CheckDirectoryExists(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
-    if (not CheckDirectoryEmpty(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
-        if (input() != 'y'):
-            print('Aborting...')
-            exit()
-        else:
-            ClearDirectory(XML.RD_PATH)
+    XML.setDetractorPercentage(0)
+    # XML.RANDOM_SEED = 283291
+    XML.RD_PATH=f'results/'
+    XML.setFname()
+    DirectoryExists(XML.RD_PATH)
+    # if not DirectoryEmpty(XML.RD_PATH):
+    #     ClearDirectory(XML.RD_PATH)
+
+    # XML.RANDOM_SEED=120678
+    # XML.RANDOM_SEED=743490
+    # XML.RANDOM_SEED=301421
 
     # Cluster Distribution Settings
-    XML.NUM_RCL = 3
+    XML.NUM_RCL = 8
     XML.RCL_X = 6
     XML.RCL_Y = 6
 
-    XML.NUM_FCL = 10
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
-
-    XML.UseFFDoS(True)
-    XML.UseQZone(True)
-    XML.MM=0
     XML.createXML()
-    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-    XML.MM=1
-    XML.createXML()
-    os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+    # fname = XML.setFname()+"AttackData.txt"
 
-def QZoneCountExperiment(rc):
+    for i in range(run_count):
+        time.sleep(0.05)
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+        # check for terminated simulations
+        t_count = 0
+        terminate = False
+        with open(XML.fname_header+"TerminatedCount.txt") as f:
+            for line in f.readlines():
+                data = line.strip().split(',')
+                for d in data:
+                    if d == 1:
+                        t_count += 1
+                        terminate = True
+                        break
+                if terminate: 
+                    break
+
+    if terminate:
+        print (f'There were {t_count} terminations in total.\n')
+
+def visualTest():
+        
+        run_count = 1
+    
+        XML = config.C_XML_CONFIG(run_count)
+        XML.VISUAL = True
+        XML.Densify(False)
+        XML.UseQZone(False)
+        XML.UseFFDoS(False)
+        XML.UseMisleadingTrailAttack(True)
+        XML.MAX_SIM_TIME = 1500
+        XML.setDistribution(1)
+        XML.DRAW_TRAILS = 1
+        XML.NUM_DETRACTORS_NEST1 = 4
+        XML.NUM_DETRACTORS_NEST2 = 4
+        XML.NUM_DETRACTORS_NEST3 = 4
+        XML.NUM_DETRACTORS_NEST4 = 4
+        # XML.RANDOM_SEED = 47972
+        XML.RD_PATH=f'results/visual_test/'
+        XML.setFname()
+        DirectoryExists(XML.RD_PATH)
+        # if not DirectoryEmpty(XML.RD_PATH):
+        #     ClearDirectory(XML.RD_PATH)
+    
+        # XML.RANDOM_SEED=120678
+        # XML.RANDOM_SEED=743490
+        # XML.RANDOM_SEED=301421
+        
+        XML.NUM_ATK_NESTS = 1
+        XML.createXML()
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+        XML.NUM_ATK_NESTS = 2
+        XML.createXML()
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+        XML.NUM_ATK_NESTS = 3
+        XML.createXML()
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+        XML.NUM_ATK_NESTS = 4
+        XML.createXML()
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+def PreExperiment(rc):
     run_count = rc
 
     XML = config.C_XML_CONFIG(run_count)
     XML.VISUAL = False
     XML.MAX_SIM_TIME = 900
-    XML.Densify(True)  # Use increased density for fake food
-    XML.setBotCount(16)
+    XML.Densify(False)  # Use increased density for fake food
+    XML.setBotCount(24)
     XML.setDistribution(1) # Cluster Distribution Only
-    XML.RD_PATH=f'results_qztest_{run_count}it/'
-    # XML.RANDOM_SEED = 194114
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp1_{run_count}it/'
 
-    if (not CheckDirectoryExists(XML.RD_PATH)):
+    if (not DirectoryExists(XML.RD_PATH)):
         print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
-    if (not CheckDirectoryEmpty(XML.RD_PATH)):
+    if (not DirectoryEmpty(XML.RD_PATH)):
         print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
         if (input() != 'y'):
             print('Aborting...')
@@ -2158,98 +206,966 @@ def QZoneCountExperiment(rc):
     XML.RCL_X = 6
     XML.RCL_Y = 6
 
-    XML.NUM_FCL = 10
-    XML.FCL_X = 6
-    XML.FCL_Y = 6
+    flist = []
 
-    XML.UseFFDoS(True)
-    XML.UseQZone(True)
+    # Standard CPFA
+    XML.UseMisleadingTrailAttack(False) # Begin with normal runs
+    XML.NUM_DETRACTORS = 0
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Standard CPFA, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Detractors: {XML.NUM_DETRACTORS}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
 
-    for i in range(run_count):
-        XML.MM=0
+    # w/ Misleading trail attack
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 1
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Standard CPFA, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Detractors: {XML.NUM_DETRACTORS}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    print(GetFoodCollected(flist, XML.RD_PATH))
+
+    # PlotExp1(flist, XML.RD_PATH)
+    # CheckForTerminatedSimulations(XML.RD_PATH)
+    # PlotExp1_merge_test(flist, RFmax, FFmax)
+
+######### EXPERIMENT 1 #########
+
+def Experiment1(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 1800
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    XML.setBotCount(32)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp1_{run_count}it/'
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    percent_list = [10, 20, 30, 40, 50]     # Percentage of detractors
+
+    flist = []
+
+    XML.setDetractorPercentage(0) # 0% detractors (to get baseline CPFA data)
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Standard CPFA: Iteration: {j+1}/{run_count}, Percentage Detractors: {0}%\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    for p in percent_list:
+        XML.setDetractorPercentage(p)
+        flist.append(XML.setFname()+"AttackData.txt")
         XML.createXML()
-        print(f'Running QZone NO MERGE {i+1}/{run_count}...')
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
-    for i in range(run_count):
-        XML.MM=1
-        XML.createXML()
-        print(f'Running QZone DB-MERGE {i+1}/{run_count}...')
-        os.system("argos3 -c ./experiments/CPFA_DoS_Simulation.xml")
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Attack: Iteration: {j+1}/{run_count}, Percentage Detractors: {p}%\n')
+            os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
 
-    CheckForTerminatedSimulations(XML.RD_PATH)
+    PlotExp1(flist, XML.RD_PATH)
 
-def checkFormat(rd):
-    # check if the format is correct
-    alt = False
-    # go through all files in rd
-    for file in os.listdir(rd):
-        if file.endswith("DoSData.txt"):
-            alt = False
-            if file.endswith("ffacc100_DoSData.txt"):
-                # print('IN FILE 100 acc')
-                alt = True
-            # read in the data
-            with open(os.path.join(rd, file)) as f:
-                data = f.readlines()
-            # parse the data
-            for i in range(len(data)):
-                data[i] = data[i].strip().split(',')
-            for line in data:
-                if line[0] == 'Simulation Time (seconds)':
-                    continue
-                if len(line) != 10:
-                    print('Error: ' + file + ' has ' + str(len(data)) + ' lines instead of 10')
-                if int(line[9]) > 108:
-                    print('Error: ' + file + ' has ' + str(int(line[9])) + ' packets instead of <= 108')
+def Experiment1_replot(rc):
+    run_count = rc
 
-def getMeanStd(rd):
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 1800
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    XML.setBotCount(32)
+    XML.setDetractorPercentage(0) # 0% detractors (to get baseline CPFA data)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp1_{run_count}it/'
 
-    noMerge = []
-    dbMerge = []
-    # go through all files in rd
-    for file in os.listdir(rd):
-        if file.startswith("CPFA_st-3"):
-            Read(rd+file)
-            noMerge=np.array(QZONES_CREATED).astype(float)
-            print(noMerge)
-        elif file.startswith("CPFA_st-2"):
-            Read(rd+file)
-            dbMerge=np.array(QZONES_CREATED).astype(float)
-            print(dbMerge)
-    
-    # noMergeData = []
-    # for r in noMerge:
-    #     noMergeData.append((np.mean(r),np.std(r)))
-    # dbMergeData = []
-    # for f in dbMerge:
-    #     dbMergeData.append((np.mean(r),np.std(r)))
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
 
-    # get mean of noMerge and dbMerge with np
-    noMergeMean = np.mean(noMerge)
-    dbMergeMean = np.mean(dbMerge)
-    noMergeStd = np.std(noMerge)
-    dbMergeStd = np.std(dbMerge)
-    
-    # print them
-    print('noMergeMean: ' + str(noMergeMean))
-    print('noMergeStd: ' + str(noMergeStd))
-    print('dbMergeMean: ' + str(dbMergeMean))
-    print('dbMergeStd: ' + str(dbMergeStd))
+    percent_list = [10, 20, 30, 40, 50]
 
+    flist = []
 
-# Random Seed List
-# 
-# 
-# Pheromone waypoint bug: 120678
-# 
-# New merge with smaller radius bug: 743490
-# 
-# inf slope: 301421
-# 
-# Bot 22 stuck on south wall: 267451
-# 
+    flist.append(XML.setFname()+"AttackData.txt")
+
+    for p in percent_list:
+
+        XML.setDetractorPercentage(p)
+        flist.append(XML.setFname()+"AttackData.txt")
+        
+    # check if files exist
+    for f in flist:
+        if not os.path.exists(f):
+            print(f'{f} does not exist!')
+            exit()
+
+    PlotExp1(flist, XML.RD_PATH)
+    # print(flist)
+
+def PlotExp1(flist, rdpath):
+    TFClist = []  # Total Food Collected List
+    Caplist = []  # Robots Captured List
+
+    for filename in flist:
+        Read(filename)
+        TFClist.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist.append(np.array(ROBOTS_CAPTURED).astype(int))
+
+    # Convert lists to data for plotting (mean and standard deviation)
+    TFCdata = [(round(np.mean(data), 1), np.std(data)) for data in TFClist]
+    Capdata = [(round(np.mean(data), 1), np.std(data)) for data in Caplist]
+
+    # Prepare data for plotting
+    food_collection_mean = [x[0] for x in TFCdata]
+    food_collection_stdev = [x[1] for x in TFCdata]
+    robot_captured_mean = [x[0] for x in Capdata]
+    robot_captured_stdev = [x[1] for x in Capdata]
+
+    # Set up the x-axis for the number of detractors (0% to 50%)
+    detractors_percentage = np.arange(0, 60, 10)
+
+    # Start plotting
+    fig, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+
+    # Plot for Total Food Collected
+    axs[0].errorbar(detractors_percentage, food_collection_mean, yerr=food_collection_stdev, fmt='o-', label='Food Collection', color='blue', capsize=5, alpha=0.7, linewidth=2)
+    axs[0].set_title('Food Collection vs. Percentage of Detractors')
+    axs[0].set_ylabel('Food Collected')
+    axs[0].grid(True)
+
+    # Plot for Robots Captured
+    axs[1].errorbar(detractors_percentage, robot_captured_mean, yerr=robot_captured_stdev, fmt='o-', label='Robots Captured', color='red', capsize=5, alpha=0.7, linewidth=2)
+    axs[1].set_title('Robots Captured vs. Percentage of Detractors')
+    axs[1].set_xlabel('Percentage of Detractors')
+    axs[1].set_ylabel('Robots Captured')
+    axs[1].grid(True)
+
+    # Set x-axis ticks
+    axs[0].set_xticks(detractors_percentage)
+    axs[1].set_xticks(detractors_percentage)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(rdpath, 'Experiment1_lineplot.png'))
+    plt.clf()
+
+    # Write the raw data to a text file
+    raw_data_filename = os.path.join(rdpath, 'Experiment1_raw_data.txt')
+    with open(raw_data_filename, 'w') as file:
+        file.write('Total Food Collected, Robots Captured\n')
+        count = 0
+        exp_list = [
+            'Standard CPFA',
+            'Misleading Trail Attack (10%)',
+            'Misleading Trail Attack (20%)',
+            'Misleading Trail Attack (30%)',
+            'Misleading Trail Attack (40%)',
+            'Misleading Trail Attack (50%)'
+        ]
+        for tfc, cap in zip(TFClist, Caplist):
+            file.write(f'{exp_list[count]}\n')
+            for f, c in zip(tfc, cap):
+                file.write(f'{f}, {c}\n')
+            count += 1
+
 
 if __name__ == "__main__":
 
-    quickTest()
+    # Experiment1(30)
+    Experiment1_replot(30)
 
+    # quickTest()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # os.system("./build.sh")
+
+    # quickTest()
+    # Experiment1(30)
+    # Experiment1_replot(30)
+    # visualTest()
+    # Experiment2(30)
+    # Experiment2_replot(30)
+    # Experiment3(30)
+
+    #### uncomment to print results for pre experiment (be sure to comment out above code to avoid running experiments) ####
+
+        # rd_path=f'results/results_PreExp_{30}it/'
+        # flist = []
+        # flist.append("./results/results_PreExp_30it/CPFA_density-std_R-cl_F-cl_r24_d0_rfc108_10by10_time900_iter30_AttackData.txt")
+        # flist.append("./results/results_PreExp_30it/CPFA_density-std_R-cl_F-cl_r24_d1_rfc108_10by10_time900_iter30_AttackData.txt")
+        # print(GetFoodCollected(flist, rd_path))
+
+        #### format: <cpfa_std(total food collected, std deviation)>, <cpfa_attacked(total food collected, std deviation)> ####
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#################################################################################
+############################# OLD EXPERIMENTS ###################################
+#################################################################################
+
+######### EXPERIMENT 1 #########
+
+#TODO: Experiment1 does not account for new code with multiple attacker nests. Need to update the experiment parameters if we want to rerun this experiment.
+
+def Old_PlotExp1(flist, rdpath):
+
+    TFClist = []
+    Caplist = []
+
+    for filename in flist:
+        Read(filename)
+        TFClist.append(np.array(TOTAL_FOOD_COLLECTED).astype(float))
+        Caplist.append(np.array(ROBOTS_CAPTURED).astype(float))
+
+    # print(TFClist)
+    # print(Caplist)
+    
+    TFCdata = []
+    for r in TFClist:
+        TFCdata.append((round(np.mean(r),1),np.std(r)))
+    Capdata = []
+    for f in Caplist:
+        Capdata.append((round(np.mean(f),1),np.std(f)))
+
+    # print(TFCdata)
+    # print(Capdata)
+
+    x_tick_labels = ['0','1','2','3','4']
+
+    # Extracting mean and standard deviation
+    food_collection_mean = [x[0] for x in TFCdata]
+    food_collection_stdev = [x[1] for x in TFCdata]
+    robot_captured_mean = [x[0] for x in Capdata]
+    robot_captured_stdev = [x[1] for x in Capdata]
+
+    # Number of detractors (0 to 4)
+    detractors = np.arange(0, 5)
+
+    # Line Plot
+    # fig, ax1 = plt.subplots()
+    fig, axs = plt.subplots(2,1,figsize=(10,10), sharex=False)
+
+
+    # Twin the axes for two different y-axes.
+    # ax2 = ax1.twinx()
+
+    # Plot the data
+    # ax1.errorbar(detractors, food_collection_mean, yerr=food_collection_stdev, fmt='o-', label='Food Collection', color='b')
+    # ax2.errorbar(detractors, robot_captured_mean, yerr=robot_captured_stdev, fmt='x-', label='Robots Captured', color='r')
+    axs[0].errorbar(detractors, food_collection_mean, yerr=food_collection_stdev, fmt='o-', label='Food Collection', color='b', capsize=5, alpha=0.7, linewidth=2)
+    axs[0].set_title('Food Collection vs. Number of Detractors')
+    axs[0].set_xlabel('Number of Detractors')
+    axs[0].set_ylabel('Food Collected')
+    axs[0].grid(True)
+
+    axs[1].errorbar(detractors, robot_captured_mean, yerr=robot_captured_stdev, fmt='o-', label='Robots Captured', color='r', capsize=5, alpha=0.7, linewidth=2)
+    axs[1].set_title('Robots Captured vs. Number of Detractors')
+    axs[1].set_xlabel('Number of Detractors')
+    axs[1].set_ylabel('Robots Captured')
+    axs[1].grid(True)
+    # axs[1].xaxis.tick_top()
+
+
+    # axs[0].set_ylim(70, 110)
+    # axs[1].set_ylim(0, 10)
+
+    axs[0].set_xticks(detractors, x_tick_labels)
+    axs[1].set_xticks(detractors, x_tick_labels)
+
+    # plt.title('Impact of Number of Detractors')
+    # plt.show()
+
+    plt.tight_layout()
+
+    plt.savefig(f'{rdpath}Experiment1_lineplot.png')
+
+    plt.clf()
+
+
+    # # Bar Plot
+    # fig, ax = plt.subplots(nrows=2)
+
+    # labelsize = 14
+    # textsize = 23
+    # top_plt_pad = -125
+    # bottom_plt_pad = -25
+    # top_labelcolor = 'white'
+    # bottom_labelcolor = 'black'
+    # bar_zorder = 0
+    # label_zorder = 15
+    # b_label_rotation = 30
+    # width=0.23
+    # multiplier=0
+    # x = np.arange(len(x_tick_labels))
+
+
+    # offset = width * multiplier
+    # rect1 = ax[0].bar(x+offset, food_collection_mean, width, align="center", yerr=food_collection_stdev, ecolor='orange', label='$FA_{std}$', edgecolor='black', color='blue', zorder=bar_zorder)
+    # ax[0].bar_label(rect1,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    # multiplier+=1
+
+    # offset = width * multiplier
+    # rect2 = ax[0].bar(x+offset, robot_captured_mean, width, align="center", yerr=robot_captured_stdev, ecolor='orange', label='$FA_{atk}$', edgecolor='black', color='green', zorder=bar_zorder)
+    # ax[0].bar_label(rect2,padding=top_plt_pad, fontsize=labelsize, color=top_labelcolor, zorder=label_zorder, fontweight='bold', rotation=b_label_rotation)
+    # multiplier+=1
+
+    # handles1, labels1 = ax[0].get_legend_handles_labels()
+    # plt.legend(handles1, labels1, loc='lower left', ncol=2, fontsize=textsize)
+
+    # # ax[0].set_ylim(0,maxRealFood)
+    # ax[0].set_ylabel('Resources Collected', fontsize=textsize)
+    # # ax[1].set_ylim(0,85)
+    # ax[1].set_ylabel('Robots Captured', fontsize=textsize, labelpad = 11)
+    # ax[1].invert_yaxis()
+
+    # ax[1].set_xticks(x+width, x_tick_labels, fontsize=labelsize)
+    # ax[1].xaxis.tick_bottom()
+    # ax[1].set_xlabel('Number of Detractors', fontsize=textsize)
+
+    # # ax[0].set_title('Foraging Results by Maximum Simulation Time')
+
+    # fig.tight_layout()
+    # fig.subplots_adjust(hspace=0)
+
+    # # plt.savefig('results/Experiment_2.png')
+    # plt.savefig(f'{rdpath}/Experiment1_boxplot.png')
+
+def Old_Experiment1(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(False)  # Use increased density for fake food
+    XML.setBotCount(12)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp1_{run_count}it_r12/'
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    flist = []
+
+    # Standard CPFA
+    XML.UseMisleadingTrailAttack(False) # Begin with normal runs
+    XML.NUM_DETRACTORS = 0
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Standard CPFA, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Detractors: {XML.NUM_DETRACTORS}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    # w/ Misleading trail attack w/ 1 detractor
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 1
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Misleading Trail Attack, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Detractors: {XML.NUM_DETRACTORS}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+    
+    # w/ Misleading trail attack w/ 2 detractors
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 2
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Misleading Trail Attack, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Detractors: {XML.NUM_DETRACTORS}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+    
+    # w/ Misleading trail attack w/ 3 detractors
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 3
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Misleading Trail Attack, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Detractors: {XML.NUM_DETRACTORS}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    # w/ Misleading trail attack w/ 4 detractors
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 4
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Misleading Trail Attack, Iteration: {j+1}, Num Real Food: {XML.NUM_RF}, Num Detractors: {XML.NUM_DETRACTORS}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    PlotExp1(flist, XML.RD_PATH)
+
+def Old_Experiment1_replot(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(False)  # Use increased density for fake food
+    XML.setBotCount(24)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp1_{run_count}it/'
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    flist = []
+
+    # Standard CPFA
+    XML.UseMisleadingTrailAttack(False) # Begin with normal runs
+    XML.NUM_DETRACTORS = 0
+    flist.append(XML.setFname()+"AttackData.txt")
+
+    # w/ Misleading trail attack w/ 1 detractor
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 1
+    flist.append(XML.setFname()+"AttackData.txt")
+    
+    # w/ Misleading trail attack w/ 2 detractors
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 2
+    flist.append(XML.setFname()+"AttackData.txt")
+    
+    # w/ Misleading trail attack w/ 3 detractors
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 3
+    flist.append(XML.setFname()+"AttackData.txt")
+
+    # w/ Misleading trail attack w/ 4 detractors
+    XML.UseMisleadingTrailAttack(True) 
+    XML.NUM_DETRACTORS = 4
+    flist.append(XML.setFname()+"AttackData.txt")
+   
+    PlotExp1(flist, XML.RD_PATH)
+
+######### EXPERIMENT 2 #########
+
+def Old_Experiment2(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    XML.setBotCount(32)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp2_{run_count}it/'
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    flist = []
+
+    # Standard CPFA
+    XML.UseMisleadingTrailAttack(False) # Begin with normal runs
+    XML.NUM_DETRACTORS_NEST1 = 0
+    XML.NUM_DETRACTORS_NEST2 = 0
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 0
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Standard CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    # CPFA Misleading Trail Attack (1 nest, 4 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 0
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 1
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Attacked CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+    
+    # CPFA Misleading Trail Attack (2 nests, 8 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 2
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Attacked CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+    
+    # CPFA Misleading Trail Attack (3 nests, 12 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 4
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 3
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Attacked CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    # CPFA Misleading Trail Attack (4 nests, 16 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 4
+    XML.NUM_DETRACTORS_NEST4 = 4
+    XML.NUM_ATK_NESTS = 4
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Attacked CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+def Old_PlotExp2(flist, rdpath):
+
+    TFClist = []
+    Caplist = []
+
+    for filename in flist:
+        Read(filename)
+        TFClist.append(np.array(TOTAL_FOOD_COLLECTED).astype(float))
+        Caplist.append(np.array(ROBOTS_CAPTURED).astype(float))
+
+    # print(TFClist)
+    # print(Caplist)
+    
+    TFCdata = []
+    for r in TFClist:
+        TFCdata.append((round(np.mean(r),1),np.std(r)))
+    Capdata = []
+    for f in Caplist:
+        Capdata.append((round(np.mean(f),1),np.std(f)))
+
+    # print(TFCdata)
+    # print(Capdata)
+
+    x_tick_labels = ['0','1','2','3','4']
+
+    # Extracting mean and standard deviation
+    food_collection_mean = [x[0] for x in TFCdata]
+    food_collection_stdev = [x[1] for x in TFCdata]
+    robot_captured_mean = [x[0] for x in Capdata]
+    robot_captured_stdev = [x[1] for x in Capdata]
+
+    # Number of detractors (0 to 4)
+    detractors = np.arange(0, 5)
+
+    # Line Plot
+    fig, axs = plt.subplots(2,1,figsize=(10,10), sharex=False)
+
+    # Plot the data
+    axs[0].errorbar(detractors, food_collection_mean, yerr=food_collection_stdev, fmt='o-', label='Food Collection', color='b', capsize=5, alpha=0.7, linewidth=2)
+    axs[0].set_title('Food Collection vs. Number of Attack Nests')
+    axs[0].set_xlabel('Number of Attack Nests (4 Detractors per Nest)')
+    axs[0].set_ylabel('Food Collected')
+    axs[0].grid(True)
+
+    axs[1].errorbar(detractors, robot_captured_mean, yerr=robot_captured_stdev, fmt='o-', label='Robots Captured', color='r', capsize=5, alpha=0.7, linewidth=2)
+    axs[1].set_title('Robots Captured vs. Number of Attack Nests')
+    axs[1].set_xlabel('Number of Attack Nests (4 Detractors per Nest)')
+    axs[1].set_ylabel('Robots Captured')
+    axs[1].grid(True)
+
+    axs[0].set_xticks(detractors, x_tick_labels)
+    axs[1].set_xticks(detractors, x_tick_labels)
+
+    plt.tight_layout()
+
+    plt.savefig(f'{rdpath}Experiment2_lineplot.png')
+
+    plt.clf()
+
+def Old_Experiment2_replot(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    XML.setBotCount(32)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp2_{run_count}it/'
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    flist = []
+
+    # Standard CPFA
+    XML.UseMisleadingTrailAttack(False) # Begin with normal runs
+    XML.NUM_DETRACTORS_NEST1 = 0
+    XML.NUM_DETRACTORS_NEST2 = 0
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 0
+    flist.append(XML.setFname()+"AttackData.txt")
+
+    # CPFA Misleading Trail Attack (1 nest, 4 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 0
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 1
+    flist.append(XML.setFname()+"AttackData.txt")
+   
+    # CPFA Misleading Trail Attack (2 nests, 8 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 2
+    flist.append(XML.setFname()+"AttackData.txt")
+    
+    # CPFA Misleading Trail Attack (3 nests, 12 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 4
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 3
+    flist.append(XML.setFname()+"AttackData.txt")
+    
+    # CPFA Misleading Trail Attack (4 nests, 16 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 4
+    XML.NUM_DETRACTORS_NEST4 = 4
+    XML.NUM_ATK_NESTS = 4
+    flist.append(XML.setFname()+"AttackData.txt")
+
+    PlotExp2(flist, XML.RD_PATH)
+
+######### EXPERIMENT 3 #########
+
+def Old_Experiment3(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    XML.setBotCount(32)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp3_{run_count}it/'
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    flist = []
+
+    # Standard CPFA
+    XML.UseMisleadingTrailAttack(False) # Begin with normal runs
+    XML.NUM_DETRACTORS_NEST1 = 0
+    XML.NUM_DETRACTORS_NEST2 = 0
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 0
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Standard CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    # CPFA Misleading Trail Attack (1 nest, 4 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 1
+    XML.NUM_DETRACTORS_NEST2 = 0
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 1
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Attacked CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+    
+    # CPFA Misleading Trail Attack (2 nests, 8 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 1
+    XML.NUM_DETRACTORS_NEST2 = 1
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 2
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Attacked CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+    
+    # CPFA Misleading Trail Attack (3 nests, 12 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 1
+    XML.NUM_DETRACTORS_NEST2 = 1
+    XML.NUM_DETRACTORS_NEST3 = 1
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 3
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Attacked CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    # CPFA Misleading Trail Attack (4 nests, 16 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 1
+    XML.NUM_DETRACTORS_NEST2 = 1
+    XML.NUM_DETRACTORS_NEST3 = 1
+    XML.NUM_DETRACTORS_NEST4 = 1
+    XML.NUM_ATK_NESTS = 4
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Attacked CPFA, Iteration: {j+1}, Num Resources: {XML.NUM_RF}, Num Atk Nests: {XML.NUM_ATK_NESTS}, Num Detractors: {XML.getNumDetractors()}\n')
+        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+
+    PlotExp3(flist, XML.RD_PATH)
+
+def Old_PlotExp3(flist, rdpath):
+
+    TFClist = []
+    Caplist = []
+
+    for filename in flist:
+        Read(filename)
+        TFClist.append(np.array(TOTAL_FOOD_COLLECTED).astype(float))
+        Caplist.append(np.array(ROBOTS_CAPTURED).astype(float))
+
+    # print(TFClist)
+    # print(Caplist)
+    
+    TFCdata = []
+    for r in TFClist:
+        TFCdata.append((round(np.mean(r),1),np.std(r)))
+    Capdata = []
+    for f in Caplist:
+        Capdata.append((round(np.mean(f),1),np.std(f)))
+
+    # print(TFCdata)
+    # print(Capdata)
+
+    x_tick_labels = ['0','1','2','3','4']
+
+    # Extracting mean and standard deviation
+    food_collection_mean = [x[0] for x in TFCdata]
+    food_collection_stdev = [x[1] for x in TFCdata]
+    robot_captured_mean = [x[0] for x in Capdata]
+    robot_captured_stdev = [x[1] for x in Capdata]
+
+    # Number of detractors (0 to 4)
+    detractors = np.arange(0, 5)
+
+    # Line Plot
+    fig, axs = plt.subplots(2,1,figsize=(10,10), sharex=False)
+
+    # Plot the data
+    axs[0].errorbar(detractors, food_collection_mean, yerr=food_collection_stdev, fmt='o-', label='Food Collection', color='b', capsize=5, alpha=0.7, linewidth=2)
+    axs[0].set_title('Food Collection vs. Number of Attack Nests')
+    axs[0].set_xlabel('Number of Attack Nests (4 Detractors per Nest)')
+    axs[0].set_ylabel('Food Collected')
+    axs[0].grid(True)
+
+    axs[1].errorbar(detractors, robot_captured_mean, yerr=robot_captured_stdev, fmt='o-', label='Robots Captured', color='r', capsize=5, alpha=0.7, linewidth=2)
+    axs[1].set_title('Robots Captured vs. Number of Attack Nests')
+    axs[1].set_xlabel('Number of Attack Nests (4 Detractors per Nest)')
+    axs[1].set_ylabel('Robots Captured')
+    axs[1].grid(True)
+
+    axs[0].set_xticks(detractors, x_tick_labels)
+    axs[1].set_xticks(detractors, x_tick_labels)
+
+    plt.tight_layout()
+
+    plt.savefig(f'{rdpath}Experiment2_lineplot.png')
+
+    plt.clf()
+
+def Old_Experiment3_replot(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 900
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    XML.setBotCount(32)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp2_{run_count}it/'
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 3
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    flist = []
+
+    # Standard CPFA
+    XML.UseMisleadingTrailAttack(False) # Begin with normal runs
+    XML.NUM_DETRACTORS_NEST1 = 0
+    XML.NUM_DETRACTORS_NEST2 = 0
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 0
+    flist.append(XML.setFname()+"AttackData.txt")
+
+    # CPFA Misleading Trail Attack (1 nest, 4 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 0
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 1
+    flist.append(XML.setFname()+"AttackData.txt")
+   
+    # CPFA Misleading Trail Attack (2 nests, 8 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 0
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 2
+    flist.append(XML.setFname()+"AttackData.txt")
+    
+    # CPFA Misleading Trail Attack (3 nests, 12 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 4
+    XML.NUM_DETRACTORS_NEST4 = 0
+    XML.NUM_ATK_NESTS = 3
+    flist.append(XML.setFname()+"AttackData.txt")
+    
+    # CPFA Misleading Trail Attack (4 nests, 16 detractors)
+    XML.UseMisleadingTrailAttack(True)
+    XML.NUM_DETRACTORS_NEST1 = 4
+    XML.NUM_DETRACTORS_NEST2 = 4
+    XML.NUM_DETRACTORS_NEST3 = 4
+    XML.NUM_DETRACTORS_NEST4 = 4
+    XML.NUM_ATK_NESTS = 4
+    flist.append(XML.setFname()+"AttackData.txt")
+
+    PlotExp2(flist, XML.RD_PATH)

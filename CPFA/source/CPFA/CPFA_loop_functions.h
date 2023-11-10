@@ -57,6 +57,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		/* public helper functions */
 		void UpdatePheromoneList();
 		void SetFoodDistribution();
+		void DistributeAtkNests();
 
 		argos::Real getSimTimeInSeconds();
 
@@ -72,10 +73,18 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		double getRateOfLayingPheromone();
 		double getRateOfPheromoneDecay();
 
-
 		void Terminate();
 
 		void CaptureRobotInAtkNest(string id);
+
+
+
+		void PushToTrailLog(string bot_id, Pheromone P, Real startTime);
+		void PopFromTrailLog(std::string bot_id);
+		vector<CVector3> GetAtkNestList();
+
+		CVector2 GetNestLocation();
+		// Real GetBotFwdSpeed();
 
 	protected:
 
@@ -120,10 +129,25 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t AltClusterWidth;
 		size_t AltClusterLength;
 
+		bool UseMisleadingTrailAttack;
+
 		size_t numRealTrails;
 		size_t numFakeTrails;
 		size_t numFalsePositives;
 		size_t numQZones;
+
+		// Real BotFwdSpeed;
+
+		Real T_tolerance;
+
+		// vector< std::string, Pheromone > trailLog;
+
+		// make trailLog a tuple with time also included
+		vector< std::tuple<std::string, Pheromone, argos::Real, bool> > trailLog;
+
+		vector<Pheromone> inactivePheromoneList;
+
+		Real k;	// correction term for travel time estimation
 
 		/* Result Collection */
 		string FilenameHeader;	// Ryan Luna 12/09/22
@@ -146,6 +170,10 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		argos::Real SearchRadiusSquared;
 		argos::Real SearchRadius;
 
+		argos::Real AtkNestRadius;
+		argos::Real AtkNestRadiusSquared;
+		size_t NumAtkNests;		
+
 		/* list variables for food & pheromones */
 		std::vector<Food>				FoodList;				// Ryan Luna 11/10/22
 		vector<Food> 					CollectedFoodList;		// Ryan Luna 11/10/22
@@ -166,20 +194,25 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t RealFoodCollected;		// Ryan Luna 11/17/22
 		size_t FakeFoodCollected;		// Ryan Luna 11/17/22
 
+		bool safeTermination = false;
+
 	  	/*TODO: Wondering if it is necessary to make another nest object for the attacker nest... */
 		Nest MainNest;					// Ryan Luna 1/24/23
 		AtkNest AttackerNest;
       
         vector<size_t>		ForageList;
 		argos::CVector2 NestPosition;
-		argos::CVector2 AttackerNestPosition;
+		// argos::CVector2 AtkNest1Position;
+		// argos::CVector2 AtkNest2Position;
+		// argos::CVector2 AtkNest3Position;
+		// argos::CVector2 AtkNest4Position;
+		vector<argos::CVector2> AtkNestPositions;
 
 		bool terminate;
 		bool densify;
 
 		CVector3 ForagingAreaSize;
 		bool IsNearRobot(const CVector2& position);
-
 
 	private:
 
@@ -198,6 +231,8 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		CVector3 GenEntityPosition();		// generate a position to move entity to (outside foraging arena) when captured
 		double score;
 		int PrintFinalScore;
+
+		bool AllRobotsCaptured();
 };
 
 #endif /* CPFA_LOOP_FUNCTIONS_H */
