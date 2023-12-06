@@ -138,3 +138,25 @@ void Pheromone::SetReturned(bool val) {
 bool Pheromone::HasReturnedARobot() {
     return returned;
 }
+
+void Pheromone::AddTraveler(pair<string, argos::Real> id_time) {
+    traveler_list.push_back(id_time);
+}
+
+bool Pheromone::RemoveTraveler(string robot_id) {
+    for (size_t i = 0; i < traveler_list.size(); i++) {
+        if (traveler_list[i].first == robot_id) {
+            traveler_list.erase(traveler_list.begin() + i);
+            return true;
+        }
+    }
+    return false;   // robot_id was not found in the list
+}
+
+/*****
+ * Return the list of robots that are currently using this trail.
+ *****/
+// TODO: Might want to let this return a const reference to the list instead of a copy (just to optimize memory usage)
+vector<pair<string, argos::Real>> Pheromone::GetTravelerList() {
+    return traveler_list;
+}

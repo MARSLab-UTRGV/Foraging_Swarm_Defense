@@ -7,6 +7,10 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 #CMAKE_BUILD_TYPE(Release)
 #ARGOS_BUILD_NATTIVE(ON)
 
+# Use C++17 (added 11/20/23 to use structured bindings - Ryan Luna)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 ##
 ## Get the Git hash for this code
 ##

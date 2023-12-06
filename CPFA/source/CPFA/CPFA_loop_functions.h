@@ -11,6 +11,32 @@
 #include <source/Base/Nest.h>	// Ryan Luna 1/24/23
 #include <source/Base/Attacker_Nest.h>
 #include <cmath>				// Ryan Luna 1/25/23
+#include <unordered_map>
+#include <unordered_set>
+#include <set>
+
+
+// #include <Python.h>
+/***************************************************************************************************/
+/**
+ * This is a workaround for a keyword naming conflict between some Python headers and QT 5.
+ * Solution found here: https://stackoverflow.com/questions/23068700/embedding-python3-in-qt-5
+ */
+
+#pragma push_macro("slots")
+#undef slots
+#include "Python.h"
+#pragma pop_macro("slots")
+
+/**
+ * NOTE: From ChatGPT
+ * 
+ * 		This workaround is specific to the compilers that support #pragma push_macro and #pragma pop_macro.
+ * 		Most modern compilers like GCC and Clang support these pragmas, but it's something to be aware of
+ * 		if you're working in a cross-platform or cross-compiler context.
+ */
+
+/***************************************************************************************************/
 
 using namespace argos;
 using namespace std;
@@ -73,6 +99,8 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		double getRateOfLayingPheromone();
 		double getRateOfPheromoneDecay();
 
+		vector<pair<CVector2, int>>& GetClusterList();
+
 		void Terminate();
 
 		void CaptureRobotInAtkNest(string id);
@@ -86,7 +114,11 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		CVector2 GetNestLocation();
 		// Real GetBotFwdSpeed();
 
+		Pheromone& GetTrailFollowed(std::string id);
+		void LogReturn(std::string id, Real time, bool returnedFromTrail);
+
 	protected:
+		vector<pair<CVector2, int>> clusterList; // for QT functions
 
 		void setScore(double s);
 
@@ -133,7 +165,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 
 		size_t numRealTrails;
 		size_t numFakeTrails;
-		size_t numFalsePositives;
+		size_t ffatk_FalsePositives;
 		size_t numQZones;
 
 		// Real BotFwdSpeed;
@@ -167,8 +199,8 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		argos::Real NestRadius;
 		argos::Real NestRadiusSquared;
 		argos::Real NestElevation;
-		argos::Real SearchRadiusSquared;
 		argos::Real SearchRadius;
+		argos::Real SearchRadiusSquared;
 
 		argos::Real AtkNestRadius;
 		argos::Real AtkNestRadiusSquared;
@@ -228,11 +260,89 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		bool IsCollidingWithNest(argos::CVector2 p);
 		bool IsCollidingWithAtkNest(argos::CVector2 p);		// Ryan Luna 09/20/23
 		bool IsCollidingWithFood(argos::CVector2 p);
-		CVector3 GenEntityPosition();		// generate a position to move entity to (outside foraging arena) when captured
+		CVector3 GenCapturePosition();		// generate a position to move entity to (outside foraging arena) when captured
+		CVector3 GenIsoPosition();			// generate a position to move entity to (inside foraging arena) when isolated
+		CVector3 GenUnIsoPosition();
+		void IsolateBot(std::string id);	// isolate a bot and position it at the generated position (left of environment outside foraging area)
+		void UnIsolateBot(std::string bot_id);
 		double score;
 		int PrintFinalScore;
 
 		bool AllRobotsCaptured();
+
+		bool SetupPythonEnvironment();
+
+		vector<int> RunDBSCAN(std::vector<std::pair<double, double>> dataset);
+
+		PyObject *pyFileName,	*pyModule;
+		PyObject *pyDbscan,		*pyCallDbscan,		*pyDbscanArgs;
+
+		Real T_estimate(Real distance, Real velocity);
+
+		vector<pair<string, size_t>> strikeList;
+		size_t strikeLimit;
+		
+		/**
+		 * Map of creator IDs to a set of bots that have caused an issuance of a strike to that creator.
+		 * After a bot exceeds the est_travel_time, it will continue to exceed it till it returns to the nest.
+		 * This way, after a bot exceeds the est_travel_time, repeated strikes aren't issued to the same creator.
+		 * 
+		 * NOTE: This could potentially be used in place of strikeList, where the size of the set is the number of strikes.
+		*/
+		std::unordered_map<std::string, std::set<std::string>> strikeMap;
+
+		bool isUsingPheromone;
+
+		bool useDefense;
+		bool useReturnBool;
+		bool useClustering;
+		bool useClusterGraph;
+
+		Real BotFwdSpeed;
+
+		Real alpha;
+
+		struct GraphNode {
+			int nodeId;
+			std::unordered_set<std::string> creatorIds;
+		};
+
+		struct GraphEdge {
+			int fromNodeId;
+			int toNodeId;
+			int weight;
+		};
+
+		std::unordered_map<int, GraphNode> graphNodes;
+		std::vector<GraphEdge> graphEdges;
+
+		std::unordered_map<int, std::set<int>> clusterMembers; 		// Map of cluster labels to set of PheromoneList indices
+		std::unordered_map<string, set<int>> creatorToClusterMap;	// Map of creator IDs to set of associated cluster labels
+
+		void BuildClusterGraph(const std::unordered_map<int, std::set<int>>& clusterMembers, const std::vector<int>& nonClusteredPoints);
+		std::set<int> GetNeighbors(int clusterLabel);
+		void DFSHelper(int nodeId, std::set<int>& visited);
+
+		size_t IsoFalsePositives;		// incremented when a normal agent is isolated
+		size_t falseNegatives;		// incremented when a detractor agent has a strike removed
+		size_t numIsolatedBots;
+		std::set<std::string> isolatedBots;
+		size_t numUnIsolatedBots;
+		size_t UnIsoFalsePositives;		// incremented when a detractor is unisolated
+
+		set<string> tmpNameStorage;
+
+		std::vector<std::pair<double, double>> pointData;			// dbscan dataset (dbscan arg)
+		vector<int> clusterLabels;									// returned cluster labels from dbscan (indices correspond to indices in PheromoneList)
+		std::unordered_map<int, int> trailToClusterMap; 			// Map of PheromoneList index to its cluster label (It is essentially the same thing as clusterLabels but as a key value pair)
+		std::vector<int> nonClusteredPoints;						// Vector of PheromoneList indices of points that could not be clustered (noise points)
+
+		Real uniVelocity;
+
+		bool useFeedbackEq;
+
+		bool printed1 = false;
+
 };
 
 #endif /* CPFA_LOOP_FUNCTIONS_H */

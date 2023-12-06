@@ -1,5 +1,4 @@
 #include "CPFA_loop_functions.h"
-#include <Python.h>
 
 CPFA_loop_functions::CPFA_loop_functions() :
 	RNG(argos::CRandom::CreateRNG("argos")),
@@ -44,8 +43,8 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	NestRadiusSquared(0.0625),
 	NestElevation(0.01),
 	// We are looking at a 4 by 4 square (3 targets + 2*1/2 target gaps)
-	SearchRadiusSquared((4.0 * FoodRadius) * (4.0 * FoodRadius)),
 	SearchRadius(4.0*FoodRadius),
+	SearchRadiusSquared((4.0 * FoodRadius) * (4.0 * FoodRadius)),
 	NumDistributedRealFood(0),	// name modified ** Ryan Luna 11/12/22
 	NumDistributedFakeFood(0),	// Ryan Luna 11/12/22
 	TotalDistributedFood(0),	// name modified ** Ryan Luna 11/12/22
@@ -61,9 +60,19 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	AltClusterWidth(0),
 	AltClusterLength(0),
 	UseFakeFoodOnly(false),
-	numFalsePositives(0),
+	ffatk_FalsePositives(0),
 	numQZones(0),
-	k(1)		// initially k = 1 (no effect on estimation)
+	k(1),		// initially k = 1 (no effect on estimation)
+	useDefense(false),
+	useReturnBool(false),
+	useClustering(false),
+	useClusterGraph(false),
+	BotFwdSpeed(0.0),
+	alpha(1.0),
+	strikeLimit(3),
+	IsoFalsePositives(0),
+	numIsolatedBots(0),
+	useFeedbackEq(false)
 {}
 
 void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {	
@@ -117,8 +126,15 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "FilenameHeader",				FilenameHeader);				// Ryan Luna 12/06/22
     argos::GetNodeAttribute(settings_node, "Densify", 						densify);						// Ryan Luna 02/08/22
 	argos::GetNodeAttribute(settings_node, "ForagingAreaSize",				ForagingAreaSize);
-	// argos::GetNodeAttribute(settings_node, 'BotFwdSpeed',					BotFwdSpeed);
+	argos::GetNodeAttribute(settings_node, "BotFwdSpeed",					BotFwdSpeed);
 	argos::GetNodeAttribute(settings_node, "EstTravelTimeTolerance",		T_tolerance);
+	argos::GetNodeAttribute(settings_node, "UseDefenseMethod",				useDefense);
+	argos::GetNodeAttribute(settings_node, "UseReturnBoolean",				useReturnBool);
+	argos::GetNodeAttribute(settings_node, "UseTrailClustering",			useClustering);
+	argos::GetNodeAttribute(settings_node, "UseClusterGraph",				useClusterGraph);
+	argos::GetNodeAttribute(settings_node, "FeedbackLoopWeight",			alpha);
+	argos::GetNodeAttribute(settings_node, "StrikeLimit",					strikeLimit);
+	argos::GetNodeAttribute(settings_node, "UseFeedbackEq",					useFeedbackEq);
 	FoodRadiusSquared = FoodRadius*FoodRadius;
 
 	argos::TConfigurationNode atk_node = argos::GetNode(node, "detractor_settings");
@@ -130,6 +146,7 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	// argos::GetNodeAttribute(atk_node, "AtkNest4Position",				AtkNest4Position);
 	argos::GetNodeAttribute(atk_node, "AtkNestRadius",					AtkNestRadius);
 
+	uniVelocity = BotFwdSpeed;
 
     //Number of distributed foods ** modified ** Ryan Luna 11/13/22
     if (FoodDistribution == 1){
@@ -215,77 +232,13 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	ForageList.clear(); 
 	last_time_in_minutes=0;
 
-	/**
-	 * This is a test to see if I can execute python code in here.
-	 */
-
-	Py_Initialize();
-	if(Py_IsInitialized()){
-		// LOG << "Python version: " << Py_GetVersion() << endl;
-	} else {
-		LOGERR << "ERROR: Python failed to initialize." << endl;
-		exit(1);
-	}
-
-	PyObject *pName, *pModule, *pFunc, *pCallFunc, *pArgs;
-	PyObject *sys = PyImport_ImportModule("sys");
-	PyObject *path = PyObject_GetAttrString(sys, "path");
-	PyList_Append(path, PyUnicode_FromString("/home/Ryan/Foraging_Swarm_Defense/CPFA/source/CPFA"));
-	PyObject *repr = PyObject_Repr(path);
-	const char* s = PyUnicode_AsUTF8(repr);
-	// LOG << "Python path: " << s << endl;
-	Py_DECREF(repr);
-	Py_DECREF(path);
-	Py_DECREF(sys);
-
-	// Load the module
-	pName = PyUnicode_FromString("cpfa_test");
-	if (pName == NULL) {
-		LOG << "Error converting module name to PyUnicode" << std::endl;
-		Py_Finalize();
-		return;
-	}
-
-	pModule = PyImport_Import(pName);
-	Py_DECREF(pName);
-
-	if (pModule == NULL) {
-		LOG << "Failed to load Python module" << std::endl;
-		Py_Finalize();
-		return;
-	}
-
-	// Load the function from the module
-	pFunc = PyObject_GetAttrString(pModule, "test_func");
-	Py_DECREF(pModule);
-
-	if (pFunc == NULL || !PyCallable_Check(pFunc)) {
-		if (PyErr_Occurred()) {
-			PyErr_Print();
+	if (useDefense && useClustering){
+		if (!SetupPythonEnvironment()){
+			LOGERR << "ERROR: Failed to setup python environment." << endl;
+			// Terminate();
+			exit(1);
 		}
-		LOG << "Failed to load Python function" << std::endl;
-		Py_XDECREF(pFunc);
-		Py_Finalize();
-		return;
 	}
-
-	// Call the function
-	pCallFunc = PyObject_CallObject(pFunc, NULL);
-	Py_DECREF(pFunc);
-
-	if (pCallFunc == NULL) {
-		LOG << "Function call failed" << std::endl;
-		Py_Finalize();
-		return;
-	}
-
-	// Convert the result to C++ type and print
-	Real func_out = PyFloat_AsDouble(pCallFunc);
-	Py_DECREF(pCallFunc);
-
-	LOG << "func_out: " << func_out << std::endl;
-
-	Py_Finalize();
 
 }
 
@@ -366,31 +319,325 @@ void CPFA_loop_functions::PreStep() {
 }
 
 void CPFA_loop_functions::PostStep() {
-	// check pheromone list and certain frequency to see if robots are returning within time frame
 
-	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+	if (useDefense) {
 
-	// this is where we will check to see which trail a robot is following
-	for (size_t i = 0; i < trailLog.size(); i++) {
-		
-		// here we do the math for travel time estimation
-		CVector2 trailPos = get<1>(trailLog[i]).GetLocation();
-		Real trailLength = sqrt( pow( abs(NestPosition.GetX()) - abs(trailPos.GetX()), 2) + pow( abs(NestPosition.GetY()) - abs(trailPos.GetY()), 2) );
-		Real T_est = trailLength * 2 * k;	// multiply by 2 to get distance to and from the target location
+		//TODO: This code is not optimized, I am thinking of using hash tabels to make lookup times faster. Need to look into other optimizations as well.
 
-		// get current travel time (current_time - start_time)
-		Real cur_travel_time = getSimTimeInSeconds() - std::get<2>(trailLog[i]);
+		// check pheromone list and certain frequency to see if robots are returning within time frame
+		argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
 
-		if (cur_travel_time > (T_est * (1+T_tolerance))){
-			// if the robot has taken too long to return, we will flag the bot as missing and form a vote against the creator of the trail
+		pointData.clear();
+		clusterLabels.clear();
+		trailToClusterMap.clear();
+		nonClusteredPoints.clear();
 
-			// TODO: We will run the DBSCAN here, and start a vote against the creator of the trail and the creators of the neighboring trails (points) within its cluster.
+		if (useClustering){
 
-			// TODO: We must keep in mind how to construct this code dynamically, so that we can create a graph of clusters whose edges represent common creator ids (e.g. atk_nests will likely have a lot of common creator ids between them).
+			if (PheromoneList.empty()) return; // If there are no pheromones, return
 
+			clusterList.clear(); // clear cluster list for qt functions
+			clusterMembers.clear();
+
+			// prepare dataset for clustering
+			for (size_t i = 0; i < PheromoneList.size(); i++){
+				CVector2 point = PheromoneList[i].GetLocation();
+				pointData.push_back(make_pair(point.GetX(), point.GetY()));
+			}
+
+			// run dbscan here and not in the loop below to reduce computational complexity.
+			// TODO: Look into moving this into the main embedded for loop below so that it is event based (whenever a bot exceeds est_travel_time). 
+			// 			Might be able to reduce the number of times we run dbscan.
+			clusterLabels = RunDBSCAN(pointData);
+
+			// Each element in clusterLabels corresponds to a PheromoneList index. clusterLables[i] is the cluster label of the pheromone trail at PheromoneList[i]
+
+			for (size_t i = 0; i < clusterLabels.size(); ++i) {
+				int label = clusterLabels[i];
+				trailToClusterMap[i] = label; // Map trail index to its cluster label
+
+				// maintain creatorToClusterMap
+				// TODO: make sure this works the way it needs to. Go thorugh it in detail...
+				string creator = PheromoneList[i].GetCreatorId();
+				creatorToClusterMap[creator].insert(label);
+
+				// update clusterList for qt functions
+				clusterList.push_back(make_pair(PheromoneList[i].GetLocation(), label));
+
+				if (label != -1) { // Ignore noise points
+					/**
+					 * NOTE: 	clusterMembers is a <key>,<value> pair where the <value> is of type 'set<int>'.
+					 * 			
+					 * 			A single creator can have multiple trails to the same cluster. 
+					 * 
+					 * 			e.g. indices 1 and 3 are trails made by fb00 that are part of cluster 2 (key:<2>, value(s):<1,3,4,5,7>).
+					 * 
+					 * 			Need to make sure that we don't issue multiple strikes to fb00 in this case.
+					 */
+					clusterMembers[label].insert(i); // Add PheromoneList (clusterLabels) index to the set of its cluster
+				} else {
+					nonClusteredPoints.push_back(i); // Add PheromoneList (clusterLabels) index to the list of nonClusteredPoints (noise points)
+				}
+				
+			}
+		}
+
+
+		// loop through the traveler lists of each pheromone object
+		for (size_t i = 0; i < PheromoneList.size(); i++) {
+
+			vector<pair<string, Real>> traveler = PheromoneList[i].GetTravelerList();
+
+			// Get the cluster label of the current pheromone trail (if using clustering)
+			int clusterLabel = -1;
+			if (useClustering) clusterLabel = trailToClusterMap[i];
+
+			for (size_t j = 0; j < traveler.size(); j++) {
+
+				// TODO: I think this is ok. I might also want to remove it from the traveler list of the pheromone trail. But this might also decrease the number of trails
+				// 			considered when using clustering. Need to look into this more.
+				if (isolatedBots.find(traveler[j].first) != isolatedBots.end()) continue; // if the traveler has been isolated, skip it
+				
+				CVector2 trailPos = PheromoneList[i].GetLocation();
+				Real trailLength = sqrt( pow(NestPosition.GetX() - trailPos.GetX(), 2) + pow(NestPosition.GetY() - trailPos.GetY(), 2) );
+				Real d = trailLength * 2;	// multiply by 2 to get distance to and from the target location
+				Real v = BotFwdSpeed;	
+
+				// get current travel time (sim_time - start_time)
+				Real T_current = getSimTimeInSeconds() - traveler[j].second;
+
+				/**
+				 * If the robot has taken longer than the expected time to return to the nest, we will begin to issue strikes on trail creators
+				 */
+
+				if (T_current > (T_estimate(d,v) * T_tolerance)){
+
+					/********************************************* BASE DEFENSE ********************************************************/
+
+					if (!useClustering){
+
+						/**
+						 * For the base defense method, we are only giving strikes to trail creators who's travelers have exceeded the estimated travel time.
+						 */
+
+						bool found = false;
+						string creator = PheromoneList[i].GetCreatorId();
+
+						// Check if the traveler has already been processed for this creator and that it hasn't been isolated
+						if (isolatedBots.find(creator) == isolatedBots.end())
+							if (strikeMap[creator].find(traveler[j].first) == strikeMap[creator].end())
+								strikeMap[creator].insert(traveler[j].first);
+
+					/******************************************** CLUSTER DEFENSE *******************************************************/
+
+					} else if (useClustering && !useClusterGraph){
+
+						if (clusterLabel == -1) {
+							
+							string creator = PheromoneList[i].GetCreatorId();
+
+							if (isolatedBots.find(creator) == isolatedBots.end()) // if the creator is not already isolated
+								if (strikeMap[creator].find(traveler[j].first) == strikeMap[creator].end()) // AND if the traveler has not already been processed for this creator
+									strikeMap[creator].insert(traveler[j].first);
+
+						} else {
+
+							// Iterate over all pheromone trail indices in the cluster specified by 'clusterLabel'
+							for (int trailIndex : clusterMembers[clusterLabel]) {
+
+								// check if this trail has returned a robot, if it has, don't isolate its creator (return bool)
+								// if (PheromoneList[trailIndex].HasReturnedARobot()) continue;
+
+								// Retrieve the creator ID of the current pheromone trail
+								string creator = PheromoneList[trailIndex].GetCreatorId();
+
+								// Check if the traveler has already been processed for this creator and that it hasn't been isolated
+								if (isolatedBots.find(creator) == isolatedBots.end())
+									if (strikeMap[creator].find(traveler[j].first) == strikeMap[creator].end())
+										strikeMap[creator].insert(traveler[j].first);
+								
+							}
+						}
+						
+
+					/****************************************** CLUSTER GRAPH DEFENSE ***************************************************/
+
+					} else if (useClustering && useClusterGraph){
+
+						BuildClusterGraph(clusterMembers, nonClusteredPoints);
+
+						int nodeId; // Identifier for the node in the graph
+
+						if (clusterLabel != -1) {
+
+							// The trail is part of a cluster
+							nodeId = clusterLabel;
+
+						} else {
+
+							// The trail is a noise point, find its unique identifier
+							auto noisePointIt = std::find(nonClusteredPoints.begin(), nonClusteredPoints.end(), i);
+
+							if (noisePointIt != nonClusteredPoints.end()) {
+
+								int noisePointIndex = std::distance(nonClusteredPoints.begin(), noisePointIt);
+								nodeId = -(noisePointIndex + 1);
+
+							} else {
+								continue; // Noise point not found in nonClusteredPoints maybe need error handling here?
+							}
+    					}
+
+						// Get the neighbors of the current node (also includes the current node)
+						std::set<int> neighbors = GetNeighbors(nodeId);
+
+						// The unordored_set allows us to keep a unique list of elements with no duplicates
+						std::unordered_set<std::string> creatorList;
+
+						// Iterate over the neighbors
+						for (int neighborId : neighbors) {
+
+							// Get the cluster members of the neighbor
+							std::set<int> neighborMembers = clusterMembers[neighborId];
+
+							// Iterate over the cluster members of the neighbor and insert each one into the creatorList, creating a unique list with no duplicates
+							for (int trailIndex : neighborMembers) { 
+								// if (PheromoneList[trailIndex].HasReturnedARobot()) continue; // skip trails that have returned a robot (return bool)
+								creatorList.insert(PheromoneList[trailIndex].GetCreatorId()); 
+							}
+						}
+
+						// Iterating over a unique creatorList where there is only one entry per creator (no duplicates)
+						for (const auto& creator : creatorList){
+
+							if (creator == "fb13" && traveler[j].first == "fb22" && !printed1){
+								// printed1 = true;
+								// LOGERR << "fb22 traveling on fb13 trail: Pheromone[" << i << "], Label: " << clusterLabel << endl;
+								// LOGERR << "fb22 traveling on fb13 trail: Pheromone[" << i << "]" << endl;
+							}
+
+							// Check if the traveler has already been processed for this creator and that it hasn't been isolated
+							if (isolatedBots.find(creator) == isolatedBots.end())
+								if (strikeMap[creator].find(traveler[j].first) == strikeMap[creator].end())
+									strikeMap[creator].insert(traveler[j].first);
+						}
+					}
+				}
+			}
+		}
+	}
+	/********************************************** STRIKE AND ISOLATE ***************************************************/
+
+	// Check if any bots have reached their strike limit, if so, isolate them and erase them from the strike list.
+	// for (size_t i = 0; i < strikeList.size(); i++) {
+	// 	if (strikeList[i].second >= strikeLimit) {
+	// 		IsolateBot(strikeList[i].first);
+	// 		strikeList.erase(strikeList.begin() + i);
+	// 	}
+	// }
+	for (auto it = strikeMap.begin(); it != strikeMap.end(); ) {
+		const auto& creator = it->first;
+		const auto& strikeSet = it->second;
+
+		if (strikeSet.size() >= strikeLimit && isolatedBots.find(creator) == isolatedBots.end()) {
+			
+			// if (creator == "fb13"){
+			// 	LOG << "Isolating " << creator << " for exceeding strike limit." << endl;
+			// 	LOG << "Strike set size: " << strikeSet.size() << endl;
+			// 	LOG << "Strike set: ";
+			// 	for (const auto& strike : strikeSet){
+			// 		LOG << strike << ", ";
+			// 	}
+			// 	LOG << endl;
+			// 	tmpNameStorage = strikeSet;
+			// }
+			
+			IsolateBot(creator);
+			isolatedBots.insert(creator);
+			it = strikeMap.erase(it);  // Erase and move to the next element safely
+		} else {
+			++it;  // Move to the next element
 		}
 	}
 
+	// LOG << "Number of isolated bots: " << isolatedBots.size() << endl;
+	// LOG << strikeMap.size() << " bots in strikeMap..." << endl;
+}
+
+// Assuming clusterMembers is a map of cluster label to vector of trail indices
+// and noisePoints is a vector of noise point indices
+void CPFA_loop_functions::BuildClusterGraph(const std::unordered_map<int, std::set<int>>& clusterMembers,
+											const std::vector<int>& nonClusteredPoints) {
+
+    int noiseId = -1;
+
+	// Clear previous graph
+	graphNodes.clear();
+	graphEdges.clear();
+
+    // Process clusters
+    for (const auto& [label, indices] : clusterMembers) {
+        GraphNode node;
+        node.nodeId = label;
+        for (int index : indices) {
+            node.creatorIds.insert(PheromoneList[index].GetCreatorId());
+        }
+        graphNodes[node.nodeId] = node;
+    }
+
+    // Process non-clustered points (noise points)
+    for (int index : nonClusteredPoints) {
+        GraphNode node;
+        node.nodeId = noiseId--;
+        node.creatorIds.insert(PheromoneList[index].GetCreatorId());
+        graphNodes[node.nodeId] = node;
+    }
+
+    // Create edges
+    for (const auto& [id1, node1] : graphNodes) {
+        for (const auto& [id2, node2] : graphNodes) {
+            if (id1 != id2) {
+                // Count common creators
+                int commonCreators = 0;
+                for (const auto& creator : node1.creatorIds) {
+                    if (node2.creatorIds.find(creator) != node2.creatorIds.end()) {
+                        ++commonCreators;
+                    }
+                }
+
+                if (commonCreators > 0) {
+                    GraphEdge edge;
+                    edge.fromNodeId = id1;
+                    edge.toNodeId = id2;
+                    edge.weight = commonCreators;
+                    graphEdges.push_back(edge);
+                }
+            }
+        }
+    }
+}
+
+set<int> CPFA_loop_functions::GetNeighbors(int startNodeID){
+	std::set<int> visited;
+	DFSHelper(startNodeID, visited); // Depth First Search
+	return visited;
+}
+
+void CPFA_loop_functions::DFSHelper(int nodeId, std::set<int>& visited) {
+	
+	visited.insert(nodeId);
+
+	// Iterate through the edges
+	for (const auto& edge : graphEdges) {
+		if (edge.fromNodeId == nodeId) {
+			int destinationNodeId = edge.toNodeId;
+			// Check if the destination node has not been visited
+			if (visited.find(destinationNodeId) == visited.end()) {
+				// Recursively call DFSHelper with the destination node
+				DFSHelper(destinationNodeId, visited);
+			}
+		}
+	}
 }
 
 void CPFA_loop_functions::Terminate(){
@@ -535,6 +782,31 @@ void CPFA_loop_functions::PostExperiment() {
         // for(size_t i=1; i< ForageList.size(); i++) forageDataOutput<<", "<<ForageList[i];
         // forageDataOutput<<"\n";
         // forageDataOutput.close();
+		
+		size_t numIsolatedDetractors = 0;
+		size_t numIsolatedForagers = 0;
+
+		if (useDefense){
+
+			LOG << "Total isolated bots (calculated): " << numIsolatedBots - numUnIsolatedBots << endl;
+
+			for (auto& bot : isolatedBots){
+				if (bot.find("dt") != string::npos){
+					numIsolatedDetractors++;
+				}
+			}
+
+			for (auto& bot : isolatedBots){
+				if (bot.find("fb") != string::npos){
+					numIsolatedForagers++;
+				}
+			}
+
+			LOG << "Total Isolated Detractors: " << numIsolatedDetractors << ", " << "Total Isolated Foragers: " << numIsolatedForagers << endl;
+
+			LOG << "Total Bots Captured: " << AttackerNest.GetNumCapturedRobots() << endl;
+		}
+
 
 		// Write to file ** Ryan Luna 11/17/22
 		ofstream DataOut((FilenameHeader+"AttackData.txt").c_str(), ios::app);
@@ -542,7 +814,11 @@ void CPFA_loop_functions::PostExperiment() {
 		if (DataOut.tellp() == 0){
 
 			DataOut 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
-							<< "Total Robots Captured, Robots Captured (per second)" << endl;
+							<< "Total Robots Captured, Robots Captured (per second), "
+							<< "Real Trails Created, Misleading Trails Created, " 
+							<< "Total Collision Time, Random Seed Used " 
+							<< "Total Robots Isolated, Num False Positives" 
+							<< "Total Isolated Detractors, Total Isolated Foragers" << endl;
 
 							// << "Fake Food Collected, Fake Food Collection Rate (per second), " 
 							// << "Real Food Trails Created, Fake Food Trails Created, False Positives, QZones" << endl;
@@ -551,17 +827,27 @@ void CPFA_loop_functions::PostExperiment() {
 		TotalFoodCollected = RealFoodCollected + FakeFoodCollected;
 
 		DataOut 	<< getSimTimeInSeconds() << ',' << TotalFoodCollected << ',' << TotalFoodCollected/getSimTimeInSeconds() << ','
-						<< AttackerNest.GetNumCapturedRobots() << ',' << AttackerNest.GetNumCapturedRobots()/getSimTimeInSeconds() << endl;
+						<< AttackerNest.GetNumCapturedRobots() << ',' << AttackerNest.GetNumCapturedRobots()/getSimTimeInSeconds() << ','
+						<< numRealTrails << ',' << numFakeTrails << ',' 
+						<< CollisionTime/(2*ticks_per_second) << ',' << RandomSeed << ','
+						<< numIsolatedBots << ',' << IsoFalsePositives << ','
+						<< numIsolatedDetractors << ',' << numIsolatedForagers << endl;
 						
 						// << FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
 						// << numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << ',' << MainNest.GetZoneList().size() << endl;
-      }
+    }
 
 	ofstream TerminateCount ((FilenameHeader+"TerminatedCount.txt").c_str(), ios::app);
 	if(terminate){
 		TerminateCount	<< 0 << ", ";
 	} else {
 		TerminateCount	<< 1 << ", ";
+	}
+
+	// Close Python environment if initialized
+	if (useDefense && Py_IsInitialized()) {
+		Py_Finalize(); 
+		Py_DECREF(pyDbscan);
 	}
 }
 
@@ -580,10 +866,17 @@ void CPFA_loop_functions::UpdatePheromoneList() {
 	for(size_t i = 0; i < PheromoneList.size(); i++) {
 
 		PheromoneList[i].Update(t);
-		if(PheromoneList[i].IsActive()) {
-			new_p_list.push_back(PheromoneList[i]);
-		} else {
+
+		/**
+		 * NOTE: 	Misleading trails that have captured robots will NEVER have an empty traveler list.
+		 * 			When looping through PheromoneList in other functions, keep this in mind.
+		 */
+
+		if(!PheromoneList[i].IsActive() && PheromoneList[i].GetTravelerList().empty()) {
+			/* Trails in the inativePheromoneList should only be those that have "evaporated" and have an empty traveler list. */
 			inactivePheromoneList.push_back(PheromoneList[i]);
+		} else {
+			new_p_list.push_back(PheromoneList[i]);
 		}
 	}
 
@@ -1271,7 +1564,7 @@ void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 					
 					try {
 
-						CVector3 newPosition = GenEntityPosition();
+						CVector3 newPosition = GenCapturePosition();
 						argos::CVector3& curPosition = footBot.GetEmbodiedEntity().GetOriginAnchor().Position;
 						size_t tryCount = 0;
 						const size_t tryLimit = 10;
@@ -1285,7 +1578,7 @@ void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 						 */
     					while ((newPosition - curPosition).SquareLength() > positionThreshold * positionThreshold) {
 
-							newPosition = GenEntityPosition();
+							newPosition = GenCapturePosition();
 
 							// if (robot_id == "fb22") {
 							// 	LOG << "fb22: " << newPosition << endl;
@@ -1324,7 +1617,7 @@ void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 
 					c2->SetAsCaptured();
 
-					LOG << footBot.GetId() << ": Captured and moved." << endl;
+					// LOG << footBot.GetId() << ": Captured and moved." << endl;
 
 				} else {
 					LOG << "CPFA_controller cast failed." << endl;
@@ -1337,7 +1630,7 @@ void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 
 }
 
-CVector3 CPFA_loop_functions::GenEntityPosition(){
+CVector3 CPFA_loop_functions::GenCapturePosition(){
 	argos::CVector2 placementPosition;
 
 
@@ -1372,7 +1665,7 @@ bool CPFA_loop_functions::IsNearRobot(const argos::CVector2& position) {
 		Real d = sqrt( pow(position.GetX() - robotPosition.GetX(), 2) + pow(position.GetY() - robotPosition.GetY(), 2) );
 
         if(d < minDistance) {
-			LOG << "Too close to robot " << footBot.GetId() << endl;
+			// LOG << "Too close to robot " << footBot.GetId() << endl;
             return true; // Too close to a robot
         }
 	}
@@ -1395,9 +1688,50 @@ void CPFA_loop_functions::PushToTrailLog(std::string bot_id, Pheromone P, Real s
 void CPFA_loop_functions::PopFromTrailLog(std::string bot_id){
 	for (size_t i = 0; i < trailLog.size(); i++){
 		if (get<0>(trailLog[i]) == bot_id){
+
 			trailLog.erase(trailLog.begin() + i);
+
+			for (size_t j = 0; j < PheromoneList.size(); j++){
+
+				if (PheromoneList[j].GetLocation() == get<1>(trailLog[i]).GetLocation()){
+
+					if (PheromoneList[j].GetCreatorId() == bot_id){
+
+						PheromoneList[j].SetReturned(true);		// log that a bot has returned to the nest after using this trail
+
+						if (PheromoneList[j].IsMisleading() && bot_id.find("fb") != string::npos){
+							
+							LOGERR << "ERROR: "<< bot_id << " returned from \"Misleading Trail\" at location " << PheromoneList[j].GetLocation() << endl;
+						}
+						break;
+					}
+					
+				}
+			}
 		}
 	}
+}
+
+Pheromone& CPFA_loop_functions::GetTrailFollowed(std::string bot_id){
+	for (size_t i = 0; i < PheromoneList.size(); i++){
+		for (size_t j = 0; j < PheromoneList[i].GetTravelerList().size(); j++){
+			if (PheromoneList[i].GetTravelerList()[j].first == bot_id){
+				return PheromoneList[i];
+			}
+		}
+	}
+	LOGERR << "ERROR: In GetTrailFollowed(): No trail found for " << bot_id << "in PheromoneList." << endl;
+	LOGERR << "In GetTrailFollowed(): Searching in inactivePheromoneList..." << endl;
+	for (size_t i = 0; i < inactivePheromoneList.size(); i++){
+		for (size_t j = 0; j < inactivePheromoneList[i].GetTravelerList().size(); j++){
+			if (inactivePheromoneList[i].GetTravelerList()[j].first == bot_id){
+				LOGERR << "In GetTrailFollowed(): Trail found for " << bot_id << "in inactivePheromoneList." << endl;
+			}
+		}
+	}
+	LOGERR << "ERROR: In GetTrailFollowed(): No trail found for " << bot_id << "in inactivePheromoneList." << endl;
+	Terminate();
+	throw "ERROR: In GetTrailFollowed(): No trail found for " + bot_id;
 }
 
 vector<CVector3> CPFA_loop_functions::GetAtkNestList(){
@@ -1406,6 +1740,548 @@ vector<CVector3> CPFA_loop_functions::GetAtkNestList(){
 		AtkNestList3d.push_back(CVector3(atkNestPos.GetX(), atkNestPos.GetY(), 0.0));
 	}
 	return AtkNestList3d;
+}
+
+Real CPFA_loop_functions::T_estimate(Real d, Real v){
+	if (useFeedbackEq)
+		return (d / v) * k;
+	else
+		// LOG << "uniVelocity: " << uniVelocity << endl;
+		return (d / uniVelocity);
+}
+
+void CPFA_loop_functions::LogReturn(std::string bot_id, Real returnTime, bool returnedFromTrail){
+
+	bool found = false; // this is for error checking
+
+	// LOG << "LogReturn called ... " << endl;
+
+	// for (auto& b_name : tmpNameStorage){
+	// 	if (b_name == bot_id){
+	// 		LOGERR << bot_id << " has returned..." << endl;
+	// 	}
+	// }
+
+	// if (bot_id == "fb22") LOG << "fb22 has returned..." << endl;
+	// loop through the traveler lists of each pheromone object looking for the bot_id (there should only be one)
+	for (size_t i = 0; i < PheromoneList.size(); i++){
+		
+		vector<pair<string, Real>> traveler = PheromoneList[i].GetTravelerList();
+		
+		for (size_t j = 0; j < traveler.size(); j++){
+
+			if (traveler[j].first == bot_id && !found){
+
+				// for (auto& b_name : tmpNameStorage){
+				// 	if (b_name == bot_id){
+				// 		LOGERR << bot_id << " found in traveler list of PheromoneList[" << i << "]" << endl;
+				// 	}
+				// }
+
+				// if (bot_id == "fb22") LOG << bot_id << " found in traveler list of PheromoneList[" << i << "]" << endl;
+
+				found = true;
+
+				if (!PheromoneList[i].HasReturnedARobot() && returnedFromTrail) PheromoneList[i].SetReturned(true);
+
+				/* UPDATE 'k' FOR TRAVEL TIME ESTIMATE */
+
+				// Get travel time estimate
+				CVector2 trailPos = PheromoneList[i].GetLocation();
+				Real trailLength = sqrt( pow(NestPosition.GetX() - trailPos.GetX(), 2) + pow(NestPosition.GetY() - trailPos.GetY(), 2) );
+				Real d = trailLength * 2;	// multiply by 2 to get distance to and from the target location
+				Real v = BotFwdSpeed;	
+				// LOG << "v: " << v << endl;
+
+				// get recorded travel time (return_time - start_time)
+				Real T_actual = returnTime - traveler[j].second;
+
+				/**
+				 * NOTE: 	I am choosing not to add the tolerance to the travel time estimate here. This is
+				 * 			so that even if the actual travel time is only slightly greater than the estimate, 
+				 * 			it doesn't get flagged but we still update for better accuracy
+				 */
+
+				// LOG << "T_actual: " << T_actual << endl;
+				// LOG << "T_estimate: " << T_estimate(d,v) << endl;
+				if (T_actual > T_estimate(d,v)){
+
+					// if (bot_id == "fb22") LOG << "T_actual > T_estimate(d,v)" << endl;
+
+					// LOG << "Travel time estimate exceed upon return..." << endl;
+
+					if (useFeedbackEq){
+						Real epsilon = T_actual - T_estimate(d,v);
+
+						// update correction variable 'k'
+						k = k * (1 + alpha * (epsilon/T_actual));
+					} else {
+						// update unified velocity
+						uniVelocity = d / T_actual;
+						// LOG << "travel time estimate updated (uniVelocity): " << uniVelocity << endl;
+					}
+
+					// update estimate travel time in pheromone object (not sure if this is still necessary as it isn't used anywhere yet)
+					PheromoneList[i].SetEstTravelTime(T_estimate(d,v));
+
+				}
+				if (!useClustering){
+					/**
+					 * When a robot who's exceeded the estimted travel time returns, we must remove a strike against the creator of the trail.
+					 */
+
+					if (isolatedBots.find(PheromoneList[i].GetCreatorId()) != isolatedBots.end()){
+
+						// remove bot from isolation
+						UnIsolateBot(PheromoneList[i].GetCreatorId());
+
+					} 
+					
+					if (strikeMap[PheromoneList[i].GetCreatorId()].find(bot_id) != strikeMap[PheromoneList[i].GetCreatorId()].end()){
+
+						strikeMap[PheromoneList[i].GetCreatorId()].erase(bot_id);
+
+						if (strikeMap[PheromoneList[i].GetCreatorId()].size() == 0){
+
+							strikeMap.erase(PheromoneList[i].GetCreatorId());
+						}
+
+						// a detractor had a strike removed (add to false negatives)
+						if (PheromoneList[i].GetCreatorId().find("dt") != string::npos){
+							falseNegatives++;
+						}
+					}
+
+				/******************************************** CLUSTER & CLUSTER GRAPH DEFENSE *******************************************************/
+				} else {
+
+					// Variables to hold cluster data
+					int clusterLabel = -1;
+					std::unordered_set<std::string> creatorsToProcess;
+					clusterLabel = clusterLabels[i]; // clusterLabels[i] should be the cluster label for the trail at index i
+					// if (bot_id == "fb22") LOG << "In LogReturn(): setting up creatorsToProcess, Cluster Label: " <<  clusterLabel << endl;
+
+					// if clustering only
+					if (useClustering && !useClusterGraph) {
+
+						if (clusterLabel == -1){
+							string creator = PheromoneList[i].GetCreatorId();
+							creatorsToProcess.insert(creator);
+						} else {
+							for (int trailIndex : clusterMembers[clusterLabel]) {
+								string creator = PheromoneList[trailIndex].GetCreatorId();
+								creatorsToProcess.insert(creator);
+							}
+						}
+
+					// if cluster graph
+					} else if (useClustering && useClusterGraph) {
+
+						int nodeId; // Identifier for the node in the graph
+
+						if (clusterLabel == -1){
+
+							// The trail is a noise point, find its unique identifier
+							auto noisePointIt = std::find(nonClusteredPoints.begin(), nonClusteredPoints.end(), i);
+
+							if (noisePointIt != nonClusteredPoints.end()) {
+
+								int noisePointIndex = std::distance(nonClusteredPoints.begin(), noisePointIt);
+								nodeId = -(noisePointIndex + 1);
+							}
+
+						} else nodeId = clusterLabel;
+						// int nodeId = (clusterLabel != -1) ? clusterLabel : GetNoisePointIdentifier(i, nonClusteredPoints);
+						
+						std::set<int> neighbors = GetNeighbors(nodeId);
+						for (int neighborId : neighbors) {
+							for (int trailIndex : clusterMembers[neighborId]) {
+								string creator = PheromoneList[trailIndex].GetCreatorId();
+								creatorsToProcess.insert(creator);
+							}
+						}
+					}
+
+					// if (tmpNameStorage.find(bot_id) != tmpNameStorage.end()){
+					// 	for (const auto& creator : creatorsToProcess){
+					// 		LOG << "bot_id: " << bot_id << endl;
+					// 		LOG << "In LogReturn(): creatorsToProcess.size() = " << creatorsToProcess.size() << endl;
+					// 		LOG << "In LogReturn(): creatorsToProcess: " << creator << endl;
+					// 	}
+					// } else {
+					// 	// LOG << bot_id << ": test" << endl;
+					// }
+
+					if (bot_id == "fb22" && creatorsToProcess.size() > 0){
+						
+						// LOG << "In LogReturn(): " << endl;
+
+						for (const auto& creator : creatorsToProcess){
+							// LOG << "In LogReturn(): creatorsToProcess.size() = " << creatorsToProcess.size() << endl;
+							// LOG << "In LogReturn(): creator in creatorsToProcess: " << creator << endl;
+						}
+					} else {
+						// LOG << "fb22 creatorsToProcess.size() = " << creatorsToProcess.size() << endl;
+					}
+					
+
+					// Remove the bot_id from the strikeMap for each creator in the creatorsToProcess set
+					for (const auto& creator : creatorsToProcess) {
+						if (strikeMap.find(creator) != strikeMap.end()) {
+							// if (creator == "fb13" && bot_id == "fb22") LOGERR << "In LogReturn(): fb22 found fb13 in strikeMap" << endl;
+							strikeMap[creator].erase(bot_id);
+							if (strikeMap[creator].empty()) {
+								strikeMap.erase(creator);
+							}
+						} else if (isolatedBots.find(creator) != isolatedBots.end()) {
+							UnIsolateBot(creator);
+							isolatedBots.erase(creator);
+						} else {
+							// LOG << "In LogReturn(): isolatedBots.size() = " << isolatedBots.size() << endl;
+						}
+					}
+				}
+
+
+					// TODO: If we unisolate robots in connected clusters if a robot returns on a trail in one of the connected clusters, 
+					//			we risk unisolating all detractors if they are all connected. Should we isolate only the creator of the trail 
+					//			that the robot returned on?
+
+				PheromoneList[i].RemoveTraveler(bot_id);
+
+			// We continue to loop through the pheromone traveler lists to check if the bot_id is in any other traveler lists. ** This should not happen **
+			} else if (traveler[j].first == bot_id && found){
+				LOGERR << "ERROR: Multiple instances of " << bot_id << " found in traveler list of pheromone object at location " << PheromoneList[i].GetLocation() << endl;
+				Terminate();
+			}
+		}
+	}
+
+	// The bot_id should be in one of the traveler lists, if not, throw an error (This indicates that there is something wrong with the logic in the controller code)
+	if (!found){
+		bool found2 = false;
+		LOGERR << "ERROR: In LogReturn(): No trail found for " << bot_id << endl;
+		LOGERR << "In LogReturn(): Searching in inactivePheromoneList..." << endl;
+		for (size_t i = 0; i < inactivePheromoneList.size(); i++){
+			for (size_t j = 0; j < inactivePheromoneList[i].GetTravelerList().size(); j++){
+				if (inactivePheromoneList[i].GetTravelerList()[j].first == bot_id){
+					LOGERR << "In LogReturn(): Trail found for " << bot_id << " in inactivePheromoneList." << endl;
+					found2 = true;
+				}
+			}
+		}
+		if (!found2) LOGERR << "ERROR: In LogReturn(): No trail found for " << bot_id << " in inactivePheromoneList." << endl;
+		Terminate();
+	} else {
+		// LOG << bot_id << " return logged successfully..." << endl;
+	}
+}
+
+void CPFA_loop_functions::IsolateBot(std::string bot_id){
+
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		// BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+		if (footBot.GetId() == bot_id){
+			BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+			if (c != nullptr){
+				CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
+				if (c2 != nullptr){
+
+					CEmbodiedEntity& cEmbodiedEntity = footBot.GetEmbodiedEntity();
+					
+					try {
+
+						CVector3 newPosition = GenIsoPosition();
+						argos::CVector3& curPosition = footBot.GetEmbodiedEntity().GetOriginAnchor().Position;
+						size_t tryCount = 0;
+						const size_t tryLimit = 10;
+						const Real positionThreshold = 0.001; 	// Threshold for considering positions as equal 
+																// (for precision errors when comparing floating point numbers)
+
+						/**
+						 * GPT: The multiplication of positionThreshold with itself
+						 * is done to compare the squared distance between the new position and the 
+						 * current position against the squared threshold.
+						 */
+    					while ((newPosition - curPosition).SquareLength() > positionThreshold * positionThreshold) {
+
+							newPosition = GenIsoPosition();
+
+							// if (bot_id == "fb22") {
+							// 	LOG << "fb22: " << newPosition << endl;
+							// }
+							
+							// Attempt to move the entity
+							MoveEntity(
+								cEmbodiedEntity,
+								newPosition,          			// New position
+								argos::CQuaternion()          	// New orientation (identity quaternion means no rotation)
+							);
+
+							curPosition = footBot.GetEmbodiedEntity().GetOriginAnchor().Position;
+
+							// if (newPosition == curPosition) break;		// We can just exit here once these values match
+
+							if (tryCount > tryLimit){
+								LOGERR << "ERROR: Failed to move entity " << footBot.GetId() << endl;
+								Terminate();
+								break;
+							}
+
+							tryCount++;
+						}
+						
+					} catch (const argos::CARGoSException& ex) {
+						// Log the exception details
+						LOGERR << "Exception when moving entity: " << ex.what() << endl;
+					} catch (std::exception& ex) {
+						// Catch any other exceptions that might be thrown
+						LOGERR << "Standard exception when moving entity: " << ex.what() << endl;
+					} catch (...) {
+						// Catch any other non-standard exceptions
+						LOGERR << "An unknown exception occurred when moving entity" << endl;
+					}
+
+					c2->SetAsIsolated();
+
+					LOG << footBot.GetId() << ": Isolated and moved." << endl;
+					if (footBot.GetId().find("fb") != string::npos){
+						IsoFalsePositives++;
+					}
+					numIsolatedBots++;
+
+				} else {
+					LOG << "CPFA_controller cast failed." << endl;
+				}
+			} else {
+				LOG << "BaseController cast failed." << endl;
+			}
+		}
+	}
+}
+
+void CPFA_loop_functions::UnIsolateBot(std::string bot_id){
+	// loop through bots
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		// BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+		if (footBot.GetId() == bot_id){
+			BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+			if (c != nullptr){
+				CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
+				if (c2 != nullptr){
+
+					CEmbodiedEntity& cEmbodiedEntity = footBot.GetEmbodiedEntity();
+					
+					try {
+
+						CVector3 newPosition = GenUnIsoPosition();
+						argos::CVector3& curPosition = footBot.GetEmbodiedEntity().GetOriginAnchor().Position;
+						size_t tryCount = 0;
+						const size_t tryLimit = 10;
+						const Real positionThreshold = 0.001; 	// Threshold for considering positions as equal 
+																// (for precision errors when comparing floating point numbers)
+
+						/**
+						 * GPT: The multiplication of positionThreshold with itself
+						 * is done to compare the squared distance between the new position and the 
+						 * current position against the squared threshold.
+						 */
+						while ((newPosition - curPosition).SquareLength() > positionThreshold * positionThreshold) {
+
+							newPosition = GenUnIsoPosition();
+
+							// if (bot_id == "fb22") {
+							// 	LOG << "fb22: " << newPosition << endl;
+							// }
+							
+							// Attempt to move the entity
+							MoveEntity(
+								cEmbodiedEntity,
+								newPosition,          			// New position
+								argos::CQuaternion()          	// New orientation (identity quaternion means no rotation)
+							);
+
+							curPosition = footBot.GetEmbodiedEntity().GetOriginAnchor().Position;
+
+							// if (newPosition == curPosition) break;		// We can just exit here once these values match
+
+							if (tryCount > tryLimit){
+								LOGERR << "ERROR: Failed to move entity (unisolation)" << footBot.GetId() << endl;
+								Terminate();
+								break;
+							}
+						}
+
+						} catch (const argos::CARGoSException& ex) {
+						// Log the exception details
+						LOGERR << "Exception when moving entity: " << ex.what() << endl;
+					} catch (std::exception& ex) {
+						// Catch any other exceptions that might be thrown
+						LOGERR << "Standard exception when moving entity: " << ex.what() << endl;
+					} catch (...) {
+						// Catch any other non-standard exceptions
+						LOGERR << "An unknown exception occurred when moving entity" << endl;
+					}
+
+					c2->SetUnIsolated();
+
+					LOG << footBot.GetId() << ": Unisolated and returned to arena." << endl;
+					if (footBot.GetId().find("dt") != string::npos){
+						UnIsoFalsePositives++;
+					}
+					numUnIsolatedBots++;
+
+				} else {
+					LOG << "CPFA_controller cast failed." << endl;
+				}
+			} else {
+				LOG << "BaseController cast failed." << endl;
+			}
+		}
+	}
+}
+
+CVector3 CPFA_loop_functions::GenUnIsoPosition(){
+	argos::CVector2 placementPosition;
+
+	// Generate a random placement within the holding area
+	placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+
+	// make sure it isn't colliding with anything (like another robot)
+	while(IsNearRobot(placementPosition)) {
+		placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+	}
+
+	// LOG << "PlacementPosition: " << CVector3(placementPosition.GetX(), placementPosition.GetY(), 0.0) << endl;
+	return CVector3(placementPosition.GetX(), placementPosition.GetY(), 0.0);
+}
+
+CVector3 CPFA_loop_functions::GenIsoPosition(){
+	argos::CVector2 placementPosition;
+
+    // Define the holding area ranges
+    argos::CRange<argos::Real> HoldingRangeX(-5.85, -5.15);
+    argos::CRange<argos::Real> HoldingRangeY(-4.85, 4.85);
+
+	// Generate a random placement within the holding area
+	placementPosition.Set(RNG->Uniform(HoldingRangeX), RNG->Uniform(HoldingRangeY));
+
+	// make sure it isn't colliding with anything (like another robot)
+	while(IsNearRobot(placementPosition)) {
+		placementPosition.Set(RNG->Uniform(HoldingRangeX), RNG->Uniform(HoldingRangeY));
+	}
+
+	// LOG << "PlacementPosition: " << CVector3(placementPosition.GetX(), placementPosition.GetY(), 0.0) << endl;
+	return CVector3(placementPosition.GetX(), placementPosition.GetY(), 0.0);
+}
+
+bool CPFA_loop_functions::SetupPythonEnvironment(){
+
+	Py_Initialize();
+	if(Py_IsInitialized()){
+		LOG << "Python version: " << Py_GetVersion() << endl;
+	} else {
+		LOGERR << "ERROR: Python failed to initialize." << endl;
+		return 0;	
+	}
+
+	
+	PyObject *sys = PyImport_ImportModule("sys");
+	PyObject *path = PyObject_GetAttrString(sys, "path");
+	PyList_Append(path, PyUnicode_FromString("/home/Ryan/Foraging_Swarm_Defense/CPFA/source/CPFA"));
+	PyObject *repr = PyObject_Repr(path);
+	const char* s = PyUnicode_AsUTF8(repr);
+	// LOG << "Python path: " << s << endl;
+	Py_DECREF(repr);
+	Py_DECREF(path);
+	Py_DECREF(sys);
+
+	// Load the module
+	pyFileName = PyUnicode_FromString("dbscan");
+	if (pyFileName == NULL) {
+		LOG << "Error converting module name to PyUnicode" << std::endl;
+		Py_Finalize();
+		return 0;
+	}
+
+	pyModule = PyImport_Import(pyFileName);
+	Py_DECREF(pyFileName);
+
+	if (pyModule == NULL) {
+		LOG << "Failed to load Python module" << std::endl;
+		Py_Finalize();
+		return 0;
+	}
+
+	// Load the function from the module
+	pyDbscan = PyObject_GetAttrString(pyModule, "run_dbscan");
+	Py_DECREF(pyModule);
+
+	if (pyDbscan == NULL || !PyCallable_Check(pyDbscan)) {
+		if (PyErr_Occurred()) {
+			PyErr_Print();
+		}
+		LOG << "Failed to load Python function" << std::endl;
+		Py_XDECREF(pyDbscan);
+		Py_Finalize();
+		return 0;
+	}
+
+	return 1;
+}
+
+vector<int> CPFA_loop_functions::RunDBSCAN(std::vector<std::pair<double, double>> dataset){
+
+	// LOG << "SearchRadius: " << SearchRadius << endl;
+	PyObject* pyarg_Epsilon = PyFloat_FromDouble(SearchRadius); 
+	PyObject* pyarg_MinSamples = PyLong_FromLong(2); 
+	PyObject* pyarg_Dataset = PyList_New(0); // Assuming dataset is a std::vector<std::pair<double, double>>
+	for (const auto& point : dataset) {
+		PyObject* pytmp_Point = Py_BuildValue("(dd)", point.first, point.second);
+		PyList_Append(pyarg_Dataset, pytmp_Point);
+		Py_DECREF(pytmp_Point);
+	}
+
+	pyDbscanArgs = PyTuple_Pack(3, pyarg_Epsilon, pyarg_MinSamples, pyarg_Dataset);
+
+	// Call the function with arguments
+	pyCallDbscan = PyObject_CallObject(pyDbscan, pyDbscanArgs);
+	// Py_DECREF(pyDbscan);
+	Py_DECREF(pyDbscanArgs);
+	Py_DECREF(pyarg_Epsilon);
+	Py_DECREF(pyarg_MinSamples);
+	Py_DECREF(pyarg_Dataset);
+
+	if (pyCallDbscan == NULL) {
+		PyErr_Print();
+		throw std::runtime_error("Error calling Python function");
+	}
+
+	std::vector<int> labels;
+
+    // Assuming pyCallDbscan is the PyObject* returned by calling the Python function
+    if (PyList_Check(pyCallDbscan)) {
+        Py_ssize_t listSize = PyList_Size(pyCallDbscan);
+
+        for (Py_ssize_t i = 0; i < listSize; ++i) {
+            PyObject* pLabel = PyList_GetItem(pyCallDbscan, i);
+            int label = PyLong_AsLong(pLabel);
+            labels.push_back(label);
+        }
+    }
+
+    Py_DECREF(pyCallDbscan);
+
+    return labels;
+}
+
+vector<pair<CVector2, int>>& CPFA_loop_functions::GetClusterList(){
+	return clusterList;
 }
 
 REGISTER_LOOP_FUNCTIONS(CPFA_loop_functions, "CPFA_loop_functions")

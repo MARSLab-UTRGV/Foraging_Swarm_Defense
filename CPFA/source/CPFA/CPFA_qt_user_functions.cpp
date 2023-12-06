@@ -60,6 +60,7 @@ void CPFA_qt_user_functions::DrawOnArena(CFloorEntity& entity) {
 	DrawPheromones();
 	DrawNest();
 	DrawQuarantineZone();
+	DrawClusters();
 
 	if(loopFunctions.DrawTargetRays == 1) DrawTargetRays();
 }
@@ -203,6 +204,49 @@ void CPFA_qt_user_functions::DrawQuarantineZone() {			// Ryan Luna 1/24/23
 	zonelist.clear();
 }
 
+void CPFA_qt_user_functions::DrawClusters() {			// Ryan Luna 1/24/23
+
+	// Define a set of custom colors to be used for clusters
+	const std::vector<argos::CColor> clusterColors = {
+		argos::CColor(0, 0, 255, 128),                       // Blue
+    	argos::CColor(255, 255, 0, 128),                     // Yellow
+    	argos::CColor(0, 255, 255, 128),                     // Cyan
+		argos::CColor(255, 0, 255, 128),                     // Magenta
+		argos::CColor(255, 165, 0, 128),                     // Orange
+		argos::CColor(0, 0, 128, 128),                       // Navy Blue
+		argos::CColor(135, 206, 235, 128),                   // Sky Blue
+		// argos::CColor(0, 255, 0, 128),                       // Lime				kinda looks like green (the nest is green)
+		argos::CColor(64, 224, 208, 128),                    // Turquoise
+		argos::CColor(128, 0, 128, 128),                     // Purple
+		argos::CColor(255, 192, 203, 128),                   // Pink
+		argos::CColor(210, 180, 140, 128),                   // Tan
+		argos::CColor(245, 245, 220, 128),                   // Beige
+		argos::CColor(0, 128, 128, 128),                     // Teal
+		argos::CColor(128, 0, 0, 128),                       // Maroon
+		argos::CColor(128, 128, 0, 128),                     // Olive
+		argos::CColor(255, 127, 80, 128),                    // Coral
+		argos::CColor(0, 255, 255, 128),                     // Aqua
+		argos::CColor(75, 0, 130, 128),                      // Indigo
+		argos::CColor(255, 215, 0, 128),                     // Gold
+		argos::CColor(192, 192, 192, 128),                   // Silver
+		argos::CColor(221, 160, 221, 128),                   // Plum
+		argos::CColor(102, 51, 153, 128),                    // Violet
+		argos::CColor(128, 128, 128, 128),                   // Gray
+		argos::CColor(165, 42, 42, 128)                      // Brown
+	};
+
+
+	for (const auto& [position, clusterId] : loopFunctions.GetClusterList()) {
+		if (clusterId != -1){
+			// Assign a color to each cluster based on its ID
+			const argos::CColor& color = clusterColors[clusterId % clusterColors.size()];
+			
+			// Draw a cylinder at the cluster position
+			DrawCylinder(CVector3(position.GetX(), position.GetY(), 0.0), CQuaternion(), loopFunctions.SearchRadius, 0.008, color);
+		}
+	}
+}
+
 void CPFA_qt_user_functions::DrawFood() {
 
 	Real x, y;
@@ -241,47 +285,69 @@ void CPFA_qt_user_functions::DrawPheromones() {
 	vector<CVector2> trail;
 	CColor trailColor = CColor::GREEN, pColor = CColor::GREEN;
 
-	    for(size_t i = 0; i < loopFunctions.PheromoneList.size(); i++) {
-		       x = loopFunctions.PheromoneList[i].GetLocation().GetX();
-		       y = loopFunctions.PheromoneList[i].GetLocation().GetY();
+	for(size_t i = 0; i < loopFunctions.PheromoneList.size(); i++) {
 
-		       if(loopFunctions.DrawTrails == 1) {
-			          trail  = loopFunctions.PheromoneList[i].GetTrail();
-			          weight = loopFunctions.PheromoneList[i].GetWeight();
-                
+		if (loopFunctions.PheromoneList[i].IsActive()){
+			x = loopFunctions.PheromoneList[i].GetLocation().GetX();
+			y = loopFunctions.PheromoneList[i].GetLocation().GetY();
 
-             if(weight > 0.25 && weight <= 1.0)        // [ 100.0% , 25.0% )
-                 pColor = trailColor = CColor::GREEN;
-             else if(weight > 0.05 && weight <= 0.25)  // [  25.0% ,  5.0% )
-                 pColor = trailColor = CColor::YELLOW;
-             else                                      // [   5.0% ,  0.0% ]
-                 pColor = trailColor = CColor::RED;
-      
-             CRay3 ray;
-             size_t j = 0;
-      
-             for(j = 1; j < trail.size(); j++) {
-                 ray = CRay3(CVector3(trail[j - 1].GetX(), trail[j - 1].GetY(), 0.01),
-		CVector3(trail[j].GetX(), trail[j].GetY(), 0.01));
-                 
-                 DrawRay(ray, trailColor, 1.0);
-             }
+			if(loopFunctions.DrawTrails == 1) {
+				trail  = loopFunctions.PheromoneList[i].GetTrail();
+				weight = loopFunctions.PheromoneList[i].GetWeight();
 
-	 DrawCylinder(CVector3(x, y, 0.0), CQuaternion(), loopFunctions.FoodRadius, 0.025, pColor);
-		       } 
-         else {
-			          weight = loopFunctions.PheromoneList[i].GetWeight();
+				if(weight > 0.25 && weight <= 1.0)        // [ 100.0% , 25.0% )
+					pColor = trailColor = CColor::GREEN;
+				else if(weight > 0.05 && weight <= 0.25)  // [  25.0% ,  5.0% )
+					pColor = trailColor = CColor::YELLOW;
+				else                                      // [   5.0% ,  0.0% ]
+					pColor = trailColor = CColor::RED;
 
-             if(weight > 0.25 && weight <= 1.0)        // [ 100.0% , 25.0% )
-                 pColor = CColor::GREEN;
-             else if(weight > 0.05 && weight <= 0.25)  // [  25.0% ,  5.0% )
-                 pColor = CColor::YELLOW;
-             else                                      // [   5.0% ,  0.0% ]
-                 pColor = CColor::RED;
-      
-             DrawCylinder(CVector3(x, y, 0.0), CQuaternion(), loopFunctions.FoodRadius, 0.025, pColor);
-         }
- }
+				CRay3 ray;
+				size_t j = 0;
+
+				for(j = 1; j < trail.size(); j++) {
+					ray = CRay3(CVector3(trail[j - 1].GetX(), trail[j - 1].GetY(), 0.01),
+								CVector3(trail[j].GetX(), trail[j].GetY(), 0.01));
+
+					DrawRay(ray, trailColor, 1.0);
+				}
+
+				DrawCylinder(CVector3(x, y, 0.0), CQuaternion(), loopFunctions.FoodRadius, 0.025, pColor);
+			} 
+			else {
+				weight = loopFunctions.PheromoneList[i].GetWeight();
+
+				if(weight > 0.25 && weight <= 1.0)        // [ 100.0% , 25.0% )
+					pColor = CColor::GREEN;
+				else if(weight > 0.05 && weight <= 0.25)  // [  25.0% ,  5.0% )
+					pColor = CColor::YELLOW;
+				else                                      // [   5.0% ,  0.0% ]
+					pColor = CColor::RED;
+
+				DrawCylinder(CVector3(x, y, 0.0), CQuaternion(), loopFunctions.FoodRadius, 0.025, pColor);
+			}
+		} else {
+			x = loopFunctions.PheromoneList[i].GetLocation().GetX();
+			y = loopFunctions.PheromoneList[i].GetLocation().GetY();
+			
+			if (loopFunctions.DrawTrails == 1) {
+				// draw the inactive trail as grey
+				trail = loopFunctions.PheromoneList[i].GetTrail();
+				CRay3 ray;
+				size_t j = 0;
+
+				for(j = 1; j < trail.size(); j++) {
+					ray = CRay3(CVector3(trail[j - 1].GetX(), trail[j - 1].GetY(), 0.01),
+								CVector3(trail[j].GetX(), trail[j].GetY(), 0.01));
+
+					// opaque gray
+					CColor gray = CColor(CColor::GRAY50.GetRed(), CColor::GRAY50.GetGreen(), CColor::GRAY50.GetBlue(), 128); // Set the alpha channel to 128 (50% opacity)
+
+					DrawRay(ray, gray, 1.0);
+				}
+			}
+		}
+	}
 }
 
 void CPFA_qt_user_functions::DrawTargetRays() {

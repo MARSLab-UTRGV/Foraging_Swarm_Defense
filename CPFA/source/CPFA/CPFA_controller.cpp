@@ -21,7 +21,6 @@ CPFA_controller::CPFA_controller() :
 	Detractor_state(_HOME_),
 	LoopFunctions(NULL),
 	survey_count(0),
-	isUsingPheromone(0),
     SiteFidelityPosition(1000, 1000), 
 	travelingTime(0),
 	startTime(0),
@@ -32,7 +31,11 @@ CPFA_controller::CPFA_controller() :
 	FFdetectionAcc(0.0),
 	RFdetectionAcc(0.0),
 	isCaptured(false),
-	reachedInformedTarget(false)
+	reachedInformedTarget(false),
+	isUsingPheromone(false),
+	isIsolated(false),
+	returnedFromTrail(false),
+	randomizeAtkNest(true)
 {
 }
 
@@ -62,6 +65,7 @@ void CPFA_controller::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings, "FFdetectionAcc",				FFdetectionAcc);
 	argos::GetNodeAttribute(settings, "RFdetectionAcc",				RFdetectionAcc);
 	argos::GetNodeAttribute(settings, "UseMisleadingTrailAttack",	UseMTAtk);
+	argos::GetNodeAttribute(settings, "RandomizeAtkNest",			randomizeAtkNest);
 
 	CVector2 AtkNest1Position;
 	CVector2 AtkNest2Position;
@@ -184,9 +188,7 @@ void CPFA_controller::Reset() {
 /****************************************************************************/
 /*                           OTHER FUNCTIONS                                */
 /****************************************************************************/
-bool CPFA_controller::IsCaptured(){
-	return isCaptured;
-}
+
 /**
  * We actually don't need this as the detractors are now going to start in the center with the rest of the robots
  */
@@ -199,6 +201,53 @@ void CPFA_controller::SetDetractorStartPosition(CVector2 atkNestPosition) {
 void CPFA_controller::SetInitAtkNestPos(CVector2 P){
 	AtkNestPos = P;
 }
+
+void CPFA_controller::Captured() {
+	
+	Stop();
+	// Wait(10);
+	// argos::LOG << "Robot " << GetId() << " is captured by attackers." << endl;
+	if (!isCaptured) LoopFunctions->CaptureRobotInAtkNest(GetId());
+
+}
+
+void CPFA_controller::SetAsCaptured(){
+	isCaptured = true;
+}
+
+bool CPFA_controller::IsCaptured(){
+	return isCaptured;
+}
+
+void CPFA_controller::Isolated(){
+	Stop();
+	// if (!isIsolated) LoopFunctions->IsolateBot(GetId());
+}
+
+void CPFA_controller::SetAsIsolated(){
+	isIsolated = true;
+	CPFA_state = ISOLATED;
+}
+
+bool CPFA_controller::IsIsolated(){
+	return isIsolated;
+}
+
+void CPFA_controller::SetUnIsolated(){
+	isIsolated = false;
+	SetRandomSearchLocation();
+	isInformed = false;
+	reachedInformedTarget = false;
+	isWronglyInformed = false;
+	isUsingSiteFidelity = false;
+	isGivingUpSearch = false;
+	CPFA_state = DEPARTING;   
+	isHoldingFood = false;
+	isHoldingFakeFood = false;
+	travelingTime+=SimulationTick()-startTime;
+	startTime = SimulationTick();
+}
+
 /****************************************************************************/
 /*                           CPFA FUNCTIONS                                 */
 /****************************************************************************/
@@ -251,6 +300,10 @@ void CPFA_controller::CPFA() {
 			// LOG << controllerID << ": Is in the captured state." << endl;
 			Captured();
 			break;
+		case ISOLATED:
+			// LOG << controllerID << ": Is in the isolated state." << endl;
+			Isolated();
+			break;
 	}
 }
 
@@ -288,6 +341,7 @@ void CPFA_controller::Departing()
 				Stop();
 				SearchTime = 0;
 				CPFA_state = SEARCHING;
+				returnedFromTrail = false;
 				travelingTime+=SimulationTick()-startTime;//qilu 10/22
 				startTime = SimulationTick();//qilu 10/22
 				
@@ -312,6 +366,7 @@ void CPFA_controller::Departing()
 	
 	/* Are we informed? I.E. using site fidelity or pheromones. */	
 	if(isInformed && distanceToTarget < TargetDistanceTolerance && !isWronglyInformed) {
+
 		SearchTime = 0;
 		reachedInformedTarget = false;
 		CPFA_state = SEARCHING;
@@ -334,6 +389,7 @@ void CPFA_controller::Departing()
 			// LOG << "In Departing(): Setting target to main nest..." << endl;
 			// SetTarget(LoopFunctions->NestPosition);
 			CPFA_state = SEARCHING;
+			returnedFromTrail = false;
 			/* Do we let detractors follow misleading trails?...*/
 		} else {
 			// if (isDetractor){
@@ -342,6 +398,8 @@ void CPFA_controller::Departing()
 			// }
 			/*TODO: Wondering if to treat like nest where if at target but not in attacker nest, randomly search */
 		}
+	} else if (isWronglyInformed && distanceToTarget > TargetDistanceTolerance){
+		// if (controllerID == "fb02") LOG << "fb02: Wrongly informed." << endl << "fb02: TrailToFollow.size() = " << TrailToFollow.size() << endl;
 	}
 
 }
@@ -592,38 +650,46 @@ void CPFA_controller::Returning() {
 				 * 
 				 * Ryan Luna 01/25/23
 				*/
-				if (isDetractor){
+				
+				if(updateFidelity) {
 
-					// LOG << controllerID << " Laying Pheromone..." << endl;
-					// LOG << controllerID << "Attack Nest Position: " << AtkNestPos << endl;
-					LoopFunctions->numFakeTrails++;
-					TrailToShare.push_back(AtkNestPos);
-					TrailToShare.push_back(LoopFunctions->NestPosition);
-					argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
-					Pheromone sharedPheromone(AtkNestPos, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, true, controllerID);
-					LoopFunctions->PheromoneList.push_back(sharedPheromone);
-					sharedPheromone.Deactivate(); 
+					if (poissonCDF_pLayRate > r1){
 
-				}else if(poissonCDF_pLayRate > r1 && updateFidelity) {
+						if (isDetractor){
 
-					LoopFunctions->numFakeTrails++;
-					TrailToShare.push_back(SiteFidelityPosition);	// moved from SetLocalResourseDensity() Ryan Luna 02/05/23
-					TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
-					argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
-					Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood, controllerID);
-					LoopFunctions->PheromoneList.push_back(sharedPheromone);
-					sharedPheromone.Deactivate(); // make sure this won't get re-added later...
+							// LOG << controllerID << " Laying Pheromone..." << endl;
+							// LOG << controllerID << "Attack Nest Position: " << AtkNestPos << endl;
+							LoopFunctions->numFakeTrails++;
+							TrailToShare.push_back(AtkNestPos);
+							TrailToShare.push_back(LoopFunctions->NestPosition);
+							argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+							Pheromone sharedPheromone(AtkNestPos, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, true, controllerID);
+							LoopFunctions->PheromoneList.push_back(sharedPheromone);
+							sharedPheromone.Deactivate(); 
+						} else {
+
+							LoopFunctions->numRealTrails++;
+							TrailToShare.push_back(SiteFidelityPosition);	// moved from SetLocalResourseDensity() Ryan Luna 02/05/23
+							TrailToShare.push_back(LoopFunctions->NestPosition); //qilu 07/26/2016
+							argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+							Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood, controllerID);
+							LoopFunctions->PheromoneList.push_back(sharedPheromone);
+							sharedPheromone.Deactivate(); // make sure this won't get re-added later...
+						}
+
+						// LOG << controllerID << ": *** SUCCESS ***" << endl;
+					} else {
+						// LOG << controllerID << ": *** FAILED ***" << endl;
+						// LOG << controllerID << ": r1 = " << r1 << ", poissonCDF_pLayRate = " << poissonCDF_pLayRate << ", Resource Density = " << ResourceDensity << endl;
+					}
 				}
+				
 
-					TrailToShare.clear();
+				TrailToShare.clear();
 				// the nest will detect real food with <RFdetectionAcc> accuracy.
 				Real random = RNG->Uniform(CRange<Real>(0.0, 1.0));
 				
-				if (random <= RFdetectionAcc) {	// passed real food detection probability
-
-				} else {	// TREAT IT AS FAKE FOOD
-
-				}
+				
 			} else {	// IF HOLDING FAKE FOOD
 
 				LoopFunctions->FakeFoodCollected++;
@@ -659,7 +725,7 @@ void CPFA_controller::Returning() {
 					}
 				} else { // TREAT IT AS REAL FOOD
 					LOG << "False Positive Collected..." << endl;
-					LoopFunctions->numFalsePositives++;		// increment number of false positives on real food detected
+					LoopFunctions->ffatk_FalsePositives++;		// increment number of false positives on real food detected
 					//argos::LOG << "Real Food Aquired" << endl;
 					// num_targets_collected++;
 					// LoopFunctions->currNumCollectedFood++;
@@ -688,12 +754,12 @@ void CPFA_controller::Returning() {
 					TrailToShare.clear(); 
 				}
 			}
-
-			// if this robot used a trail to go get food, erase it from the log
-			LoopFunctions->PopFromTrailLog(controllerID);
+			
 			//TODO: Consider using TrailToFollow.clear() to erase it. Currently the CPFA code does not have this.
 			// It probably doesn't need it unless we begin to access TrailToFollow in other places like the loopfunctions. 
 			// This way TrailToFollow doesn't hold old data (e.g. a trail that has been used and the robot has returned from it).
+
+			TrailToFollow.clear();
 	    }
 
 		// Get Quarantine Zone info from nest		// Ryan Luna 01/24/23
@@ -704,6 +770,11 @@ void CPFA_controller::Returning() {
 			}
 		}
 
+		// Log the return (used for defense method)
+		// LOG << "Calling LogReturn() from controller..." << endl;
+		// LOG << "isUsingPheromone: " << isUsingPheromone << endl;
+		if (isUsingPheromone) LoopFunctions->LogReturn(controllerID, (argos::Real)(SimulationTick() / SimulationTicksPerSecond()), returnedFromTrail);
+		
 		/**
 		 * Determine probabilistically whether to use site fidelity, pheromone
 	     * trails, or random search.
@@ -718,12 +789,17 @@ void CPFA_controller::Returning() {
 		 * Ryan Luna 01/25/23
 		*/
 
+		isUsingPheromone = false;
+		returnedFromTrail = false;
+
 		// use pheromone waypoints
 		if(SetTargetPheromone()) {
 			SetIsHeadingToNest(false);
 			isInformed = true;
 			reachedInformedTarget = false;
 			isUsingSiteFidelity = false;
+			isUsingPheromone = true;
+			returnedFromTrail = true;
 			// isWronglyInformed = false;
 		}
 	    // use site fidelity
@@ -772,23 +848,6 @@ void CPFA_controller::Returning() {
         SetTarget(turn_vector + GetPosition());
         }
     }
-}
-
-void CPFA_controller::Captured() {
-	
-	Stop();
-	// Wait(10);
-	// argos::LOG << "Robot " << GetId() << " is captured by attackers." << endl;
-	if (!isCaptured) LoopFunctions->CaptureRobotInAtkNest(GetId());
-
-}
-
-void CPFA_controller::SetAsCaptured(){
-	isCaptured = true;
-}
-
-bool CPFA_controller::GetCaptureStatus(){
-	return isCaptured;
 }
 
 bool CPFA_controller::TargetOutOfBounds(argos::CVector2 p) {
@@ -947,19 +1006,29 @@ void CPFA_controller::SetHoldingFood() {
 			SetLocalResourceDensity();
 			
 			if (isDetractor){
-				
-				bool initAtkNestPos = false;
-				for (CVector2 nestPosition : LoopFunctions->AtkNestPositions){
-					
-					if (!initAtkNestPos){
-						AtkNestPos = nestPosition;
-						initAtkNestPos = true;
-					}
-					if ((nestPosition - foodLoc).SquareLength() < (AtkNestPos - foodLoc).SquareLength()){
-						AtkNestPos = nestPosition;
-						// LOG << "AtkNestPos being set: " << AtkNestPos << endl;
+
+				if (randomizeAtkNest){
+
+					Real random = RNG->Uniform(CRange<Real>(0, LoopFunctions->AtkNestPositions.size()-1));
+					AtkNestPos = LoopFunctions->AtkNestPositions[random];
+
+				} else {
+
+					bool initAtkNestPos = false;
+					for (CVector2 nestPosition : LoopFunctions->AtkNestPositions){
+						
+						if (!initAtkNestPos){
+							AtkNestPos = nestPosition;
+							initAtkNestPos = true;
+						}
+						if ((nestPosition - foodLoc).SquareLength() < (AtkNestPos - foodLoc).SquareLength()){
+							AtkNestPos = nestPosition;
+							// LOG << "AtkNestPos being set: " << AtkNestPos << endl;
+						}
+
 					}
 				}
+				
 			}
 		}
 	}
@@ -1091,7 +1160,7 @@ bool CPFA_controller::SetTargetPheromone() {
 
 	/* Randomly select an active pheromone to follow. */
 	for(size_t i = 0; i < LoopFunctions->PheromoneList.size(); i++) {
-		if(randomWeight < LoopFunctions->PheromoneList[i].GetWeight()) {
+		if(randomWeight < LoopFunctions->PheromoneList[i].GetWeight() && LoopFunctions->PheromoneList[i].IsActive()) {
 			/* We've chosen a pheromone! */
 			SetIsHeadingToNest(false);
           	SetTarget(LoopFunctions->PheromoneList[i].GetLocation());
@@ -1100,14 +1169,17 @@ bool CPFA_controller::SetTargetPheromone() {
 			isWronglyInformed = LoopFunctions->PheromoneList[i].IsMisleading();
 			argos::Real curTimeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
 			LoopFunctions->PushToTrailLog(controllerID, LoopFunctions->PheromoneList[i], curTimeInSeconds);
+			//if (controllerID == "dt0") LOG << "dt0: " << "added to traveler list: " << LoopFunctions->PheromoneList[i].GetLocation() << endl;
+			LoopFunctions->PheromoneList[i].AddTraveler(make_pair(controllerID, curTimeInSeconds));
 			
 			if (isWronglyInformed && UseMTAtk) {
+				//if (controllerID == "dt0") LOG << controllerID << ": Is following a misleading trail." << endl;
 				if (!isDetractor){
-					LOG << controllerID << ": Is following a misleading trail." << endl;
 				}
-			} else if (isWronglyInformed && !UseMTAtk) {
-				LOG << "WARNING: " << controllerID << ": Is following a misleading trail while attack is disabled." << endl;
-			}
+				// if (controllerID == "fb02" && isWronglyInformed) LOG << "fb02: Wrongly informed on Pheromone Trail created by: " << LoopFunctions->PheromoneList[i].GetCreatorId()
+				// 	<< ": " << LoopFunctions->PheromoneList[i].IsActive() << endl;
+
+			} 
           	/* If we pick a pheromone, break out of this loop. */
           	break;
     	}
@@ -1121,7 +1193,6 @@ bool CPFA_controller::SetTargetPheromone() {
 	//log_output_stream << "Found: " << LoopFunctions->PheromoneList.size()  << " waypoints." << endl;
 	//log_output_stream << "Follow waypoint?: " << isPheromoneSet << endl;
 	//log_output_stream.close();
-
 	return isPheromoneSet;
 }
 
@@ -1193,10 +1264,13 @@ argos::Real CPFA_controller::GetPoissonCDF(argos::Real k, argos::Real lambda) {
 	argos::Real sumAccumulator       = 1.0;
 	argos::Real factorialAccumulator = 1.0;
 
+
 	for (size_t i = 1; i <= floor(k); i++) {
 		factorialAccumulator *= i;
 		sumAccumulator += pow(lambda, i) / factorialAccumulator;
 	}
+
+	// LOG << controllerID << ": k = " << k << ", floor(k) = " << floor(k) << ", lambda = " << lambda << ", Pois = " << exp(-lambda) * sumAccumulator << endl;
 
 	return (exp(-lambda) * sumAccumulator);
 }

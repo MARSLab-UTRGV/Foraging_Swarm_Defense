@@ -13,6 +13,9 @@ class C_XML_CONFIG:
 
         self.PFS = "1"                           # Print Final Score
 
+        self.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+
 
         # Default distribution parameters are for Random Distribution
         # Use setDistribution() to use the correct parameters for the
@@ -119,10 +122,10 @@ class C_XML_CONFIG:
         self.NUM_DETRACTORS_NEST4 =   0                         # Number of detractor robots in nest_4
         self.USE_MTATK =            "false"                     # Turn on/off misleading trail attack
         self.NUM_ATK_NESTS =    1                               # Number of attacker nests (MAX = 4)
+        self.RAND_ATK_NEST =    "true"                         # Randomize attacker nest location
         
         self.NEST_RAD =          0.25                    # Nest radius
         self.ATK_NEST_RAD =      self.NEST_RAD/2         # Attacker nest radius
-        self.TTT =               0.15                    # Travel Time Tolerance
 
         self.VFP =               0                       # Variable food placement
         self.FOOD_RAD =          0.05                    # Food radius
@@ -131,12 +134,50 @@ class C_XML_CONFIG:
         self.fname_header = "\0"                         # Filename Header
         self.num_iterations = iterations                 # Number of Experiment Iterations
 
-    def setDetractorPercentage(self, percent):
+        ########### Defense Parameters ###########
+        self.USE_DEF =           "false"                 # Turn on/off defense
+        self.USE_DEF_RB =        "false"                 # Turn on/off return boolean for defense
+        self.USE_DEF_CL =        "false"                 # Turn on/off trail clustering for defense
+        self.USE_DEF_CG =        "false"                 # Turn on/off cluster graph for defense
+        self.FLW =               0.0                     # Feedback Loop Weight (0-1)
+        self.STRIKE_LIMIT =      3                       # Strike limit (number of strikes before a bot gets isolated)
+        self.TTT =               0.15                    # Travel Time Tolerance
+        self.USFB =              "false"                 # Use feedback equation (if false, use unified velocity)
+
+    def UseDefenseMethod(self, useDef):
+        if (useDef):
+            self.USE_DEF = 'true'
+        else:
+            self.USE_DEF = 'false'
+    
+    def UseDefenseReturnBoolean(self, useDefRB):
+        if (useDefRB):
+            self.USE_DEF_RB = 'true'
+        else:
+            self.USE_DEF_RB = 'false'
+
+    def UseDefenseClustering(self, useDefCL):
+        if (useDefCL):
+            self.USE_DEF_CL = 'true'
+        else:
+            self.USE_DEF_CL = 'false'
+    
+    def UseDefenseClusterGraph(self, useDefCG):
+        if (useDefCG):
+            self.USE_DEF_CG = 'true'
+        else:
+            self.USE_DEF_CG = 'false'
+
+    def setDetractorPercentage(self, percent, static_foragers=False):
         if percent > 100 or percent < 0:
             raise Exception("ERROR: Invalid detractor percentage given...")
-        self.D_BOT_COUNT = math.floor(self.T_BOT_COUNT * (percent/100))
-        self.BOT_COUNT = self.T_BOT_COUNT - self.D_BOT_COUNT
-        self.BOTS_PER_GROUP = self.BOT_COUNT/4
+        if not static_foragers:
+            self.D_BOT_COUNT = math.floor(self.T_BOT_COUNT * (percent/100))
+            self.BOT_COUNT = self.T_BOT_COUNT - self.D_BOT_COUNT
+            self.BOTS_PER_GROUP = self.BOT_COUNT/4
+        else:
+            self.D_BOT_COUNT = math.floor(self.BOT_COUNT * (percent/100))
+            self.BOTS_PER_GROUP = self.BOT_COUNT/4
 
     def genBotLayouts(self, groups=4):
         # Calculate the number of bots for each group
@@ -191,7 +232,8 @@ class C_XML_CONFIG:
             self.USV     = "2.67338576954"
             self.RISD    = "0.253110502082"
             self.RSF     = "1.42036207003"
-            self.RLP     = "8.98846470854"
+            # self.RLP     = "8.98846470854"
+            self.RLP     = "1.0"                    # For increased pheromone laying rate (Nov 10, 2023)
             self.RPD     = "0.063119269938"
 
             self.RFD    = 1
@@ -327,22 +369,27 @@ class C_XML_CONFIG:
         bot_count = f'r{self.T_BOT_COUNT}'
         detractor_count = f'd{self.D_BOT_COUNT}'
         atk_nest_count = f'atk{self.NUM_ATK_NESTS}'
+        rlp = f'rlp{self.RLP}'
         rfc = f'rfc{num_real_food}'
         arena = f'{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}'
         time = f'time{self.MAX_SIM_TIME}'
         iter = f'iter{self.num_iterations}'
+        ttt = f'ttt{self.TTT}'
 
-        self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{detractor_count}_{atk_nest_count}_{rfc}_{arena}_{time}_{iter}_'
+        self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{detractor_count}_{ttt}_{rlp}_{rfc}_{arena}_{time}_{iter}_'
 
         return self.fname_header
 
     def setBotCount(self,botCount):
         if not botCount % 4 == 0:
             print ("Warning: Number of bots not divisible by 4. Default bot distribution not supported...\n\n")
-        self.BOT_COUNT = botCount
+        self.T_BOT_COUNT = botCount
         self.BOTS_PER_GROUP = botCount/4
 
     def createXML(self):
+
+        if (self.FLW < 0 or self.FLW > 1):
+            raise Exception("ERROR: Feedback Loop Weight must be between 0 and 1...\n")
 
         self.setFname()
 
@@ -437,6 +484,7 @@ class C_XML_CONFIG:
         params_settings.setAttribute('FFdetectionAcc', str(self.FF_ACC))
         params_settings.setAttribute('RFdetectionAcc', str(self.RF_ACC))
         params_settings.setAttribute('UseMisleadingTrailAttack', str(self.USE_MTATK))
+        params_settings.setAttribute('RandomizeAtkNest', str(self.RAND_ATK_NEST))
         params_settings.setAttribute('AtkNest1Position', f'{self.ATK_NEST1_POS[0]:.1f},{self.ATK_NEST1_POS[1]:.1f}')
         params_settings.setAttribute('AtkNest2Position', f'{self.ATK_NEST2_POS[0]:.1f},{self.ATK_NEST2_POS[1]:.1f}')
         params_settings.setAttribute('AtkNest3Position', f'{self.ATK_NEST3_POS[0]:.1f},{self.ATK_NEST3_POS[1]:.1f}')
@@ -499,7 +547,15 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('FilenameHeader', str(self.fname_header))
         lf_settings.setAttribute('Densify', str(self.DENSIFY))
         lf_settings.setAttribute('ForagingAreaSize', self.foragingAreaSize())
+        lf_settings.setAttribute('BotFwdSpeed', str(self.BOT_FW_SPD))
         lf_settings.setAttribute('EstTravelTimeTolerance', str(self.TTT))
+        lf_settings.setAttribute('UseDefenseMethod', str(self.USE_DEF))
+        lf_settings.setAttribute('UseReturnBoolean', str(self.USE_DEF_RB))
+        lf_settings.setAttribute('UseTrailClustering', str(self.USE_DEF_CL))
+        lf_settings.setAttribute('UseClusterGraph', str(self.USE_DEF_CG))
+        lf_settings.setAttribute('FeedbackLoopWeight', str(self.FLW))
+        lf_settings.setAttribute('StrikeLimit', str(self.STRIKE_LIMIT))
+        lf_settings.setAttribute('UseFeedbackEq', str(self.USFB))
         loops.appendChild(lf_settings)
         #       </settings>
 
@@ -688,9 +744,7 @@ class C_XML_CONFIG:
 
         xml_str = xml.toprettyxml(indent = "\t")
 
-        xml_filename = "./experiments/Misleading_Trail_1.xml"
-
-        with open(xml_filename, "w") as f:
+        with open(self.XML_FNAME, "w") as f:
             f.write(xml_str)
 
 

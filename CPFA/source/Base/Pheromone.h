@@ -32,11 +32,16 @@ class Pheromone {
         void                         SetReturned(bool val);
         bool                         HasReturnedARobot();
         void                         SetEstTravelTime(argos::Real estTravel);
+        vector<pair<string, argos::Real>>               GetTravelerList();
+        void                         AddTraveler(pair<string, argos::Real> id_time);
+        bool                         RemoveTraveler(string id);
         argos::CVector2              location;
         size_t ResourceDensity;
 
 	private:
         
+        vector<pair<string, argos::Real>> traveler_list;
+
         /* pheromone position variables */
 
         argos::Real                  GetBaseTravelTime();

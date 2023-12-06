@@ -39,7 +39,6 @@ class CPFA_controller : public BaseController {
 
 		Real FoodDistanceTolerance;
 
-		bool IsCaptured();
 
 		void SetLoopFunctions(CPFA_loop_functions* lf);
   
@@ -49,8 +48,11 @@ class CPFA_controller : public BaseController {
 		string 		GetDetractorStatus();
 		void		SetAsDetractor();
 		void		SetAsCaptured();
-		bool		GetCaptureStatus();
+		bool 		IsCaptured();
+		void		SetAsIsolated();
+		bool 		IsIsolated();
 		size_t      startTime;//qilu 09/26/2016
+		void        SetUnIsolated();
 
 		/* quarantine zone functions */		// Ryan Luna 12/28/22
 		void ClearZoneList();
@@ -127,6 +129,7 @@ class CPFA_controller : public BaseController {
 			RETURNING = 2,
 			SURVEYING = 3,
 			CAPTURED  = 4,				// new CPFA state for defined behavior after being captured
+			ISOLATED  = 5,				// new CPFA state for defined behavior after being isolated
 		} CPFA_state;
 		
 		enum Detractor_state {
@@ -146,6 +149,7 @@ class CPFA_controller : public BaseController {
 		void Returning();
 		void Surveying();
 		void Captured();
+		void Isolated();
 
 		/* iAnt Detractor state functions */
 		void Detract();
@@ -170,13 +174,16 @@ class CPFA_controller : public BaseController {
 		argos::Real GetPoissonCDF(argos::Real k, argos::Real lambda);
 
 		void UpdateTargetRayList();
-  
+
 		CVector2 previous_position;
 
 		string results_path;
 		string results_full_path;
 		bool isUsingPheromone;
+		bool returnedFromTrail;
 		bool isCaptured;
+		bool isIsolated;
+		bool randomizeAtkNest;
 
 		bool reachedInformedTarget;
 
