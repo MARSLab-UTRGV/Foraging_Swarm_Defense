@@ -18,6 +18,8 @@ COLLISION_TIME = []
 RANDOM_SEED = []
 TOTAL_ISOLATED_BOTS = []
 NUM_FALSE_POSITIVES = []
+FORAGER_FOOD_COLLECTED = []
+DETRACTOR_FOOD_COLLECTED = []
 
 def Read(fname):
     count = 0
@@ -32,6 +34,8 @@ def Read(fname):
     RANDOM_SEED.clear()
     TOTAL_ISOLATED_BOTS.clear()
     NUM_FALSE_POSITIVES.clear()
+    FORAGER_FOOD_COLLECTED.clear()
+    DETRACTOR_FOOD_COLLECTED.clear()
     
     with open(fname) as f:
         for line in f.readlines():
@@ -100,11 +104,12 @@ def quickTest():
     run_count = 1
 
     XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
+    XML.VISUAL = True
     XML.Densify(False)
     XML.UseQZone(False)
     XML.UseFFDoS(False)
     XML.UseMisleadingTrailAttack(True)
+    XML.BOT_COUNT = 24
     XML.setBotCount(24)
     XML.MAX_SIM_TIME = 1500
     XML.setDistribution(1)
@@ -112,8 +117,8 @@ def quickTest():
     # XML.NUM_DETRACTORS = 4
     XML.NUM_ATK_NESTS = 4
 
-    XML.setDetractorPercentage(25)
-    XML.RANDOM_SEED = 392160
+    XML.setDetractorPercentage(25, True)
+    # XML.RANDOM_SEED = 392160
     XML.RD_PATH=f'results/'
     XML.setFname()
     DirectoryExists(XML.RD_PATH)
@@ -134,9 +139,9 @@ def quickTest():
     for i in range(run_count):
         XML.RLP = "4.0"
         # XML.FLW = 0.5
-        XML.USE_DEF = "true"
-        XML.USE_DEF_CL = "true"
-        XML.USE_DEF_CG = "true"
+        XML.USE_DEF = "false"
+        XML.USE_DEF_CL = "false"
+        XML.USE_DEF_CG = "false"
         XML.STRIKE_LIMIT = 5            # strike limit
         XML.TTT = 0.1                   # tolerance
         XML.createXML()
@@ -2291,6 +2296,258 @@ def PlotExp6_percentages(flist, rdpath, total_robots, total_food, noDef):
         plt.savefig(os.path.join(rdpath, 'Experiment6_lineplot.png'))
     plt.clf()
 
+######### EXPERIMENT 6 static number of foragers, varying detractors #########
+
+def Experiment7(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 2700
+    XML.MAX_SIM_TIME = sim_time     # increased from 1800 to 2700 (+50%)
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp7_r24_st{sim_time}_{run_count}it/'
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
+
+    XML.RLP = "4.0"     # Experiment 3: rate = 4.0 has most robots captured
+
+    flist = []
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    XML.USE_DEF = "true"
+    XML.USE_DEF_CL = "true"
+    XML.USE_DEF_CG = "true"
+
+    for p in percent_list:
+        XML.setDetractorPercentage(p, True)
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {p}%\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
+
+    # PlotExp1(flist, XML.RD_PATH)
+    # PlotExp6_percentages(flist, XML.RD_PATH, total_robots, total_food, False)
+
+def Experiment7_replot(rc):
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 2700
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    robot_count = 24
+    XML.setBotCount(robot_count)
+    XML.setDetractorPercentage(0) # 0% detractors (to get baseline CPFA data)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_Exp1_noDef_r24_st2700_{run_count}it/'
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    resource_count = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    percent_list = [10, 20, 30, 40, 50]
+    XML.RLP = "4.0"
+    flist = []
+
+    flist.append(XML.setFname()+"AttackData.txt")
+
+    for p in percent_list:
+
+        XML.setDetractorPercentage(p)
+        flist.append(XML.setFname()+"AttackData.txt")
+        
+    # check if files exist
+    for f in flist:
+        if not os.path.exists(f):
+            print(f'{f} does not exist!')
+            exit()
+
+    # PlotExp1(flist, XML.RD_PATH)
+    PlotExp1_percentages(flist, XML.RD_PATH, robot_count, resource_count)
+    # print(flist)
+
+def PlotExp7(flist, rdpath):
+    TFClist = []  # Total Food Collected List
+    Caplist = []  # Robots Captured List
+
+    for filename in flist:
+        Read(filename)
+        TFClist.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist.append(np.array(ROBOTS_CAPTURED).astype(int))
+
+    # Convert lists to data for plotting (mean and standard deviation)
+    TFCdata = [(round(np.mean(data), 1), np.std(data)) for data in TFClist]
+    Capdata = [(round(np.mean(data), 1), np.std(data)) for data in Caplist]
+
+    # Prepare data for plotting
+    food_collection_mean = [x[0] for x in TFCdata]
+    food_collection_stdev = [x[1] for x in TFCdata]
+    robot_captured_mean = [x[0] for x in Capdata]
+    robot_captured_stdev = [x[1] for x in Capdata]
+
+    # Set up the x-axis for the number of detractors (0% to 50%)
+    detractors_percentage = np.arange(0, 60, 10)
+
+    # Start plotting
+    fig, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+
+    # Define font size variables
+    x_tick_fontsize = 18
+    y_tick_fontsize = 18
+    xlabel_fontsize = 24
+    ylabel_fontsize = 24
+
+    # Plot for Total Food Collected
+    axs[0].errorbar(detractors_percentage, food_collection_mean, yerr=food_collection_stdev, fmt='o-', label='Food Collection', color='blue', capsize=5, alpha=0.7, linewidth=2)
+    axs[0].set_ylabel('Resources Collected', fontsize=ylabel_fontsize)
+    axs[0].grid(True)
+    axs[0].tick_params(axis='y', labelsize=y_tick_fontsize)
+
+    # Plot for Robots Captured
+    axs[1].errorbar(detractors_percentage, robot_captured_mean, yerr=robot_captured_stdev, fmt='o-', label='Robots Captured', color='red', capsize=5, alpha=0.7, linewidth=2)
+    axs[1].set_xlabel('Percentage of Detractors', fontsize=xlabel_fontsize)
+    axs[1].set_ylabel('Robots Captured', fontsize=ylabel_fontsize)
+    axs[1].grid(True)
+    axs[1].tick_params(axis='x', labelsize=x_tick_fontsize)
+    axs[1].tick_params(axis='y', labelsize=y_tick_fontsize)
+
+     # Modify x-ticks to include the percent symbol
+    percent_labels = [f"{int(value)}%" for value in detractors_percentage]
+    axs[1].set_xticks(detractors_percentage)
+    axs[1].set_xticklabels(percent_labels)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(rdpath, 'Experiment1B_lineplot.png'))
+    plt.clf()
+
+    # Write the raw data to a text file
+    raw_data_filename = os.path.join(rdpath, 'Experiment1B_raw_data.txt')
+    with open(raw_data_filename, 'w') as file:
+        file.write('Total Food Collected, Robots Captured\n')
+        count = 0
+        exp_list = [
+            'Standard CPFA',
+            'Misleading Trail Attack (10%)',
+            'Misleading Trail Attack (20%)',
+            'Misleading Trail Attack (30%)',
+            'Misleading Trail Attack (40%)',
+            'Misleading Trail Attack (50%)'
+        ]
+        for tfc, cap in zip(TFClist, Caplist):
+            file.write(f'{exp_list[count]}\n')
+            for f, c in zip(tfc, cap):
+                file.write(f'{f}, {c}\n')
+            count += 1
+
+def PlotExp7_percentages(flist, rdpath, total_robots, total_food, noDef):
+    
+    # Font size variables
+    x_tick_fontsize = 18
+    y_tick_fontsize = 18
+    xlabel_fontsize = 24
+    ylabel_fontsize = 24
+
+    TFClist = []  # Total Food Collected List
+    Caplist = []  # Robots Captured List
+    detractor_percentages = [0, 10, 20, 30, 40, 50]  # List of detractor percentages
+
+    for filename in flist:
+        Read(filename)
+        TFClist.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist.append(np.array(ROBOTS_CAPTURED).astype(int))
+
+    # Calculate the percentage of food collected
+    TFC_percent = [(data / total_food) * 100 for data in TFClist]  
+
+    # Calculate the percentage of robots captured
+    Cap_percent = []
+    for detractor_percentage, captured_data in zip(detractor_percentages, Caplist):
+        normal_agents = total_robots - int((detractor_percentage / 100) * total_robots)
+        Cap_percent.append((captured_data / normal_agents) * 100)
+
+    # Calculate mean and standard deviation for the percentages
+    TFCdata = [(round(np.mean(data), 1), np.std(data)) for data in TFC_percent]
+    Capdata = [(round(np.mean(data), 1), np.std(data)) for data in Cap_percent]
+
+    # Prepare data for plotting
+    food_collection_percent_mean = [x[0] for x in TFCdata]
+    food_collection_percent_stdev = [x[1] for x in TFCdata]
+    robot_captured_percent_mean = [x[0] for x in Capdata]
+    robot_captured_percent_stdev = [x[1] for x in Capdata]
+
+    # Start plotting
+    fig, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+
+    # Plot for Total Food Collected
+    axs[0].errorbar(detractor_percentages, food_collection_percent_mean, yerr=food_collection_percent_stdev, fmt='o-', label='Food Collection', color='blue', capsize=5, alpha=0.7, linewidth=2)
+    axs[0].set_ylabel('Resources Collected (%)', fontsize=ylabel_fontsize, labelpad=15)
+    axs[0].grid(True)
+    axs[0].tick_params(axis='y', labelsize=y_tick_fontsize)
+
+    # Plot for Robots Captured
+    axs[1].errorbar(detractor_percentages, robot_captured_percent_mean, yerr=robot_captured_percent_stdev, fmt='o-', label='Robots Captured', color='red', capsize=5, alpha=0.7, linewidth=2)
+    axs[1].set_xlabel('Percentage of Detractors (%)', fontsize=xlabel_fontsize, labelpad=15)
+    axs[1].set_ylabel('Robots Captured (%)', fontsize=ylabel_fontsize)
+    axs[1].grid(True)
+    axs[1].tick_params(axis='x', labelsize=x_tick_fontsize)
+    axs[1].tick_params(axis='y', labelsize=y_tick_fontsize)
+
+    # # Modify x-ticks to include the percent symbol
+    # percent_labels = [f"{value}%" for value in detractor_percentages]
+    # axs[1].set_xticks(detractor_percentages)
+    # axs[1].set_xticklabels(percent_labels)
+
+    plt.tight_layout()
+    if (noDef):
+        plt.savefig(os.path.join(rdpath, 'Experiment6_noDef_lineplot.png'))
+    else:
+        plt.savefig(os.path.join(rdpath, 'Experiment6_lineplot.png'))
+    plt.clf()
+
 
 if __name__ == "__main__":
 
@@ -2308,9 +2565,11 @@ if __name__ == "__main__":
     # Experiment5(30)
     # Experiment5_replot(30)
 
-    Experiment6(30)
+    # Experiment6(30)
 
-    # quickTest()
+    # Experiment7(30)
+
+    quickTest()
 
 
 

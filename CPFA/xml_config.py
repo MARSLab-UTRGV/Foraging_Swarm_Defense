@@ -134,6 +134,8 @@ class C_XML_CONFIG:
         self.fname_header = "\0"                         # Filename Header
         self.num_iterations = iterations                 # Number of Experiment Iterations
 
+        self.LET_DET_USE_MLT =  "true"                 # Let detractors use misleading trails
+
         ########### Defense Parameters ###########
         self.USE_DEF =           "false"                 # Turn on/off defense
         self.USE_DEF_RB =        "false"                 # Turn on/off return boolean for defense
@@ -143,6 +145,10 @@ class C_XML_CONFIG:
         self.STRIKE_LIMIT =      3                       # Strike limit (number of strikes before a bot gets isolated)
         self.TTT =               0.15                    # Travel Time Tolerance
         self.USFB =              "false"                 # Use feedback equation (if false, use unified velocity)
+
+        ########### Attack Analysis Experiments ###########
+        self.USE_RATIO_CHECK =   "false"                 # Turn on/off ratio check experiment
+        self.RATIO_CHECK_FREQ =  10                      # Ratio check frequency (seconds)
 
     def UseDefenseMethod(self, useDef):
         if (useDef):
@@ -171,13 +177,20 @@ class C_XML_CONFIG:
     def setDetractorPercentage(self, percent, static_foragers=False):
         if percent > 100 or percent < 0:
             raise Exception("ERROR: Invalid detractor percentage given...")
+
         if not static_foragers:
-            self.D_BOT_COUNT = math.floor(self.T_BOT_COUNT * (percent/100))
+            # Detractors are a percentage of the total bots (self.T_BOT_COUNT)
+            # Total bots remain constant
+            self.D_BOT_COUNT = math.floor(self.T_BOT_COUNT * (percent / 100))
             self.BOT_COUNT = self.T_BOT_COUNT - self.D_BOT_COUNT
-            self.BOTS_PER_GROUP = self.BOT_COUNT/4
         else:
-            self.D_BOT_COUNT = math.floor(self.BOT_COUNT * (percent/100))
-            self.BOTS_PER_GROUP = self.BOT_COUNT/4
+            # Detractors are a percentage of the base number of foragers (self.BOT_COUNT)
+            # Total bots (foragers + detractors) increase as detractors increase
+            self.D_BOT_COUNT = math.floor(self.BOT_COUNT * (percent / 100))
+            # Calculate the total bot count by adding the number of detractors
+            self.TOTAL_BOT_COUNT = self.BOT_COUNT + self.D_BOT_COUNT
+
+        self.BOTS_PER_GROUP = self.BOT_COUNT / 4
 
     def genBotLayouts(self, groups=4):
         # Calculate the number of bots for each group
@@ -485,6 +498,7 @@ class C_XML_CONFIG:
         params_settings.setAttribute('RFdetectionAcc', str(self.RF_ACC))
         params_settings.setAttribute('UseMisleadingTrailAttack', str(self.USE_MTATK))
         params_settings.setAttribute('RandomizeAtkNest', str(self.RAND_ATK_NEST))
+        params_settings.setAttribute('LetDetractorUseMLTrail', str(self.LET_DET_USE_MLT))
         params_settings.setAttribute('AtkNest1Position', f'{self.ATK_NEST1_POS[0]:.1f},{self.ATK_NEST1_POS[1]:.1f}')
         params_settings.setAttribute('AtkNest2Position', f'{self.ATK_NEST2_POS[0]:.1f},{self.ATK_NEST2_POS[1]:.1f}')
         params_settings.setAttribute('AtkNest3Position', f'{self.ATK_NEST3_POS[0]:.1f},{self.ATK_NEST3_POS[1]:.1f}')
@@ -556,6 +570,8 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('FeedbackLoopWeight', str(self.FLW))
         lf_settings.setAttribute('StrikeLimit', str(self.STRIKE_LIMIT))
         lf_settings.setAttribute('UseFeedbackEq', str(self.USFB))
+        lf_settings.setAttribute('RatioCheckFreq', str(self.RATIO_CHECK_FREQ))
+        lf_settings.setAttribute('CheckRatio', str(self.USE_RATIO_CHECK))
         loops.appendChild(lf_settings)
         #       </settings>
 

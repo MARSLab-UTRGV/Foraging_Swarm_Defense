@@ -1,6 +1,6 @@
 #include "CPFA_loop_functions.h"
 
-CPFA_loop_functions::CPFA_loop_functions() :
+CPFA_loop_functions::CPFA_loop_functions() :z
 	RNG(argos::CRandom::CreateRNG("argos")),
 	SimTime(0),
     MaxSimTime(0),	//qilu 02/05/2021
@@ -10,6 +10,8 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	TotalFoodCollected(0),		// Ryan Luna 11/17/22
 	RealFoodCollected(0),		// Ryan Luna 11/17/22
 	FakeFoodCollected(0),		// Ryan Luna 11/17/22
+	DetractorFoodCollected(0),
+	ForagerFoodCollected(0),
 	ResourceDensityDelay(0),
 	RandomSeed(GetSimulator().GetRandomSeed()),
 	SimCounter(0),
@@ -72,7 +74,11 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	strikeLimit(3),
 	IsoFalsePositives(0),
 	numIsolatedBots(0),
-	useFeedbackEq(false)
+	useFeedbackEq(false),
+	curNumRealTrails(0),
+	curNumFakeTrailsl(0),
+	ratioCheckFreq(10),		// check ratio every 10 seconds
+	checkRatio(false)
 {}
 
 void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {	
@@ -135,6 +141,8 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "FeedbackLoopWeight",			alpha);
 	argos::GetNodeAttribute(settings_node, "StrikeLimit",					strikeLimit);
 	argos::GetNodeAttribute(settings_node, "UseFeedbackEq",					useFeedbackEq);
+	argos::GetNodeAttribute(settings_node, "RatioCheckFreq",				ratioCheckFreq);
+	argos::GetNodeAttribute(settings_node, "CheckRatio",					checkRatio);
 	FoodRadiusSquared = FoodRadius*FoodRadius;
 
 	argos::TConfigurationNode atk_node = argos::GetNode(node, "detractor_settings");
@@ -298,6 +306,21 @@ void CPFA_loop_functions::PreStep() {
     }
 
 	UpdatePheromoneList();
+
+	if (getSimTimeInSeconds() % ratioCheckFreq == 0 && checkRatio){
+
+		// Get ratio of real trails to fake trails
+		for (size_t i = 0; i < PheromoneList.size(); i++){
+			if (PheromoneList[i].GetType() == Food::REAL){
+				curNumRealTrails++;
+			} else {
+				curNumFakeTrails++;
+			}
+		}
+		trailRatioList.push_back(make_pair(getSimTimeInSeconds(),make_pair(curNumRealTrails, curNumFakeTrails)));
+	}
+
+
 
 	// Ryan Luna 11/10/22
 	if(GetSpace().GetSimulationClock() > ResourceDensityDelay) {
@@ -816,9 +839,10 @@ void CPFA_loop_functions::PostExperiment() {
 			DataOut 	<< "Simulation Time (seconds), Total Food Collected, Total Food Collection Rate (per second), " 
 							<< "Total Robots Captured, Robots Captured (per second), "
 							<< "Real Trails Created, Misleading Trails Created, " 
-							<< "Total Collision Time, Random Seed Used " 
-							<< "Total Robots Isolated, Num False Positives" 
-							<< "Total Isolated Detractors, Total Isolated Foragers" << endl;
+							<< "Total Collision Time, Random Seed Used, " 
+							<< "Total Robots Isolated, Num False Positives, " 
+							<< "Total Isolated Detractors, Total Isolated Foragers, " 
+							<< "Forager Performance, Detractor Performance" << endl;
 
 							// << "Fake Food Collected, Fake Food Collection Rate (per second), " 
 							// << "Real Food Trails Created, Fake Food Trails Created, False Positives, QZones" << endl;
@@ -831,11 +855,21 @@ void CPFA_loop_functions::PostExperiment() {
 						<< numRealTrails << ',' << numFakeTrails << ',' 
 						<< CollisionTime/(2*ticks_per_second) << ',' << RandomSeed << ','
 						<< numIsolatedBots << ',' << IsoFalsePositives << ','
-						<< numIsolatedDetractors << ',' << numIsolatedForagers << endl;
+						<< numIsolatedDetractors << ',' << numIsolatedForagers << ','
+						<< ForagerFoodCollected << ',' << DetractorFoodCollected << endl;
 						
 						// << FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
 						// << numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << ',' << MainNest.GetZoneList().size() << endl;
     }
+
+	ofstream RatioCheck((FilenameHeader+"RatioCheck.txt").c_str(), ios::app);
+	LOG << "Writing to file: " << FilenameHeader+"RatioCheck.txt" << endl;
+	if (RatioCheck.tellp() == 0){
+		RatioCheck << "Time (seconds), Real Trails, Fake Trails" << endl;
+	}
+	for (const auto& ratio : trailRatioList){
+		RatioCheck << ratio.first << ',' << ratio.second.first << ',' << ratio.second.second << endl;
+	}
 
 	ofstream TerminateCount ((FilenameHeader+"TerminatedCount.txt").c_str(), ios::app);
 	if(terminate){

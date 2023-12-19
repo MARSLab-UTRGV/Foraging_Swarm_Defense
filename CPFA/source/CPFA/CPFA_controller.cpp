@@ -35,7 +35,8 @@ CPFA_controller::CPFA_controller() :
 	isUsingPheromone(false),
 	isIsolated(false),
 	returnedFromTrail(false),
-	randomizeAtkNest(true)
+	randomizeAtkNest(true),
+	letDetractorUseMLTrail(true)
 {
 }
 
@@ -66,6 +67,7 @@ void CPFA_controller::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings, "RFdetectionAcc",				RFdetectionAcc);
 	argos::GetNodeAttribute(settings, "UseMisleadingTrailAttack",	UseMTAtk);
 	argos::GetNodeAttribute(settings, "RandomizeAtkNest",			randomizeAtkNest);
+	argos::GetNodeAttribute(settings, "LetDetractorUseMLTrail",		letDetractorUseMLTrail);
 
 	CVector2 AtkNest1Position;
 	CVector2 AtkNest2Position;
@@ -642,6 +644,12 @@ void CPFA_controller::Returning() {
 				LoopFunctions->currNumCollectedFood++;
 				LoopFunctions->RealFoodCollected++;
 				LoopFunctions->setScore(num_targets_collected);
+
+				if (!isDetractor){
+					LoopFunctions->ForagerFoodCollected++;
+				} else {
+					LoopFunctions->DetractorFoodCollected++;
+				}
 				// delete local food list		Ryan Luna 01/24/23
 				ClearLocalFoodList();
 
@@ -1161,32 +1169,62 @@ bool CPFA_controller::SetTargetPheromone() {
 	/* Randomly select an active pheromone to follow. */
 	for(size_t i = 0; i < LoopFunctions->PheromoneList.size(); i++) {
 		if(randomWeight < LoopFunctions->PheromoneList[i].GetWeight() && LoopFunctions->PheromoneList[i].IsActive()) {
-			/* We've chosen a pheromone! */
-			SetIsHeadingToNest(false);
-          	SetTarget(LoopFunctions->PheromoneList[i].GetLocation());
-          	TrailToFollow = LoopFunctions->PheromoneList[i].GetTrail();
-          	isPheromoneSet = true;
-			isWronglyInformed = LoopFunctions->PheromoneList[i].IsMisleading();
-			argos::Real curTimeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
-			LoopFunctions->PushToTrailLog(controllerID, LoopFunctions->PheromoneList[i], curTimeInSeconds);
-			//if (controllerID == "dt0") LOG << "dt0: " << "added to traveler list: " << LoopFunctions->PheromoneList[i].GetLocation() << endl;
-			LoopFunctions->PheromoneList[i].AddTraveler(make_pair(controllerID, curTimeInSeconds));
-			
-			if (isWronglyInformed && UseMTAtk) {
-				//if (controllerID == "dt0") LOG << controllerID << ": Is following a misleading trail." << endl;
-				if (!isDetractor){
-				}
-				// if (controllerID == "fb02" && isWronglyInformed) LOG << "fb02: Wrongly informed on Pheromone Trail created by: " << LoopFunctions->PheromoneList[i].GetCreatorId()
-				// 	<< ": " << LoopFunctions->PheromoneList[i].IsActive() << endl;
 
-			} 
-          	/* If we pick a pheromone, break out of this loop. */
-          	break;
+			if (!isDetractor || (isDetractor && letDetractorUseMLTrail)){  // if normal forager or if we are letting the detractor use misleading trails
+
+				/* We've chosen a pheromone! */
+				SetIsHeadingToNest(false);
+				SetTarget(LoopFunctions->PheromoneList[i].GetLocation());
+				TrailToFollow = LoopFunctions->PheromoneList[i].GetTrail();
+				isPheromoneSet = true;
+				isWronglyInformed = LoopFunctions->PheromoneList[i].IsMisleading();
+				argos::Real curTimeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+				LoopFunctions->PushToTrailLog(controllerID, LoopFunctions->PheromoneList[i], curTimeInSeconds);
+				//if (controllerID == "dt0") LOG << "dt0: " << "added to traveler list: " << LoopFunctions->PheromoneList[i].GetLocation() << endl;
+				LoopFunctions->PheromoneList[i].AddTraveler(make_pair(controllerID, curTimeInSeconds));
+				
+				if (isWronglyInformed && UseMTAtk) {
+					//if (controllerID == "dt0") LOG << controllerID << ": Is following a misleading trail." << endl;
+					if (!isDetractor){
+					}
+					// if (controllerID == "fb02" && isWronglyInformed) LOG << "fb02: Wrongly informed on Pheromone Trail created by: " << LoopFunctions->PheromoneList[i].GetCreatorId()
+					// 	<< ": " << LoopFunctions->PheromoneList[i].IsActive() << endl;
+
+				} 
+				/* If we pick a pheromone, break out of this loop. */
+				break;
+
+			} else if (isDetractor && !letDetractorUseMLTrail){		// if we are a detractor and we are NOT letting it use misleading trails
+
+				if (!LoopFunctions->PheromoneList[i].IsMisleading()){	// ignore if misleading
+
+					SetIsHeadingToNest(false);
+					SetTarget(LoopFunctions->PheromoneList[i].GetLocation());
+					TrailToFollow = LoopFunctions->PheromoneList[i].GetTrail();
+					isPheromoneSet = true;
+					isWronglyInformed = LoopFunctions->PheromoneList[i].IsMisleading();
+					argos::Real curTimeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+					LoopFunctions->PushToTrailLog(controllerID, LoopFunctions->PheromoneList[i], curTimeInSeconds);
+					//if (controllerID == "dt0") LOG << "dt0: " << "added to traveler list: " << LoopFunctions->PheromoneList[i].GetLocation() << endl;
+					LoopFunctions->PheromoneList[i].AddTraveler(make_pair(controllerID, curTimeInSeconds));
+					
+					if (isWronglyInformed && UseMTAtk) {
+						//if (controllerID == "dt0") LOG << controllerID << ": Is following a misleading trail." << endl;
+						if (!isDetractor){
+						}
+
+					} 
+					/* If we pick a pheromone, break out of this loop. */
+					break;
+				}
+			}
     	}
 
 		/* We didn't pick a pheromone! Remove its weight from randomWeight. */
 		randomWeight -= LoopFunctions->PheromoneList[i].GetWeight();
 	}
+
+	if (isDetractor && !letDetractorUseMLTrail && !isPheromoneSet) LOG << controllerID << ": Unable to find a non-misleading trail..." << endl;
 
 	//ofstream log_output_stream;
 	//log_output_stream.open("cpfa_log.txt", ios::app);

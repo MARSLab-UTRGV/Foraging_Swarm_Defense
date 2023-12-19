@@ -225,6 +225,8 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t TotalFoodCollected;		// Ryan Luna 11/17/22
 		size_t RealFoodCollected;		// Ryan Luna 11/17/22
 		size_t FakeFoodCollected;		// Ryan Luna 11/17/22
+		size_t DetractorFoodCollected;
+		size_t ForagerFoodCollected;
 
 		bool safeTermination = false;
 
@@ -269,6 +271,12 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		int PrintFinalScore;
 
 		bool AllRobotsCaptured();
+
+		bool checkRatio;
+		size_t curNumRealTrails;
+		size_t curNumFakeTrails;
+		vector<pair<Real, pair<size_t, size_t>>> trailRatioList; // (numRealTrails, numFakeTrails)
+		size_t ratioCheckFreq;
 
 		bool SetupPythonEnvironment();
 

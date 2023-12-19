@@ -185,6 +185,8 @@ class CPFA_controller : public BaseController {
 		bool isIsolated;
 		bool randomizeAtkNest;
 
+		bool letDetractorUseMLTrail;
+
 		bool reachedInformedTarget;
 
 		Real footbotRadius = 0.085;		// from argos documentation

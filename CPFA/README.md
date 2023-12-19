@@ -1,133 +1,99 @@
-#CPFA-ARGoS
+# Swarm Robotics Simulation
 
-ARGoS (Autonomous Robots Go Swarming) is a multi-physics robot simulator. iAnt-ARGoS is an extension to ARGoS that implements the CPFA-ARGoS algorithm and provides a mechanism for performing experiments with iAnts.
+This repository hosts the code for running swarm robotics simulations in ARGoS, focusing on robot behavior under misleading trail attacks. The simulations are configured through Python scripts and executed within the ARGoS environment.
 
-###Quick Start Installation Guide
+## Getting Started
 
-The CPFA-ARGoS system has two components: the CPFA logic controllers that implement the CPFA algorithm in the ARGoS robot simulator, and the Genetic Algorithm that evolves the parameters that the CPFA algorithm uses. You can run the CPFA algorithm on ARGoS using OS X or Linux (see installation instructions below). To run the evolver you must use the Moses MPI cluster, which has 6 hosts with 24 cores. You can also use the cluster to run experiments without having to tie up your local machine.
+### Prerequisites
+- ARGoS simulation environment installed on your system.
+- Python 3.x for running configuration and analysis scripts.
 
-#####0. Setting up your MPI environment 
+### Configuration
+Explore `xml_config.py` for functions to create or update ARGoS configuration files. This script is essential for setting up various parameters for your simulation. Each function and parameter is well-documented with comments in the file.
 
-#####A. Request an account on the MPI cluster by contacting the cluster admin (Matthew Fricke).
-#####B. Login to pragma.cs.unm.edu using your account
-#####C. Setup key based authentication so MPI can access the machines in the cluster
+### Running Simulations
 
-    $ ssh-keygen -t rsa
-
-Add keychain key manager to your ~/.bashrc login script:
-
-     ### START-Keychain ###
-     # Let  re-use ssh-agent and/or gpg-agent between logins
-     /usr/bin/keychain $HOME/.ssh/id_rsa
-     source $HOME/.keychain/$HOSTNAME-sh
-     ### End-Keychain ###
-
-Save ~/.bashrc
-
-and apply the changes:
-
-    $ source ~/.bashrc
-
-Copy the ssh key to the cluster machines and follow the instructions that come up:
-
-    $ ssh-copy-id eros
-    $ ssh-copy-id pragma
-    $ ssh-copy-id ludus
-    $ ssh-copy-id philia
-    $ ssh-copy-id philautia
-    $ ssh-copy-id agape
-
-Now when you run the CPFA evolution run script MPI will work correctly.
-
-In order to use the iAnt CPFA in ARGoS, you must first install ARGoS on your system then download and compile the code in this repo to run with ARGoS.
-
-#####1. Installing ARGoS (ARGoS is already installed on the Moses cluster)
-
-ARGoS is available for Linux and Macintosh systems. It is currently not supported on Windows. Detailed installation instructions can be found on the [ARGoS Website](http://www.argos-sim.info/user_manual.php).
-
-######Linux Installation
-
-1. [Download](http://www.argos-sim.info/core.php) the appropriate binary package for your Linux system.
-2. In Terminal, run the following command in the directory of your installation file:
-  * for Ubuntu and KUbuntu:
-    ```
-    $ sudo dpkg -i argos3_simulator-*.deb
-    ```
-
-  * for OpenSuse:
-    ```
-    $ sudo rpm -i argos3_simulator-*.rpm
-    ```
-
-######Macintosh Installation
-
-1. The Mac OSX installation of ARGoS uses the Homebrew Package Manager. If you don't have it, install Homebrew by using the following command in Terminal.
-  ```
-  $ ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-  ```
-
-2. Obtain the Homebrew Tap for ARGoS using the following command in Terminal.
-  ```
-  $ brew tap ilpincy/argos3
-  ```
-
-3. Once tapped, install ARGoS with the following command in Terminal. ARGoS and its required dependencies will be downloaded and installed using Homebrew.
-  ```
-  $ brew install bash-completion qt lua argos3
-  ```
-
-4. Once installed, you can update ARGoS with the following two commands in Terminal.
-  ```
-  $ brew update
-  $ brew upgrade argos3
-  ```
-
-#####2. Compiling and Running the CPFA in ARGoS
-
-Once ARGoS is installed on your system. You can download the files in this repo, compile them for your system, and run the iAnt CPFA in ARGoS.
-
-1. Pull the code from this repository.
-
-2. From the terminal, use build.sh script to compile the code:
-  ```
-  $ ./build.sh
-  ```
-
-CPFA-ARGoS includes CPFA evolver. This program uses a distributed version of ga-lib to evolve CPFA parameters. An example script for running cpfa_evolver is provided: evolve_EXAMPLE.sh.
-
-CPFA evolver uses MPI to distribute argos evaluations across a cluster. An example machine file (moses_cluster) specifies the hostnames of the MPI nodes to use and the number of processes to run on each node.
-
-evolve_EXAMPLE.sh takes two arguments. The number of MPI processes to run and the machine file name for the MPI cluster. 
-
-Since the evolver relies on MPI packages that are not required for compiling the CPFA, compilation of the evolver is turned off by default. 
-
-To build the CPFA evolver modify the build.sh script and change
-
-```
-cmake -DBUILD_EVOLVER=NO ..
+#### Quick Test
+Run a quick test simulation with a visual display using the `quickTest` function in `run.py`:
+```python
+def quickTest():
+    # [Configuration code here...]
+    os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
 ```
 
-to 
+#### Ensure Function Execution in Main Block
+When running `run.py`, make sure that the `quickTest()` function is called within the `if __name__ == "__main__":` block. This block is a standard Python idiom for conditionally executing code when the script is run as the main program rather than being imported as a module. 
 
+Here's how to ensure `quickTest()` is properly called:
+
+```python
+if __name__ == "__main__":
+    # Uncomment the following line to run quickTest when this script is executed
+    quickTest()
 ```
-cmake -DBUILD_EVOLVER=YES ..
+
+By placing your function call inside this block, you ensure that `quickTest()` executes when `run.py` is run directly. If you're running different experiments, you can comment or uncomment the relevant function calls in this block as needed.
+
+#### Example Main Block in run.py
+The `if __name__ == "__main__":` block in `run.py` might look like this:
+
+```python
+if __name__ == "__main__":
+    # Other experiment function calls (commented out)
+    # Experiment1(30), Experiment2(30), etc.
+
+    # Uncomment the line below to run the quickTest function
+    quickTest()
 ```
 
-The evolver takes an experiment xml file argument that specifies the simulation parameters. The CPFA genome in that experient file is ignored and evolved parameters used instead. Make sure visualisation is turned off in this experiment file. 
+Ensure that other experiment function calls are commented out when you want to run `quickTest`, to avoid unintentional execution of multiple experiments simultaneously.
 
-######3. Running an Experiment
-To run an experiment launch ARGoS with the XML configuration file for your system:
-  ```
-  $ argos3 -c experiments/experiment_file.xml
-  ```
+### Configuration with `xml_config.py`
 
+The `xml_config.py` script is crucial for setting up your simulation parameters. It defines a class that handles the creation and updating of ARGoS configuration files.
 
-###Useful Links
+#### Using `xml_config.py` in Your Scripts
 
-| Description                                | Website                                                        |
-|:-------------------------------------------|:---------------------------------------------------------------|
-| BCLab Git Branching Model                  | https://github.com/BCLab-UNM/git-branch-model                  |
-| official ARGoS website and documentation   | http://www.argos-sim.info/                                     |
-| homebrew utility for Mac OSX installations | http://brew.sh/                                                |
-| cmake utility information                  | http://www.cmake.org/documentation/                            |
-| running MPI programs                       | https://www.shodor.org/refdesk/Resources/Tutorials/RunningMPI/ |
+- **Class Definition**: `xml_config.py` defines a class that encapsulates the configuration settings for your simulation. Familiarize yourself with the class methods and attributes to effectively use it in your experiments.
+
+- **Instantiating the Class**: In your `run.py` or any custom scripts, you must instantiate this class to access its functionalities. 
+
+    ```python
+    import xml_config
+
+    def yourExperimentFunction():
+        # Create an instance of the configuration class
+        config_instance = xml_config.C_XML_CONFIG(your_parameters)
+        
+        # Utilize various methods of the class to set up your simulation
+        config_instance.setBotCount(24)
+        config_instance.setDetractorPercentage(25, True)
+        # ... other configuration methods ...
+
+        # Finally, create the XML configuration file
+        config_instance.createXML()
+    ```
+
+- **Custom Scripts**: When writing custom scripts, ensure that you import `xml_config`, create an instance of its class, and use its methods to configure your simulation before running it.
+
+- **Modularity and Reusability**: The class in `xml_config.py` is designed to be modular and reusable across different experimental setups. Leverage this to maintain consistency and efficiency in your simulation configurations.
+
+Remember to always create an instance of the class defined in `xml_config.py` in your experiment scripts. This instance will be your primary interface for configuring and generating the necessary XML files for running simulations in ARGoS.
+
+### Important Functions
+- `setBotCount(botCount)`: Sets the total number of foraging robots in the simulation.
+  - Example usage: `XML.setBotCount(24)`
+  - There is an issue currently with how this is done. As a workaround, also set `XML.BOT_COUNT` to the desired number of normal foragers otherwise it will default to 32.
+- `setDetractorPercentage(percent, static_foragers)`: Configures the percentage of detractors in the robot swarm.
+  - `static_foragers = True` keeps the number of foragers constant while adding detractors.
+  - `static_foragers = False` will keep the total number of robots constant while removing the desired percentage of foragers and replacing them with detractors.
+  - Example usage: `XML.setDetractorPercentage(25, True)`
+
+#### Plotting Results
+To plot experiment results, use the separate plotting script provided or use the some of the plotting functions in `run.py` as templates.
+
+## Running a Simulation
+To run a simulation, execute the desired function in `run.py` or your custom script:
+```bash
+python run.py
+```
