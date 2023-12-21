@@ -1,6 +1,7 @@
 #include "CPFA_loop_functions.h"
 
-CPFA_loop_functions::CPFA_loop_functions() :z
+
+CPFA_loop_functions::CPFA_loop_functions() :
 	RNG(argos::CRandom::CreateRNG("argos")),
 	SimTime(0),
     MaxSimTime(0),	//qilu 02/05/2021
@@ -76,7 +77,7 @@ CPFA_loop_functions::CPFA_loop_functions() :z
 	numIsolatedBots(0),
 	useFeedbackEq(false),
 	curNumRealTrails(0),
-	curNumFakeTrailsl(0),
+	curNumFakeTrails(0),
 	ratioCheckFreq(10),		// check ratio every 10 seconds
 	checkRatio(false)
 {}
@@ -307,11 +308,11 @@ void CPFA_loop_functions::PreStep() {
 
 	UpdatePheromoneList();
 
-	if (getSimTimeInSeconds() % ratioCheckFreq == 0 && checkRatio){
+	if (fabs(fmod(getSimTimeInSeconds(), ratioCheckFreq)) < EPSILON && checkRatio){
 
 		// Get ratio of real trails to fake trails
 		for (size_t i = 0; i < PheromoneList.size(); i++){
-			if (PheromoneList[i].GetType() == Food::REAL){
+			if (!PheromoneList[i].IsMisleading()){
 				curNumRealTrails++;
 			} else {
 				curNumFakeTrails++;
