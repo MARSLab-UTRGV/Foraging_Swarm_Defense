@@ -190,7 +190,8 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		argos::CRadians UninformedSearchVariation;
 		argos::Real RateOfInformedSearchDecay;
 		argos::Real RateOfSiteFidelity;
-		argos::Real RateOfLayingPheromone;
+		argos::Real RateOfLayingForagerPheromone;
+		argos::Real RateOfLayingDetractorPheromone;
 		argos::Real RateOfPheromoneDecay;
 
 		/* physical robot & world variables */

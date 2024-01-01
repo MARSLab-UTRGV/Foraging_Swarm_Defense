@@ -23,6 +23,10 @@ TOTAL_ISOLATED_FORAGERS = []
 FORAGER_FOOD_COLLECTED = []
 DETRACTOR_FOOD_COLLECTED = []
 
+TIME_IN_SECONDS = []
+REAL_PTRAILS_PER10SECS = []
+FAKE_PTRAILS_PER10SECS = []
+
 def Read(fname):
     count = 0
     SIM_TIME.clear()
@@ -88,6 +92,21 @@ def Read2(fname):
             FAKE_PTRAILS_CREATED.append(data[6])
             COLLISION_TIME.append(data[7])
             RANDOM_SEED.append(data[8])
+
+def ReadTrailRatio(fname):
+    count = 0
+    TIME_IN_SECONDS.clear()
+    REAL_PTRAILS_PER10SECS.clear()
+    FAKE_PTRAILS_PER10SECS.clear()
+    
+    with open(fname) as f:
+        for line in f.readlines():
+            data = line.strip().split(',')
+            if data[0] == 'Time (seconds)':
+                continue
+            TIME_IN_SECONDS.append(data[0])
+            REAL_PTRAILS_PER10SECS.append(data[1])
+            FAKE_PTRAILS_PER10SECS.append(data[2])
 
 def GetFoodCollected(flist, rdpath):
     TFClist = []
@@ -1068,7 +1087,7 @@ def PlotAnalysis2_NotLetDetractorsUseMLT():
     # Save the plot
     plt.savefig('./results/analysis_12-18-23/results_analysis2_r24_1800_rc30it/dExp_AtkOnly_varyLayRate.png')
 
-def PlotAnalysis3():
+def PlotAnalysis4():
     total_robots = 32
     total_food = 288
 
@@ -1080,81 +1099,95 @@ def PlotAnalysis3():
 
     # get all filenames in directory for attack only
     flist_attackData = []
-    for filename in os.listdir("./results/analysis_12-18-23/results_analysis3_r32_2700_rc30it"):
-        if filename.endswith("AttackData.txt"):
-            # print(filename)
-            flist_attackData.append(os.path.join("./results/analysis_12-18-23/results_analysis3_r32_2700_rc30it", filename))
+    for filename in os.listdir("./results/analysis_12-21-23/results_analysis4_r32_1800_rc30it"):
+        if filename.endswith("RatioCheck.txt"):
+            flist_attackData.append(os.path.join("./results/analysis_12-21-23/results_analysis4_r32_1800_rc30it", filename))
         else:
             continue
 
     # Sort the filenames based on the extracted rlp value
     flist_attackData.sort(key=extract_rlp_value)
 
-    # parse data from files
-    TFClist_atk = []
-    Caplist_atk = []
-    for filename in flist_attackData:
-        Read2(filename)
-        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
-        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
-
-    # calculate percentages
-    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
-    Cap_percent_atk = [(data / total_robots) * 100 for data in Caplist_atk]
-
-    # lay rates
+    # Initialize the 3D list structure for ratio data
     lay_rates = ["1.0", "4.0", "8.0", "12.0"]
-    num_rates = len(lay_rates)
+    ratio_data = [[[] for _ in range(30)] for _ in range(len(lay_rates))]  # 4 lay rates, 30 simulations each
 
-    # Plotting
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 8), sharex=True)
+    for i, filename in enumerate(flist_attackData):
+        ReadTrailRatio(filename)
 
-   # Calculate positions for boxplots
-    gap = 0.5  # Gap between each set of boxplots
-    width = 0.35  # Boxplot width
-    num_lay_rates = len(lay_rates)
-    positions = np.arange(1, num_lay_rates * 2, step=2)
+        # Initialize a new list for each simulation's data
+        simulation_data = [[] for _ in range(30)]
+        simulation_index = 0
 
-    # Prepare data for trend lines
-    trend_positions = positions
-    mean_TFC_percent_atk = [np.mean(data) for data in TFC_percent_atk]
-    mean_Cap_percent_atk = [np.mean(data) for data in Cap_percent_atk]
+        for st, rt, ft in zip(TIME_IN_SECONDS, REAL_PTRAILS_PER10SECS, FAKE_PTRAILS_PER10SECS):
+            if st == '10' and simulation_data[simulation_index]:  # Start of a new simulation
+                simulation_index += 1  # Move to the next simulation
 
-    # Plot boxplots
-    for i, position in enumerate(positions):
-        # Boxplots
-        box_pos = position
-        axes[0].boxplot(TFC_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
-        axes[1].boxplot(Cap_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+            # Ensure the index is within range
+            if simulation_index < 30:
+                rt_int = int(rt) if rt.isdigit() else 0
+                ft_int = int(ft) if ft.isdigit() else 0
+                ratio = rt_int / (ft_int + 0.0001)  # Calculate ratio
+                simulation_data[simulation_index].append(ratio)
 
-    # Plot trend lines
-    axes[0].plot(trend_positions, mean_TFC_percent_atk, color="cyan", marker='o', label='Attack Only')
-    axes[1].plot(trend_positions, mean_Cap_percent_atk, color="cyan", marker='o', label='Attack Only')
-    
-    # Set y-ticks
-    axes[0].set_yticks(np.arange(40, 101, 10))  # Y-ticks from 0 to 100, increment by 10s
-    axes[1].set_yticks(np.arange(0, 101, 20))
-    
-    # Axes labels and legends
-    axes[0].set_xticks(positions)
-    axes[0].set_xticklabels(lay_rates)
-    axes[0].set_ylabel('Total Food\nCollected (%)', fontsize=ylabel_fontsize, labelpad=15)
-    axes[0].legend()
-    axes[1].set_xlabel('Pheromone Lay Rate (%)', fontsize=xlabel_fontsize, labelpad=15)
-    axes[1].set_ylabel('Total Robots\nCaptured (%)', fontsize=ylabel_fontsize, labelpad=15)
-    
-    # Uniform tick sizes
-    for ax in axes:
-        ax.tick_params(axis='x', labelsize=x_tick_fontsize)
-        ax.tick_params(axis='y', labelsize=y_tick_fontsize)
+        # Assign the parsed data to the appropriate lay rate in ratio_data
+        ratio_data[i] = simulation_data
 
-    # Adjust layout
-    plt.tight_layout(pad=2.0)  # Added padding to layout adjustment
+    # Print the structure to check if it's correct
+    for i, lay_rate_data in enumerate(ratio_data):
+        print(f"Lay Rate {lay_rates[i]}: {len(lay_rate_data)} simulations")
+        for j, sim in enumerate(lay_rate_data):
+            print(f"  Simulation {j+1}: {len(sim)} time points")
 
-    # Save the plot
-    plt.savefig('./results/analysis_12-18-23/results_analysis3_r32_1800_rc30it/dExp_AtkOnly_varyLayRate.png')
+    # Plotting setup
+    fig, axes = plt.subplots(nrows=len(lay_rates), ncols=1, figsize=(15, 10), sharex=True)
 
-def PlotAnalysis4():
+    # Plotting for each lay rate
+    for i, lay_rate in enumerate(lay_rates):
+        if not ratio_data[i]:
+            print(f"No data for lay rate {lay_rate}. Skipping this plot.")
+            continue
+
+        # Find the minimum length of simulations for the current lay rate
+        min_simulation_length = min(len(sim_data) for sim_data in ratio_data[i] if sim_data)
+
+        if min_simulation_length == 0:
+            print(f"No time points data for lay rate {lay_rate}. Skipping this plot.")
+            continue
+
+        step = 10  # Plot every 10th time point
+        positions = np.arange(0, min_simulation_length, step)
+        data_for_boxplot = [[sim_data[time_point] for sim_data in ratio_data[i] if len(sim_data) > time_point] for time_point in positions]
+        mean_ratios = [np.mean(time_point_data) for time_point_data in data_for_boxplot]
+
+        # Plot boxplots and trend lines
+        axes[i].boxplot(data_for_boxplot, positions=positions, widths=2, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        axes[i].plot(positions, mean_ratios, color="cyan", marker='o', label=f'Lay Rate {lay_rate}')
+
+        # Dynamically determine y-axis limits
+        all_data_points = [item for sublist in data_for_boxplot for item in sublist]
+        y_min, y_max = min(all_data_points), max(all_data_points)
+        axes[i].set_ylim([y_min - 0.1 * abs(y_min), y_max + 0.1 * abs(y_max)])  # Add 10% buffer
+
+        # Set y-axis label
+        axes[i].set_ylabel(f'Ratio at Lay Rate {lay_rate}', fontsize=12)
+        axes[i].legend()
+
+        # Adjust x-ticks
+        axes[i].set_xticks(positions)
+        axes[i].set_xticklabels([str(int(p)) for p in positions], rotation=45, ha="right")
+
+    # X-axis labels
+    axes[-1].set_xlabel('Time (seconds)', fontsize=12)
+
+    # Adjust layout and save plot
+    plt.tight_layout()
+    plt.savefig('./results/TrailRatioAnalysis.png')
+
+    # Call the function with your data
+    print_data_summary(ratio_data, lay_rates)
+
+def PlotAnalysis3():
     total_robots = 32
     total_food = 288
 
@@ -1253,6 +1286,232 @@ def PlotAnalysis4():
 
     plt.tight_layout()
     plt.savefig('./results/analysis_12-18-23/results_analysis3_noAtk_r32_1800_rc30it/Analysis3_varyLayRate.png')
+
+
+
+
+
+
+
+
+
+def PlotAnalysis_IncreaseTrails():
+    total_robots = 24
+    total_food = 288
+
+    # Font size variables
+    x_tick_fontsize = 18
+    y_tick_fontsize = 18
+    xlabel_fontsize = 24
+    ylabel_fontsize = 24
+
+    # get all filenames in directory for attack only
+    flist_attackData = []
+    # for filename in os.listdir("./results/results_IncreaseTrails_r24_rlp4_st1800_30it"):
+    for filename in os.listdir("./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it"):
+        if filename.endswith("AttackData.txt"):
+            # print(filename)
+            # flist_attackData.append(os.path.join("./results/results_IncreaseTrails_r24_rlp4_st1800_30it", filename))
+            flist_attackData.append(os.path.join("./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it", filename))
+        else:
+            continue
+
+    # Sort the filenames based on the extracted rlp value
+    flist_attackData.sort(key=extract_d_value)
+
+    # parse data from files
+    TFClist_atk = []
+    Caplist_atk = []
+    for filename in flist_attackData:
+        Read2(filename)
+        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
+
+    # calculate percentages
+    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
+    Cap_percent_atk = [(data / total_robots) * 100 for data in Caplist_atk]
+
+    # Detractor percentages
+    detractor_percentages = ["0", "10", "20", "30", "40", "50"]
+    det_perc = [0, 0.10, 0.20, 0.30, 0.40, 0.50]
+    num_rates = len(detractor_percentages)
+
+    # Plotting
+    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(10, 8), sharex=True)
+
+   # Calculate positions for boxplots
+    gap = 0.5  # Gap between each set of boxplots
+    width = 0.35  # Boxplot width
+    num_lay_rates = len(detractor_percentages)
+    positions = np.arange(1, num_lay_rates * 2, step=2)
+
+    # Prepare data for trend lines
+    trend_positions = positions
+    mean_TFC_percent_atk = [np.mean(data) for data in TFC_percent_atk]
+    mean_Cap_percent_atk = [np.mean(data) for data in Cap_percent_atk]
+
+    # Plot boxplots
+    for i, position in enumerate(positions):
+        # Boxplots
+        box_pos = position
+        axes[0].boxplot(TFC_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        axes[1].boxplot(Cap_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+
+    # Plot trend lines
+    axes[0].plot(trend_positions, mean_TFC_percent_atk, color="cyan", marker='o', label='Attack Only')
+    axes[1].plot(trend_positions, mean_Cap_percent_atk, color="cyan", marker='o', label='Attack Only')
+    
+    # Set y-ticks
+    axes[0].set_yticks(np.arange(0, 101, 20))  # Y-ticks from 0 to 100, increment by 10s
+    axes[1].set_yticks(np.arange(0, 101, 20))
+    
+    # Axes labels and legends
+    axes[0].set_xticks(positions)
+    axes[0].set_xticklabels(detractor_percentages)
+    axes[0].set_ylabel('Total Food\nCollected (%)', fontsize=ylabel_fontsize, labelpad=15)
+    axes[0].legend()
+    axes[1].set_xlabel('Detractor Percentage (%)', fontsize=xlabel_fontsize, labelpad=15)
+    axes[1].set_ylabel('Total Robots\nCaptured (%)', fontsize=ylabel_fontsize, labelpad=15)
+    
+    # Uniform tick sizes
+    for ax in axes:
+        ax.tick_params(axis='x', labelsize=x_tick_fontsize)
+        ax.tick_params(axis='y', labelsize=y_tick_fontsize)
+
+    # Adjust layout
+    plt.tight_layout(pad=2.0)  # Added padding to layout adjustment
+
+    # Save the plot
+    # plt.savefig('./results/results_IncreaseTrails_r24_rlp4_st1800_30it/PlotAnalysis_IncreaseTrails.png')
+    plt.savefig('./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it/PlotAnalysis_IncreaseTrails.png')
+
+def PlotAnalysis_IncTrails_AtkDef():
+    total_robots = 24
+    total_food = 288
+
+    # Font size variables
+    x_tick_fontsize = 18
+    y_tick_fontsize = 18
+    xlabel_fontsize = 24
+    ylabel_fontsize = 24
+
+   # Calculate positions for boxplots# get all filenames in directory for attack only
+    flist_atk = []
+    for filename in os.listdir("./results/results_RateIncrease_r24_rlpf6_rlpd1_st1800_30it"):
+        if filename.endswith("AttackData.txt"):
+            # print(filename)
+            flist_atk.append(os.path.join("./results/results_RateIncrease_r24_rlpf6_rlpd1_st1800_30it", filename))
+        else:
+            continue
+
+    # get all filenames in directory for attack with defense
+    flist_atkdef = []
+    for filename in os.listdir("./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it"):
+        if filename.endswith("AttackData.txt"):
+            flist_atkdef.append(os.path.join("./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it", filename))
+        else:
+            continue
+
+    # Sort the filenames based on the extracted rlp value
+    flist_atk.sort(key=extract_d_value)
+    flist_atkdef.sort(key=extract_d_value)
+
+    # print(flist_atk)
+    # print(flist_atkdef)
+
+    # parse data from files
+    TFClist_atk = []
+    Caplist_atk = []
+    for filename in flist_atk:
+        Read2(filename)
+        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
+    
+    TFClist_atkdef = []
+    Caplist_atkdef = []
+    for filename in flist_atkdef:
+        Read(filename)
+        TFClist_atkdef.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atkdef.append(np.array(ROBOTS_CAPTURED).astype(int))
+    
+    # calculate percentages
+    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
+    Cap_percent_atk = [(data / (total_robots)) * 100 for data in Caplist_atk] # 25% are detractors, so 75% are normal agents
+    TFC_percent_atkdef = [(data / total_food) * 100 for data in TFClist_atkdef]
+    Cap_percent_atkdef = [(data / (total_robots)) * 100 for data in Caplist_atkdef] # 25% are detractors, so 75% are normal agents
+
+    # Detractor percentages
+    detractor_percentages = ["0", "10", "20", "30", "40", "50"]
+    det_perc = [0, 0.10, 0.20, 0.30, 0.40, 0.50]
+    num_rates = len(detractor_percentages)
+
+    # Plotting
+    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 10), sharex=True)
+
+    # Calculate positions for boxplots
+    gap = 0.5  # Gap between each set of boxplots
+    width = 0.2  # Boxplot width
+    positions_atk = np.arange(1, 2*num_rates, step=2)
+    positions_atkdef = positions_atk + width + gap
+
+    # Calculate positions for trend lines
+    trend_positions_atk = positions_atk + width / 2
+    trend_positions_atkdef = positions_atkdef + width / 2
+
+    # Plot boxplots and trend lines
+    for i in range(num_rates):
+        # Boxplots
+        axes[0].boxplot(TFC_percent_atk[i], positions=[positions_atk[i]], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        axes[0].boxplot(TFC_percent_atkdef[i], positions=[positions_atkdef[i]], widths=width, patch_artist=True, boxprops=dict(facecolor="orange"))
+        axes[1].boxplot(Cap_percent_atk[i], positions=[positions_atk[i]], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        axes[1].boxplot(Cap_percent_atkdef[i], positions=[positions_atkdef[i]], widths=width, patch_artist=True, boxprops=dict(facecolor="orange"))
+
+    # Trend lines
+    axes[0].plot(trend_positions_atk, [np.mean(data) for data in TFC_percent_atk], color="cyan", marker='o', label='Attack Only')
+    axes[0].plot(trend_positions_atkdef, [np.mean(data) for data in TFC_percent_atkdef], color="orange", marker='o', label='Attack With Defense')
+    axes[1].plot(trend_positions_atk, [np.mean(data) for data in Cap_percent_atk], color="cyan", marker='o', label='Attack Only')
+    axes[1].plot(trend_positions_atkdef, [np.mean(data) for data in Cap_percent_atkdef], color="orange", marker='o', label='Attack With Defense')
+
+    # Axes labels and legends
+    axes[0].set_xticks((positions_atk + positions_atkdef) / 2)
+    axes[0].set_xticklabels(detractor_percentages)
+    axes[0].set_ylabel('Total Resources\nCollected (%)', fontsize=ylabel_fontsize, labelpad=20)
+    axes[0].tick_params(axis='y', labelsize=y_tick_fontsize)
+    axes[0].legend()
+    axes[1].set_xlabel('Percentage of Detractors (%)', fontsize=xlabel_fontsize, labelpad=20)
+    axes[1].set_ylabel('Total Foragers\nCaptured (%)', fontsize=ylabel_fontsize, labelpad=9)
+    axes[1].tick_params(axis='x', labelsize=x_tick_fontsize)
+    axes[1].tick_params(axis='y', labelsize=y_tick_fontsize)
+    # axes[1].legend()
+
+    plt.tight_layout()
+    plt.savefig('./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it/PlotAnalysis_IncreaseTrails_AtkDef.png')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def print_data_summary(ratio_data, lay_rates):
+    for i, lay_rate_data in enumerate(ratio_data):
+        print(f"Lay Rate {lay_rates[i]}:")
+        for j, sim_data in enumerate(lay_rate_data):
+            if sim_data:
+                min_val = min(sim_data)
+                max_val = max(sim_data)
+                avg_val = sum(sim_data) / len(sim_data)
+                print(f"  Simulation {j + 1}: Min = {min_val}, Max = {max_val}, Avg = {avg_val}")
+            else:
+                print(f"  Simulation {j + 1}: No Data")
 
 def extract_rlp_value(filename):
     """
@@ -1360,7 +1619,10 @@ if __name__ == "__main__":
     # PlotAnalysis1_st2700()
     # PlotAnalysis1_NotLetDetractorsUseMLT()
     # PlotAnalysis2_NotLetDetractorsUseMLT()
+    # PlotAnalysis3()
     # PlotAnalysis4()
+    # PlotAnalysis_IncreaseTrails()
+    PlotAnalysis_IncTrails_AtkDef()
 
 
 

@@ -106,47 +106,62 @@ def quickTest():
     run_count = 1
 
     XML = config.C_XML_CONFIG(run_count)
-    XML.VISUAL = False
-    XML.Densify(False)
-    XML.UseQZone(False)
+    XML.VISUAL = True
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
     XML.UseFFDoS(False)
-    XML.UseMisleadingTrailAttack(True)
-    XML.setBotCount(24)
-    XML.MAX_SIM_TIME = 1500
-    XML.setDistribution(1)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/trash/'
+    # XML.INC_MLT = "true"
+    XML.LET_DET_USE_MLT = "false"
     XML.DRAW_TRAILS = 1
-    # XML.NUM_DETRACTORS = 4
-    XML.NUM_ATK_NESTS = 4
 
-    XML.setDetractorPercentage(25)
-    XML.RANDOM_SEED = 392160
-    XML.RD_PATH=f'results/'
-    XML.setFname()
-    DirectoryExists(XML.RD_PATH)
-    # if not DirectoryEmpty(XML.RD_PATH):
-    #     ClearDirectory(XML.RD_PATH)
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
 
-    # XML.RANDOM_SEED=120678
-    # XML.RANDOM_SEED=743490
-    # XML.RANDOM_SEED=301421
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
 
     # Cluster Distribution Settings
     XML.NUM_RCL = 8
     XML.RCL_X = 6
     XML.RCL_Y = 6
 
-    # fname = XML.setFname()+"AttackData.txt"
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
 
-    for i in range(run_count):
-        XML.RLP = "4.0"
-        # XML.FLW = 0.5
-        XML.USE_DEF = "true"
-        XML.USE_DEF_CL = "true"
-        XML.USE_DEF_CG = "true"
-        XML.STRIKE_LIMIT = 5            # strike limit
-        XML.TTT = 0.1                   # tolerance
-        XML.createXML()
-        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+    det_percent = 25
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "true"
+    XML.USE_DEF_CL = "true"
+    XML.USE_DEF_CG = "true"
+
+    XML.setDetractorPercentage(det_percent, True)
+    flist.append(XML.setFname()+"AttackData.txt")
+    XML.createXML()
+    for j in range(run_count):
+        time.sleep(0.05)
+        print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {det_percent}%\n')
+        os.system(f'argos3 -c {XML.XML_FNAME}')
+
+    # PlotExp1(flist, XML.RD_PATH)
+    # PlotExp6_percentages(flist, XML.RD_PATH, total_robots, total_food, False)
 
 def visualTest():
     
@@ -209,9 +224,9 @@ def visualTest():
             pass
 
         for i in range(run_count):
-            XML.RLP = p
+            XML.RLP_F = p
             XML.createXML()
-            print(f'Lambda: {XML.RLP}\n')
+            print(f'Lambda: {XML.RLP_F}\n')
             
             # Prompt user for input
             user_input = input(f"{run_count - i} runs left. Continue?  (y/n): ")
@@ -346,7 +361,7 @@ def AnalysisExp1(rc):
             ClearDirectory(XML.RD_PATH)
 
     for p in lambda_list:
-        XML.RLP = p
+        XML.RLP_F = p
         XML.createXML()
         for j in range(run_count):
             time.sleep(0.05)
@@ -368,7 +383,7 @@ def AnalysisExp1(rc):
             ClearDirectory(XML.RD_PATH)
     
     for p in lambda_list:
-        XML.RLP = p
+        XML.RLP_F = p
         XML.createXML()
         for j in range(run_count):
             time.sleep(0.05)
@@ -390,7 +405,7 @@ def AnalysisExp1(rc):
             ClearDirectory(XML.RD_PATH)
 
     for p in lambda_list:
-        XML.RLP = p
+        XML.RLP_F = p
         XML.createXML()
         for j in range(run_count):
             time.sleep(0.05)
@@ -446,7 +461,7 @@ def AnalysisExp2_NotLetDetUseMLT(rc):
             ClearDirectory(XML.RD_PATH)
 
     for p in lambda_list:
-        XML.RLP = p
+        XML.RLP_F = p
         XML.createXML()
         for j in range(run_count):
             time.sleep(0.05)
@@ -501,7 +516,7 @@ def AnalysisExp3(rc):
             ClearDirectory(XML.RD_PATH)
 
     for p in lambda_list:
-        XML.RLP = p
+        XML.RLP_F = p
         XML.createXML()
         for j in range(run_count):
             time.sleep(0.05)
@@ -528,21 +543,78 @@ def AnalysisExp3(rc):
             ClearDirectory(XML.RD_PATH)
 
     for p in lambda_list:
-        XML.RLP = p
+        XML.RLP_F = p
         XML.createXML()
         for j in range(run_count):
             time.sleep(0.05)
             print(f'Attack 1: Iteration: {j+1}/{run_count}, Sim Time: {XML.MAX_SIM_TIME}, Lay Rate: {p}\n')
             os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
 
+def AnalysisExp4(rc):
+    # In this experiment, we will be varying the layrate. This is to check the ratio of real to misleading trails along with the foraging performance of the attack alone.
+    # We will also prevent the detractors from selecting misleading trails to see how the performance is affected.
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    XML.MAX_SIM_TIME = 1800
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    robot_count = 32
+    XML.setBotCount(robot_count)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.UseMisleadingTrailAttack(False)
+    XML.USE_RATIO_CHECK = "true"
+    XML.BOT_COUNT = 32
+    XML.setDetractorPercentage(0, True)  # static number of foragers
+    XML.LET_DET_USE_MLT = "false"
+
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    resource_count = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    lambda_list = ["1.0", "4.0", "8.0", "12.0"]     # Rates of laying pheromone
+
+    XML.RD_PATH=f'results/analysis_12-21-23/results_analysis4_r{robot_count}_{XML.MAX_SIM_TIME}_rc{run_count}it/'
+
+    XML.setDetractorPercentage(25, True)  # static number of foragers
+    XML.UseMisleadingTrailAttack(True)
+
+    XML.USE_DEF = "false"
+    XML.USE_DEF_CL = "false"
+    XML.USE_DEF_CG = "false"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    for p in lambda_list:
+        XML.RLP_F = p
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Attack 1: Iteration: {j+1}/{run_count}, Sim Time: {XML.MAX_SIM_TIME}, Lay Rate: {p}\n')
+            os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
 
 if __name__ == "__main__":
 
     # AnalysisExp1(30)
     # AnalysisExp2_NotLetDetUseMLT(30)
-    AnalysisExp3(30)
-
-    # quickTest()
+    # AnalysisExp3(30)
+    # AnalysisExp4(30)
+    quickTest()
 
 
 

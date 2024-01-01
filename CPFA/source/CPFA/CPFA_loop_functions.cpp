@@ -37,7 +37,7 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	UninformedSearchVariation(0.0),
 	RateOfInformedSearchDecay(0.0),
 	RateOfSiteFidelity(0.0),
-	RateOfLayingPheromone(0.0),
+	RateOfLayingForagerPheromone(0.0),
 	RateOfPheromoneDecay(0.0),
 	FoodRadius(0.05),
 	FoodRadiusSquared(0.0025),
@@ -92,7 +92,8 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(CPFA_node, "UninformedSearchVariation",         USV_InDegrees);
 	argos::GetNodeAttribute(CPFA_node, "RateOfInformedSearchDecay",         RateOfInformedSearchDecay);
 	argos::GetNodeAttribute(CPFA_node, "RateOfSiteFidelity",                RateOfSiteFidelity);
-	argos::GetNodeAttribute(CPFA_node, "RateOfLayingPheromone",             RateOfLayingPheromone);
+	argos::GetNodeAttribute(CPFA_node, "RateOfLayingForagerPheromone",      RateOfLayingForagerPheromone);
+	argos::GetNodeAttribute(CPFA_node, "RateOfLayingDetractorPheromone", 	RateOfLayingDetractorPheromone);
 	argos::GetNodeAttribute(CPFA_node, "RateOfPheromoneDecay",              RateOfPheromoneDecay);
 	argos::GetNodeAttribute(CPFA_node, "PrintFinalScore",                   PrintFinalScore);
 
@@ -309,6 +310,9 @@ void CPFA_loop_functions::PreStep() {
 	UpdatePheromoneList();
 
 	if (fabs(fmod(getSimTimeInSeconds(), ratioCheckFreq)) < EPSILON && checkRatio){
+
+		curNumRealTrails = 0;
+		curNumFakeTrails = 0;
 
 		// Get ratio of real trails to fake trails
 		for (size_t i = 0; i < PheromoneList.size(); i++){
@@ -1535,7 +1539,7 @@ double CPFA_loop_functions::getRateOfSiteFidelity() {
 }
 
 double CPFA_loop_functions::getRateOfLayingPheromone() {
-	return RateOfLayingPheromone;
+	return RateOfLayingForagerPheromone;
 }
 
 double CPFA_loop_functions::getRateOfPheromoneDecay() {
@@ -1577,7 +1581,7 @@ void CPFA_loop_functions::ConfigureFromGenome(Real* g)
 	UninformedSearchVariation.SetValue(g[2]);
 	RateOfInformedSearchDecay         = g[3];
 	RateOfSiteFidelity                = g[4];
-	RateOfLayingPheromone             = g[5];
+	RateOfLayingForagerPheromone             = g[5];
 	RateOfPheromoneDecay              = g[6];
 }
 

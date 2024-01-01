@@ -24,7 +24,8 @@ class C_XML_CONFIG:
         self.PRN    = "0.0147598869881"             # Probability Of Returning To Nest
         self.PSS    = "0.723128706375"              # Probability Of Switching To Searching
         self.RISD   = "0.205799848158"              # Rate Of Informed Search Decay
-        self.RLP    = "14.7027566005"               # Rate of Laying Pheromone
+        self.RLP_F    = "14.7027566005"               # Rate of Laying Pheromone (Forager)
+        self.RLP_D    = "14.7027566005"               # Rate of Laying Pheromone (Detractor)
         self.RPD    = "0.0245057227138"             # Rate Of Pheromone Decay
         self.RSF    = "14.1514206414"               # Rate Of Site Fidelity
         self.USV    = "2.81939731297"               # Uninformed Search Variation
@@ -149,6 +150,7 @@ class C_XML_CONFIG:
         ########### Attack Analysis Experiments ###########
         self.USE_RATIO_CHECK =   "false"                 # Turn on/off ratio check experiment
         self.RATIO_CHECK_FREQ =  10                      # Ratio check frequency (seconds)
+        self.INC_MLT =           "false"                 # Increase Misleading Trail (each detractor lays one to each attack nest instead of 1 random)
 
     def UseDefenseMethod(self, useDef):
         if (useDef):
@@ -231,7 +233,8 @@ class C_XML_CONFIG:
             self.PRN    = "0.0147598869881"             # Probability Of Returning To Nest
             self.PSS    = "0.723128706375"              # Probability Of Switching To Searching
             self.RISD   = "0.205799848158"              # Rate Of Informed Search Decay
-            self.RLP    = "14.7027566005"               # Rate of Laying Pheromone
+            self.RLP_F    = "14.7027566005"               # Rate of Laying Pheromone (Forager)
+            self.RLP_D    = "14.7027566005"               # Rate of Laying Pheromone (Detractor)
             self.RPD    = "0.0245057227138"             # Rate Of Pheromone Decay
             self.RSF    = "14.1514206414"               # Rate Of Site Fidelity
             self.USV    = "2.81939731297"               # Uninformed Search Variation
@@ -246,7 +249,8 @@ class C_XML_CONFIG:
             self.RISD    = "0.253110502082"
             self.RSF     = "1.42036207003"
             # self.RLP     = "8.98846470854"
-            self.RLP     = "1.0"                    # For increased pheromone laying rate (Nov 10, 2023)
+            self.RLP_F     = "1.0"                    # For increased pheromone laying rate (Nov 10, 2023)  (Forager)
+            self.RLP_D     = "1.0"                    # For increased pheromone laying rate (Nov 10, 2023)  (Detractor)
             self.RPD     = "0.063119269938"
 
             self.RFD    = 1
@@ -258,7 +262,8 @@ class C_XML_CONFIG:
             self.USV     = "2.67338576954"
             self.RISD    = "0.253110502082"
             self.RSF     = "1.42036207003"
-            self.RLP     = "15.976929417"
+            self.RLP_F     = "15.976929417"     # (Forager)
+            self.RLP_D     = "15.976929417"     # (Detractor)
             self.RPD     = "0.063119269938"
 
             self.RFD     = 2
@@ -382,14 +387,15 @@ class C_XML_CONFIG:
         bot_count = f'r{self.T_BOT_COUNT}'
         detractor_count = f'd{self.D_BOT_COUNT}'
         atk_nest_count = f'atk{self.NUM_ATK_NESTS}'
-        rlp = f'rlp{self.RLP}'
+        rlpf = f'rlpf{self.RLP_F}'
+        rlpd = f'rlpd{self.RLP_D}'
         rfc = f'rfc{num_real_food}'
         arena = f'{self.ARENA_SIZE[0]}by{self.ARENA_SIZE[1]}'
         time = f'time{self.MAX_SIM_TIME}'
         iter = f'iter{self.num_iterations}'
         ttt = f'ttt{self.TTT}'
 
-        self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{detractor_count}_{ttt}_{rlp}_{rfc}_{arena}_{time}_{iter}_'
+        self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{detractor_count}_{ttt}_{rlpf}_{rlpd}_{rfc}_{arena}_{time}_{iter}_'
 
         return self.fname_header
 
@@ -499,6 +505,7 @@ class C_XML_CONFIG:
         params_settings.setAttribute('UseMisleadingTrailAttack', str(self.USE_MTATK))
         params_settings.setAttribute('RandomizeAtkNest', str(self.RAND_ATK_NEST))
         params_settings.setAttribute('LetDetractorUseMLTrail', str(self.LET_DET_USE_MLT))
+        params_settings.setAttribute('IncreaseMisleadingTrails', str(self.INC_MLT))
         params_settings.setAttribute('AtkNest1Position', f'{self.ATK_NEST1_POS[0]:.1f},{self.ATK_NEST1_POS[1]:.1f}')
         params_settings.setAttribute('AtkNest2Position', f'{self.ATK_NEST2_POS[0]:.1f},{self.ATK_NEST2_POS[1]:.1f}')
         params_settings.setAttribute('AtkNest3Position', f'{self.ATK_NEST3_POS[0]:.1f},{self.ATK_NEST3_POS[1]:.1f}')
@@ -520,7 +527,8 @@ class C_XML_CONFIG:
         lf_cpfa.setAttribute('ProbabilityOfReturningToNest', str(self.PRN))
         lf_cpfa.setAttribute('ProbabilityOfSwitchingToSearching', str(self.PSS))
         lf_cpfa.setAttribute('RateOfInformedSearchDecay', str(self.RISD))
-        lf_cpfa.setAttribute('RateOfLayingPheromone', str(self.RLP))
+        lf_cpfa.setAttribute('RateOfLayingForagerPheromone', str(self.RLP_F))
+        lf_cpfa.setAttribute('RateOfLayingDetractorPheromone', str(self.RLP_D))
         lf_cpfa.setAttribute('RateOfPheromoneDecay', str(self.RPD))
         lf_cpfa.setAttribute('RateOfSiteFidelity', str(self.RSF))
         lf_cpfa.setAttribute('UninformedSearchVariation', str(self.USV))

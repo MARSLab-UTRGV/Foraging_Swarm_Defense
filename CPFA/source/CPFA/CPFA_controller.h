@@ -186,6 +186,7 @@ class CPFA_controller : public BaseController {
 		bool randomizeAtkNest;
 
 		bool letDetractorUseMLTrail;
+		bool increaseMisleadingTrails;
 
 		bool reachedInformedTarget;
 

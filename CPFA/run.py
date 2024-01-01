@@ -102,42 +102,67 @@ def ClearDirectory(path):
 def quickTest():
     
     run_count = 1
-
     XML = config.C_XML_CONFIG(run_count)
     XML.VISUAL = True
-    XML.Densify(False)
-    XML.UseQZone(False)
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time     # increased from 1800 to 2700 (+50%)
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
     XML.UseFFDoS(False)
-    XML.UseMisleadingTrailAttack(True)
-    XML.BOT_COUNT = 24
-    XML.setBotCount(24)
-    XML.MAX_SIM_TIME = 1500
-    XML.setDistribution(1)
+    XML.UseQZone(False)
     XML.DRAW_TRAILS = 1
-    # XML.NUM_DETRACTORS = 4
-    XML.NUM_ATK_NESTS = 4
+    XML.RD_PATH=f'results/trash'
+    # XML.INC_MLT = "true"
+    XML.LET_DET_USE_MLT = "false"
 
-    XML.setDetractorPercentage(25, True)
-    # XML.RANDOM_SEED = 392160
-    XML.RD_PATH=f'results/'
-    XML.setFname()
-    DirectoryExists(XML.RD_PATH)
-    # if not DirectoryEmpty(XML.RD_PATH):
-    #     ClearDirectory(XML.RD_PATH)
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
 
-    # XML.RANDOM_SEED=120678
-    # XML.RANDOM_SEED=743490
-    # XML.RANDOM_SEED=301421
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
 
     # Cluster Distribution Settings
     XML.NUM_RCL = 8
     XML.RCL_X = 6
     XML.RCL_Y = 6
 
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    percent_list = [30]     # Percentage of detractors
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "false"
+    XML.USE_DEF_CL = "false"
+    XML.USE_DEF_CG = "false"
+
+    for p in percent_list:
+        XML.setDetractorPercentage(p, True)
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {p}%\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
+
+
     # fname = XML.setFname()+"AttackData.txt"
 
     for i in range(run_count):
-        XML.RLP = "4.0"
+        XML.RLP_F = "4.0"
         # XML.FLW = 0.5
         XML.USE_DEF = "false"
         XML.USE_DEF_CL = "false"
@@ -208,9 +233,9 @@ def visualTest():
             pass
 
         for i in range(run_count):
-            XML.RLP = p
+            XML.RLP_F = p
             XML.createXML()
-            print(f'Lambda: {XML.RLP}\n')
+            print(f'Lambda: {XML.RLP_F}\n')
             
             # Prompt user for input
             user_input = input(f"{run_count - i} runs left. Continue?  (y/n): ")
@@ -335,7 +360,7 @@ def Experiment1(rc):
 
     percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
 
-    XML.RLP = "4.0"     # Experiment 3: rate = 4.0 has most robots captured
+    XML.RLP_F = "4.0"     # Experiment 3: rate = 4.0 has most robots captured
 
     flist = []
 
@@ -378,7 +403,7 @@ def Experiment1_replot(rc):
     resource_count = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
 
     percent_list = [10, 20, 30, 40, 50]
-    XML.RLP = "4.0"
+    XML.RLP_F = "4.0"
     flist = []
 
     flist.append(XML.setFname()+"AttackData.txt")
@@ -573,7 +598,7 @@ def Experiment2(rc):
 
     XML.setDetractorPercentage(25)
     for p in lambda_list:
-        XML.RLP = p
+        XML.RLP_F = p
         flist.append(XML.setFname()+"AttackData.txt")
         XML.createXML()
         for j in range(run_count):
@@ -615,7 +640,7 @@ def Experiment2_replot(rc):
 
     for p in rlp_list:
 
-        XML.RLP = p
+        XML.RLP_F = p
         flist.append(XML.setFname()+"AttackData.txt")
         
     # check if files exist
@@ -916,7 +941,7 @@ def Experiment3(rc):
     XML.setDetractorPercentage(25)
 
     for p in lambda_list:
-        XML.RLP = p
+        XML.RLP_F = p
         flist.append(XML.setFname()+"AttackData.txt")
         XML.createXML()
         for j in range(run_count):
@@ -957,7 +982,7 @@ def Experiment3_replot(rc):
 
     for p in rlp_list:
 
-        XML.RLP = p
+        XML.RLP_F = p
         flist.append(XML.setFname()+"AttackData.txt")
         
     # check if files exist
@@ -1347,7 +1372,7 @@ def Experiment4_replot(rc):
 
     for p in rlp_list:
 
-        XML.RLP = p
+        XML.RLP_F = p
         flist.append(XML.setFname()+"AttackData.txt")
         
     # check if files exist
@@ -1679,7 +1704,7 @@ def Experiment5_6(rc):
     XML.USE_DEF_CG = "true"
 
     for p in lambda_list:
-        XML.RLP= p
+        XML.RLP_F= p
         flist.append(XML.setFname()+"AttackData.txt")
         XML.createXML()
         for j in range(run_count):
@@ -1708,7 +1733,7 @@ def Experiment5_6(rc):
         else:
             ClearDirectory(XML.RD_PATH)
 
-    XML.RLP = "4.0"     # from experiment 3, 4.0 has most robots captured
+    XML.RLP_F = "4.0"     # from experiment 3, 4.0 has most robots captured
 
     for d in det_percent_list:
         XML.setDetractorPercentage(d)
@@ -1755,7 +1780,7 @@ def Experiment5_replot(rc):
     XML.STRIKE_LIMIT = 5
 
     for p in lambda_list:
-        XML.RLP= p
+        XML.RLP_F= p
         flist.append(XML.setFname()+"AttackData.txt")
         XML.createXML()
         
@@ -1770,7 +1795,7 @@ def Experiment5_replot(rc):
     XML.USE_DEF_CG = "true"
 
     for p in lambda_list:
-        XML.RLP= p
+        XML.RLP_F= p
         flist.append(XML.setFname()+"AttackData.txt")
         XML.createXML()
 
@@ -2063,7 +2088,7 @@ def Experiment6(rc):
 
     percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
 
-    XML.RLP = "4.0"     # Experiment 3: rate = 4.0 has most robots captured
+    XML.RLP_F = "4.0"     # Experiment 3: rate = 4.0 has most robots captured
 
     flist = []
 
@@ -2138,7 +2163,7 @@ def Experiment6_replot(rc):
     resource_count = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
 
     percent_list = [10, 20, 30, 40, 50]
-    XML.RLP = "4.0"
+    XML.RLP_F = "4.0"
     flist = []
 
     flist.append(XML.setFname()+"AttackData.txt")
@@ -2296,7 +2321,9 @@ def PlotExp6_percentages(flist, rdpath, total_robots, total_food, noDef):
         plt.savefig(os.path.join(rdpath, 'Experiment6_lineplot.png'))
     plt.clf()
 
-######### EXPERIMENT 6 static number of foragers, varying detractors #########
+######### EXPERIMENT 7 #########
+    
+# This experiment explores increasing misleading trails by forcing the detractors to always lay 4 pheromone trails (one to each attack nest) each time they lay a trail.
 
 def Experiment7(rc):
 
@@ -2304,15 +2331,17 @@ def Experiment7(rc):
 
     XML = config.C_XML_CONFIG(run_count)
     XML.VISUAL = False
-    sim_time = 2700
+    sim_time = 1800
     XML.MAX_SIM_TIME = sim_time     # increased from 1800 to 2700 (+50%)
     XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
     total_robots = 24
+    XML.BOT_COUNT = total_robots
     XML.setBotCount(total_robots)
     XML.setDistribution(1) # Cluster Distribution Only
     XML.UseFFDoS(False)
     XML.UseQZone(False)
-    XML.RD_PATH=f'results/results_Exp7_r24_st{sim_time}_{run_count}it/'
+    XML.RD_PATH=f'results/results_IncreaseTrails_r24_rlp4_st{sim_time}_{run_count}it/'
+    XML.INC_MLT = "true"
 
     XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
 
@@ -2335,7 +2364,7 @@ def Experiment7(rc):
 
     percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
 
-    XML.RLP = "4.0"     # Experiment 3: rate = 4.0 has most robots captured
+    XML.RLP_F = "4.0"     # Experiment 3: rate = 8.0 has least performance
 
     flist = []
 
@@ -2351,9 +2380,9 @@ def Experiment7(rc):
         else:
             ClearDirectory(XML.RD_PATH)
 
-    XML.USE_DEF = "true"
-    XML.USE_DEF_CL = "true"
-    XML.USE_DEF_CG = "true"
+    XML.USE_DEF = "false"
+    XML.USE_DEF_CL = "false"
+    XML.USE_DEF_CG = "false"
 
     for p in percent_list:
         XML.setDetractorPercentage(p, True)
@@ -2390,7 +2419,7 @@ def Experiment7_replot(rc):
     resource_count = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
 
     percent_list = [10, 20, 30, 40, 50]
-    XML.RLP = "4.0"
+    XML.RLP_F = "4.0"
     flist = []
 
     flist.append(XML.setFname()+"AttackData.txt")
@@ -2548,6 +2577,140 @@ def PlotExp7_percentages(flist, rdpath, total_robots, total_food, noDef):
         plt.savefig(os.path.join(rdpath, 'Experiment6_lineplot.png'))
     plt.clf()
 
+######### EXPERIMENT 8 #########
+    
+# This experiment explores increasing misleading trails by increasing the rate of laying pheromnes for detractors and possibly decreasing that of foragers
+
+def Experiment8(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time     # increased from 1800 to 2700 (+50%)
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_RateIncrease_r24_rlpf6_rlpd1_st{sim_time}_{run_count}it/'
+    # XML.INC_MLT = "true"
+    XML.LET_DET_USE_MLT = "false"
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "6.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "false"
+    XML.USE_DEF_CL = "false"
+    XML.USE_DEF_CG = "false"
+
+    for p in percent_list:
+        XML.setDetractorPercentage(p, True)
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {p}%\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
+
+    # PlotExp1(flist, XML.RD_PATH)
+    # PlotExp6_percentages(flist, XML.RD_PATH, total_robots, total_food, False)
+
+######### EXPERIMENT 9 (w/ def) #########
+    
+# This experiment explores increasing misleading trails by increasing the rate of laying pheromnes for detractors and possibly decreasing that of foragers
+# We are also implementing the defense now
+
+def Experiment9(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/results_RateIncrease_DEF_r24_rlpf4_rlpd1_st{sim_time}_{run_count}it/'
+    # XML.INC_MLT = "true"
+    XML.LET_DET_USE_MLT = "false"
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "true"
+    XML.USE_DEF_CL = "true"
+    XML.USE_DEF_CG = "true"
+
+    for p in percent_list:
+        XML.setDetractorPercentage(p, True)
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {p}%\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
+
+    # PlotExp1(flist, XML.RD_PATH)
+    # PlotExp6_percentages(flist, XML.RD_PATH, total_robots, total_food, False)
+
+
 
 if __name__ == "__main__":
 
@@ -2569,7 +2732,13 @@ if __name__ == "__main__":
 
     # Experiment7(30)
 
-    quickTest()
+    # Experiment8(30)
+
+    Experiment9(30)
+
+    # quickTest()
+
+
 
 
 

@@ -36,7 +36,8 @@ CPFA_controller::CPFA_controller() :
 	isIsolated(false),
 	returnedFromTrail(false),
 	randomizeAtkNest(true),
-	letDetractorUseMLTrail(true)
+	letDetractorUseMLTrail(true),
+	increaseMisleadingTrails(false)
 {
 }
 
@@ -68,6 +69,7 @@ void CPFA_controller::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings, "UseMisleadingTrailAttack",	UseMTAtk);
 	argos::GetNodeAttribute(settings, "RandomizeAtkNest",			randomizeAtkNest);
 	argos::GetNodeAttribute(settings, "LetDetractorUseMLTrail",		letDetractorUseMLTrail);
+	argos::GetNodeAttribute(settings, "IncreaseMisleadingTrails",	increaseMisleadingTrails);
 
 	CVector2 AtkNest1Position;
 	CVector2 AtkNest2Position;
@@ -616,7 +618,17 @@ void CPFA_controller::Returning() {
 	if(IsInTheNest()) {
 		// Based on a Poisson CDF, the robot may or may not create a pheromone
 	    // located at the last place it picked up food.
-	    argos::Real poissonCDF_pLayRate    = GetPoissonCDF(ResourceDensity, LoopFunctions->RateOfLayingPheromone);
+	    
+		// initialize poissonCDF_pLayRate
+		argos::Real poissonCDF_pLayRate = 0.0;
+
+		if (!isDetractor){
+			poissonCDF_pLayRate    = GetPoissonCDF(ResourceDensity, LoopFunctions->RateOfLayingForagerPheromone);
+		} else {
+			// LOG << "Detractor laying pheromone... Lay Rate: " << LoopFunctions->RateOfLayingDetractorPheromone << endl;
+			poissonCDF_pLayRate    = GetPoissonCDF(ResourceDensity, LoopFunctions->RateOfLayingDetractorPheromone);
+			// LOG << "CDF: " << poissonCDF_pLayRate << endl;
+		}
 	    argos::Real poissonCDF_sFollowRate = GetPoissonCDF(ResourceDensity, LoopFunctions->RateOfSiteFidelity);
 	    argos::Real r1 = RNG->Uniform(argos::CRange<argos::Real>(0.0, 1.0));
 	    argos::Real r2 = RNG->Uniform(argos::CRange<argos::Real>(0.0, 1.0));
@@ -661,9 +673,26 @@ void CPFA_controller::Returning() {
 				
 				if(updateFidelity) {
 
+					// LOG << "updateFidelity = true" << endl;
+
 					if (poissonCDF_pLayRate > r1){
 
+						// LOG << "poissonCDF_pLayRate > r1" << endl;
+
 						if (isDetractor){
+
+							if (increaseMisleadingTrails){
+								LoopFunctions->numFakeTrails += LoopFunctions->AtkNestPositions.size();
+								for (int i = 0; i < LoopFunctions->AtkNestPositions.size(); i++){
+									TrailToShare.push_back(LoopFunctions->AtkNestPositions[i]);
+									TrailToShare.push_back(LoopFunctions->NestPosition);
+									argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
+									Pheromone sharedPheromone(LoopFunctions->AtkNestPositions[i], TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, true, controllerID);
+									LoopFunctions->PheromoneList.push_back(sharedPheromone);
+									sharedPheromone.Deactivate(); 
+									TrailToShare.clear();
+								}
+							}
 
 							// LOG << controllerID << " Laying Pheromone..." << endl;
 							// LOG << controllerID << "Attack Nest Position: " << AtkNestPos << endl;
@@ -673,6 +702,7 @@ void CPFA_controller::Returning() {
 							argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
 							Pheromone sharedPheromone(AtkNestPos, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, true, controllerID);
 							LoopFunctions->PheromoneList.push_back(sharedPheromone);
+							// LOG << "Pushed back pheromone..." << endl;
 							sharedPheromone.Deactivate(); 
 						} else {
 
@@ -682,11 +712,13 @@ void CPFA_controller::Returning() {
 							argos::Real timeInSeconds = (argos::Real)(SimulationTick() / SimulationTicksPerSecond());
 							Pheromone sharedPheromone(SiteFidelityPosition, TrailToShare, timeInSeconds, LoopFunctions->RateOfPheromoneDecay, ResourceDensity, isHoldingFakeFood, controllerID);
 							LoopFunctions->PheromoneList.push_back(sharedPheromone);
+							// LOG << "Pushed back pheromone..." << endl;
 							sharedPheromone.Deactivate(); // make sure this won't get re-added later...
 						}
 
 						// LOG << controllerID << ": *** SUCCESS ***" << endl;
 					} else {
+						// LOG << "CDF: " << poissonCDF_pLayRate << " <= " << "r1:" << r1 << endl;
 						// LOG << controllerID << ": *** FAILED ***" << endl;
 						// LOG << controllerID << ": r1 = " << r1 << ", poissonCDF_pLayRate = " << poissonCDF_pLayRate << ", Resource Density = " << ResourceDensity << endl;
 					}
@@ -1224,7 +1256,7 @@ bool CPFA_controller::SetTargetPheromone() {
 		randomWeight -= LoopFunctions->PheromoneList[i].GetWeight();
 	}
 
-	if (isDetractor && !letDetractorUseMLTrail && !isPheromoneSet) LOG << controllerID << ": Unable to find a non-misleading trail..." << endl;
+	// if (isDetractor && !letDetractorUseMLTrail && !isPheromoneSet) LOG << controllerID << ": Unable to find a non-misleading trail..." << endl;
 
 	//ofstream log_output_stream;
 	//log_output_stream.open("cpfa_log.txt", ios::app);
