@@ -168,6 +168,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t ffatk_FalsePositives;
 		size_t numQZones;
 
+
 		// Real BotFwdSpeed;
 
 		Real T_tolerance;
@@ -248,7 +249,12 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 
 		CVector3 ForagingAreaSize;
 		bool IsNearRobot(const CVector2& position);
+		bool IsNearRobot(const CVector2& position, Real radius);	// overloaded to handle cylinder obstacles
 
+		std::vector<pair<argos::CVector3, argos::Real>> CylinderObstaclePositionList;
+		std::vector<argos::CVector3> WallObstaclePositionList;
+		std::vector<argos::CVector3> LWallObstaclePositionList;
+		std::vector<argos::CVector3> UWallObstaclePositionList;
 	private:
 
 		/* private helper functions */
@@ -261,23 +267,51 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		void PowerLawFakeFoodDistribution();	// Ryan Luna 11/13/22
         bool IsOutOfBounds(argos::CVector2 p, size_t length, size_t width);
 		bool IsCollidingWithNest(argos::CVector2 p);
+		bool IsCollidingWithNest(argos::CVector2 p, argos::Real radius);	// overloaded to handle cylinder obstacles
 		bool IsCollidingWithAtkNest(argos::CVector2 p);		// Ryan Luna 09/20/23
+		bool IsCollidingWithAtkNest(argos::CVector2 p, argos::Real radius);	// overloaded to handle cylinder obstacles
 		bool IsCollidingWithFood(argos::CVector2 p);
 		CVector3 GenCapturePosition();		// generate a position to move entity to (outside foraging arena) when captured
 		CVector3 GenIsoPosition();			// generate a position to move entity to (inside foraging arena) when isolated
 		CVector3 GenUnIsoPosition();
 		void IsolateBot(std::string id);	// isolate a bot and position it at the generated position (left of environment outside foraging area)
 		void UnIsolateBot(std::string bot_id);
+
+
+		/******************* OBSTACLES ***************************/
+		bool IsCollidingWithCylinderObstacle(argos::CVector2 p, argos::Real radius);
+		// bool IsCollidingWithWallObstacle(argos::CVector2 p);
+		// bool IsCollidingWithLWallObstacle(argos::CVector2 p);
+		// bool IsCollidingWithUWallObstacle(argos::CVector2 p);
+		CVector3 GenCylinderObstaclePosition();
+		// CVector3 GenWallObstaclePosition();
+		// CVector3 GenLWallObstaclePosition();
+		// CVector3 GenUWallObstaclePosition();
+		void DeployObstacles(size_t num_obstacles);
+		/*********************************************************/
+
 		double score;
 		int PrintFinalScore;
 
 		bool AllRobotsCaptured();
+
+		bool IsRobotSafeFromIsolation(string id);
 
 		bool checkRatio;
 		size_t curNumRealTrails;
 		size_t curNumFakeTrails;
 		vector<pair<Real, pair<size_t, size_t>>> trailRatioList; // (numRealTrails, numFakeTrails)
 		size_t ratioCheckFreq;
+		bool checkResourcesPerMin;
+		size_t resourceCheckFreqPerMin;
+		vector<size_t> resourcePerMinList;
+		size_t lastMinResourceTotal;
+		size_t lastMinForagerCapTotal;
+		size_t lastMinDetractorIsoTotal;
+		vector<size_t> foragersCapturedPerMinList;
+		vector<size_t> detractorsIsolatedPerMinList;
+		size_t detractorIsolatedCount;
+		
 
 		bool SetupPythonEnvironment();
 
@@ -306,6 +340,32 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		bool useReturnBool;
 		bool useClustering;
 		bool useClusterGraph;
+
+		/******************* OBSTACLES ***************************/
+		bool useObstacles;
+		Real ObstacleHeight;		// height for all obstacles
+
+		bool useCylinderObstacles;
+		Real cylinderObstacleRadius;
+		Real numCylinderObstacles;
+
+		/**
+		 * 		wall orientation will be randomized
+		 */
+		bool useWallObstacles;
+		Real wallObstacleWidth;
+		Real wallObstacleLength;
+
+		/** 	wallObstacleLength and wallObstacleWidth will be used for the LWalls and UWalls 
+		 * 		LWalls are essentially squares with only two connected sides 	->		|_
+		 * 		UWalls are essentially squares with only three connected sides	->		|_|
+		*/
+		bool useLWallObstacles;
+		bool useUWallObstacles;
+		
+
+
+		/*********************************************************/
 
 		Real BotFwdSpeed;
 
@@ -338,6 +398,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		std::set<std::string> isolatedBots;
 		size_t numUnIsolatedBots;
 		size_t UnIsoFalsePositives;		// incremented when a detractor is unisolated
+		size_t numCapturedForagers;
 
 		set<string> tmpNameStorage;
 

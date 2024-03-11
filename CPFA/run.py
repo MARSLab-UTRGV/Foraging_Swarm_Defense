@@ -108,8 +108,8 @@ def quickTest():
     XML.MAX_SIM_TIME = sim_time     # increased from 1800 to 2700 (+50%)
     XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
     total_robots = 24
-    XML.BOT_COUNT = total_robots
     XML.setBotCount(total_robots)
+    XML.BOT_COUNT = total_robots
     XML.setDistribution(1) # Cluster Distribution Only
     XML.UseFFDoS(False)
     XML.UseQZone(False)
@@ -117,8 +117,11 @@ def quickTest():
     XML.RD_PATH=f'results/trash'
     # XML.INC_MLT = "true"
     XML.LET_DET_USE_MLT = "false"
-
     XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    XML.USE_OBSTACLES = "true"
+    XML.USE_CYLINDERS = "true"
+    XML.NUM_CYL_OBS = 10
 
     if (not DirectoryExists(XML.RD_PATH)):
         print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
@@ -130,6 +133,8 @@ def quickTest():
         else:
             ClearDirectory(XML.RD_PATH)
 
+
+
     # Cluster Distribution Settings
     XML.NUM_RCL = 8
     XML.RCL_X = 6
@@ -137,7 +142,7 @@ def quickTest():
 
     total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
 
-    percent_list = [30]     # Percentage of detractors
+    percent_list = [0]     # Percentage of detractors
 
     # Set detractors to have a higher rate of laying pheromones
     XML.RLP_F = "4.0"
@@ -2596,21 +2601,11 @@ def Experiment8(rc):
     XML.setDistribution(1) # Cluster Distribution Only
     XML.UseFFDoS(False)
     XML.UseQZone(False)
-    XML.RD_PATH=f'results/results_RateIncrease_r24_rlpf6_rlpd1_st{sim_time}_{run_count}it/'
     # XML.INC_MLT = "true"
     XML.LET_DET_USE_MLT = "false"
 
     XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
 
-    if (not DirectoryExists(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
-    if (not DirectoryEmpty(XML.RD_PATH)):
-        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
-        if (input() != 'y'):
-            print('Aborting...')
-            exit()
-        else:
-            ClearDirectory(XML.RD_PATH)
 
     # Cluster Distribution Settings
     XML.NUM_RCL = 8
@@ -2622,7 +2617,7 @@ def Experiment8(rc):
     percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
 
     # Set detractors to have a higher rate of laying pheromones
-    XML.RLP_F = "6.0"
+    XML.RLP_F = "4.0"
     XML.RLP_D = "1.0"
 
     flist = []
@@ -2631,6 +2626,18 @@ def Experiment8(rc):
     XML.USE_DEF_CL = "false"
     XML.USE_DEF_CG = "false"
 
+    XML.RD_PATH=f'results/resultsExp8_LOG_PER_MIN_DATA_RateIncrease_r{total_robots}_rlpf{XML.RLP_F}_rlpd{XML.RLP_D}_st{sim_time}_{run_count}it/'
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+            
     for p in percent_list:
         XML.setDetractorPercentage(p, True)
         flist.append(XML.setFname()+"AttackData.txt")
@@ -2709,7 +2716,72 @@ def Experiment9(rc):
 
     # PlotExp1(flist, XML.RD_PATH)
     # PlotExp6_percentages(flist, XML.RD_PATH, total_robots, total_food, False)
+            
+######### EXPERIMENT 10 (w/ def) #########    
+# This experiment explores increasing misleading trails by increasing the rate of laying pheromnes for detractors and possibly decreasing that of foragers
+# We are also implementing the defense now
+# We are going to prevent reisolation of the foragers. We can only do this if we are preventing detractors from following misleading trails.
 
+def Experiment10(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st{sim_time}_{run_count}it/'
+    # XML.INC_MLT = "true"
+
+    XML.LET_DET_USE_MLT = "false"
+    XML.PRI = "true"
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "true"
+    XML.USE_DEF_CL = "true"
+    XML.USE_DEF_CG = "true"
+
+    for p in percent_list:
+        XML.setDetractorPercentage(p, True)
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {p}%\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
 
 
 if __name__ == "__main__":
@@ -2734,9 +2806,13 @@ if __name__ == "__main__":
 
     # Experiment8(30)
 
-    Experiment9(30)
+    # Experiment9(30)
 
-    # quickTest()
+    # print ("Done with Experiment 8 (attack only). Moving to experiment 10 (attack + defense).")
+
+    # Experiment10(30)
+
+    quickTest()
 
 
 

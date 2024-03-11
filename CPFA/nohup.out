@@ -1,0 +1,4 @@
+  File "analysis.py", line 119
+    XML.RD_PATH=f'results/trash/'
+                                ^
+SyntaxError: invalid syntax

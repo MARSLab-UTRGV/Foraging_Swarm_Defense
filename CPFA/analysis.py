@@ -120,6 +120,10 @@ def quickTest():
     # XML.INC_MLT = "true"
     XML.LET_DET_USE_MLT = "false"
     XML.DRAW_TRAILS = 1
+    # XML.RANDOM_SEED = 252923
+
+    XML.LET_DET_USE_MLT = "false"
+    XML.PRI = "true"
 
     XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
 
@@ -143,14 +147,14 @@ def quickTest():
     det_percent = 25
 
     # Set detractors to have a higher rate of laying pheromones
-    XML.RLP_F = "4.0"
-    XML.RLP_D = "1.0"
+    XML.RLP_F = "12.0"
+    XML.RLP_D = "12.0"
 
     flist = []
 
-    XML.USE_DEF = "true"
-    XML.USE_DEF_CL = "true"
-    XML.USE_DEF_CG = "true"
+    XML.USE_DEF = "false"
+    XML.USE_DEF_CL = "false"
+    XML.USE_DEF_CG = "false"
 
     XML.setDetractorPercentage(det_percent, True)
     flist.append(XML.setFname()+"AttackData.txt")
@@ -560,16 +564,17 @@ def AnalysisExp4(rc):
     XML.VISUAL = False
     XML.MAX_SIM_TIME = 1800
     XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
-    robot_count = 32
+    robot_count = 24
     XML.setBotCount(robot_count)
     XML.setDistribution(1) # Cluster Distribution Only
     XML.UseFFDoS(False)
     XML.UseQZone(False)
     XML.UseMisleadingTrailAttack(False)
     XML.USE_RATIO_CHECK = "true"
-    XML.BOT_COUNT = 32
-    XML.setDetractorPercentage(0, True)  # static number of foragers
+    XML.BOT_COUNT = robot_count
     XML.LET_DET_USE_MLT = "false"
+    XML.PRI = "false"
+    XML.INC_MLT = "false"
 
 
     # Cluster Distribution Settings
@@ -581,7 +586,7 @@ def AnalysisExp4(rc):
 
     lambda_list = ["1.0", "4.0", "8.0", "12.0"]     # Rates of laying pheromone
 
-    XML.RD_PATH=f'results/analysis_12-21-23/results_analysis4_r{robot_count}_{XML.MAX_SIM_TIME}_rc{run_count}it/'
+    XML.RD_PATH=f'results/analysis_layrate_NEW_NEW/results_analysis4_r{robot_count}_st{XML.MAX_SIM_TIME}_{run_count}it/'
 
     XML.setDetractorPercentage(25, True)  # static number of foragers
     XML.UseMisleadingTrailAttack(True)
@@ -602,6 +607,7 @@ def AnalysisExp4(rc):
 
     for p in lambda_list:
         XML.RLP_F = p
+        XML.RLP_D = p
         XML.createXML()
         for j in range(run_count):
             time.sleep(0.05)
@@ -613,8 +619,8 @@ if __name__ == "__main__":
     # AnalysisExp1(30)
     # AnalysisExp2_NotLetDetUseMLT(30)
     # AnalysisExp3(30)
-    # AnalysisExp4(30)
-    quickTest()
+    AnalysisExp4(30)
+    # quickTest()
 
 
 

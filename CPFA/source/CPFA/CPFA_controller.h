@@ -65,8 +65,11 @@ class CPFA_controller : public BaseController {
 
 		void SetDetractorStartPosition(CVector2 newStartPosition);	// to be set in the loop functions
 
+
+		bool IsSafeFromIsolation();
 	private:
 
+		bool safeFromIsolation;
 		/* quarantine zone variables */		// Ryan Luna 12/28/22
 		vector<QZone>	QZoneList;
 		vector<Food>	LocalFoodList;
@@ -97,6 +100,7 @@ class CPFA_controller : public BaseController {
 		bool isUsingSiteFidelity;
 		bool isGivingUpSearch;
 		bool QZoneStrategy;		// to turn ON/OFF Quarantine Zones
+		bool preventReIsolation;
 
 		CVector2 AtkNestPos;
   

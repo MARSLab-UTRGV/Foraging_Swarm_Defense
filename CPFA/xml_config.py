@@ -137,6 +137,9 @@ class C_XML_CONFIG:
 
         self.LET_DET_USE_MLT =  "true"                 # Let detractors use misleading trails
 
+        self.PRI =               "false"                 # Prevent Re-Isolation
+        self.CHECK_RESOURCES_PER_MIN = "true"               # Check resources per minute
+
         ########### Defense Parameters ###########
         self.USE_DEF =           "false"                 # Turn on/off defense
         self.USE_DEF_RB =        "false"                 # Turn on/off return boolean for defense
@@ -151,6 +154,19 @@ class C_XML_CONFIG:
         self.USE_RATIO_CHECK =   "false"                 # Turn on/off ratio check experiment
         self.RATIO_CHECK_FREQ =  10                      # Ratio check frequency (seconds)
         self.INC_MLT =           "false"                 # Increase Misleading Trail (each detractor lays one to each attack nest instead of 1 random)
+
+        ########### Obstacles ###########
+        self.USE_OBSTACLES =     "false"                 # Turn on/off obstacles
+        self.USE_CYLINDERS =     "false"                 # Turn on/off cylinder obstacles
+        self.USE_WALLS =         "false"                 # Turn on/off wall obstacles
+        self.USE_LWALLS =        "false"                 # Turn on/off 'L' wall obstacles
+        self.USE_UWALLS =        "false"                 # Turn on/off 'U' wall obstacles
+        self.OBS_HEIGHT =        1.0                     # Obstacle height
+        self.CYL_OBS_RADIUS =    0.25                    # Cylinder obstacle radius
+        self.WALL_OBS_WIDTH =    0.1                     # Wall obstacle width
+        self.WALL_OBS_LENGTH =   1.0                     # Wall obstacle length
+        self.NUM_CYL_OBS =       0                       # Number of cylinder obstacles
+
 
     def UseDefenseMethod(self, useDef):
         if (useDef):
@@ -506,6 +522,7 @@ class C_XML_CONFIG:
         params_settings.setAttribute('RandomizeAtkNest', str(self.RAND_ATK_NEST))
         params_settings.setAttribute('LetDetractorUseMLTrail', str(self.LET_DET_USE_MLT))
         params_settings.setAttribute('IncreaseMisleadingTrails', str(self.INC_MLT))
+        params_settings.setAttribute('PreventReIsolation', str(self.PRI))
         params_settings.setAttribute('AtkNest1Position', f'{self.ATK_NEST1_POS[0]:.1f},{self.ATK_NEST1_POS[1]:.1f}')
         params_settings.setAttribute('AtkNest2Position', f'{self.ATK_NEST2_POS[0]:.1f},{self.ATK_NEST2_POS[1]:.1f}')
         params_settings.setAttribute('AtkNest3Position', f'{self.ATK_NEST3_POS[0]:.1f},{self.ATK_NEST3_POS[1]:.1f}')
@@ -580,6 +597,19 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('UseFeedbackEq', str(self.USFB))
         lf_settings.setAttribute('RatioCheckFreq', str(self.RATIO_CHECK_FREQ))
         lf_settings.setAttribute('CheckRatio', str(self.USE_RATIO_CHECK))
+        lf_settings.setAttribute('CheckResourcesPerMin', str(self.CHECK_RESOURCES_PER_MIN))
+
+        lf_settings.setAttribute('UseObstacles', str(self.USE_OBSTACLES))
+        lf_settings.setAttribute('UseCylinderObstacles', str(self.USE_CYLINDERS))
+        lf_settings.setAttribute('UseWallObstacles', str(self.USE_WALLS))
+        lf_settings.setAttribute('UseLWallObstacles', str(self.USE_LWALLS))
+        lf_settings.setAttribute('UseUWallObstacles', str(self.USE_UWALLS))
+        lf_settings.setAttribute('ObstacleHeight', str(self.OBS_HEIGHT))
+        lf_settings.setAttribute('CylinderObstacleRadius', str(self.CYL_OBS_RADIUS))
+        lf_settings.setAttribute('WallObstacleWidth', str(self.WALL_OBS_WIDTH))
+        lf_settings.setAttribute('WallObstacleLength', str(self.WALL_OBS_LENGTH))
+        lf_settings.setAttribute('NumCylinderObstacles', str(self.NUM_CYL_OBS))
+
         loops.appendChild(lf_settings)
         #       </settings>
 

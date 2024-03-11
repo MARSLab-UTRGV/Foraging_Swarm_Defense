@@ -37,7 +37,9 @@ CPFA_controller::CPFA_controller() :
 	returnedFromTrail(false),
 	randomizeAtkNest(true),
 	letDetractorUseMLTrail(true),
-	increaseMisleadingTrails(false)
+	increaseMisleadingTrails(false),
+	safeFromIsolation(false),
+	preventReIsolation(false)
 {
 }
 
@@ -70,6 +72,7 @@ void CPFA_controller::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings, "RandomizeAtkNest",			randomizeAtkNest);
 	argos::GetNodeAttribute(settings, "LetDetractorUseMLTrail",		letDetractorUseMLTrail);
 	argos::GetNodeAttribute(settings, "IncreaseMisleadingTrails",	increaseMisleadingTrails);
+	argos::GetNodeAttribute(settings, "PreventReIsolation",			preventReIsolation);
 
 	CVector2 AtkNest1Position;
 	CVector2 AtkNest2Position;
@@ -250,6 +253,17 @@ void CPFA_controller::SetUnIsolated(){
 	isHoldingFakeFood = false;
 	travelingTime+=SimulationTick()-startTime;
 	startTime = SimulationTick();
+	isUsingPheromone = false;
+	TrailToFollow.clear();
+	if (isDetractor){
+		LOGERR << "ERROR: SetUnIsolated() called on detractor robot." << endl;
+	} else if (preventReIsolation){
+		safeFromIsolation = true;
+	}
+}
+
+bool CPFA_controller::IsSafeFromIsolation(){
+	return safeFromIsolation;
 }
 
 /****************************************************************************/

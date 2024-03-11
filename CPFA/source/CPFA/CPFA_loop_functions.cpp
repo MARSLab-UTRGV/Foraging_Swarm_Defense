@@ -79,7 +79,24 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	curNumRealTrails(0),
 	curNumFakeTrails(0),
 	ratioCheckFreq(10),		// check ratio every 10 seconds
-	checkRatio(false)
+	checkRatio(false),
+	checkResourcesPerMin(false),
+	lastMinResourceTotal(0),
+	lastMinForagerCapTotal(0),
+	detractorIsolatedCount(0),
+
+	/******* OBSTACLES ********/
+	useObstacles(false),
+	useCylinderObstacles(false),
+	useWallObstacles(false),
+	useLWallObstacles(false),
+	useUWallObstacles(false),
+	ObstacleHeight(0.5),
+	cylinderObstacleRadius(0.5),
+	wallObstacleWidth(0.1),
+	wallObstacleLength(0.5),
+	numCylinderObstacles(10)
+	/**************************/
 {}
 
 void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {	
@@ -145,6 +162,21 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "UseFeedbackEq",					useFeedbackEq);
 	argos::GetNodeAttribute(settings_node, "RatioCheckFreq",				ratioCheckFreq);
 	argos::GetNodeAttribute(settings_node, "CheckRatio",					checkRatio);
+	argos::GetNodeAttribute(settings_node, "CheckResourcesPerMin",			checkResourcesPerMin);
+
+	/************************************* 	OBSTACLES *****************************************/
+	argos::GetNodeAttribute(settings_node, "UseObstacles",					useObstacles);
+	argos::GetNodeAttribute(settings_node, "UseCylinderObstacles",			useCylinderObstacles);
+	argos::GetNodeAttribute(settings_node, "UseWallObstacles",				useWallObstacles);
+	argos::GetNodeAttribute(settings_node, "UseLWallObstacles",				useLWallObstacles);
+	argos::GetNodeAttribute(settings_node, "UseUWallObstacles",				useUWallObstacles);
+	argos::GetNodeAttribute(settings_node, "ObstacleHeight",				ObstacleHeight);
+	argos::GetNodeAttribute(settings_node, "CylinderObstacleRadius",		cylinderObstacleRadius);
+	argos::GetNodeAttribute(settings_node, "WallObstacleWidth",				wallObstacleWidth);
+	argos::GetNodeAttribute(settings_node, "WallObstacleLength",			wallObstacleLength);
+	argos::GetNodeAttribute(settings_node, "NumCylinderObstacles",			numCylinderObstacles);
+	/******************************************************************************************/
+
 	FoodRadiusSquared = FoodRadius*FoodRadius;
 
 	argos::TConfigurationNode atk_node = argos::GetNode(node, "detractor_settings");
@@ -231,6 +263,11 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 
    	NestRadiusSquared = NestRadius*NestRadius;
 	AtkNestRadiusSquared = AtkNestRadius*AtkNestRadius;
+
+	/**
+	 * Distribute obstacles first
+	*/
+	DeployObstacles(numCylinderObstacles);
 
 	/**
 	 * Distribute atk nests randomly one quadrant of the arena at a time (ignoring innermost subquadrants).
@@ -325,6 +362,52 @@ void CPFA_loop_functions::PreStep() {
 		trailRatioList.push_back(make_pair(getSimTimeInSeconds(),make_pair(curNumRealTrails, curNumFakeTrails)));
 	}
 
+	if (fabs(fmod(getSimTimeInSeconds(), 60)) < EPSILON && checkResourcesPerMin){
+
+		if (resourcePerMinList.empty()){
+			resourcePerMinList.push_back(RealFoodCollected);
+		} else {
+			size_t foodCollectedThisMinute = RealFoodCollected - lastMinResourceTotal;
+			resourcePerMinList.push_back(foodCollectedThisMinute);
+		}
+
+		lastMinResourceTotal = RealFoodCollected;
+
+		if (foragersCapturedPerMinList.empty()){
+			foragersCapturedPerMinList.push_back(AttackerNest.GetNumCapturedRobots());
+		} else {
+			size_t foragersCapturedThisMinute = AttackerNest.GetNumCapturedRobots() - lastMinForagerCapTotal;
+			foragersCapturedPerMinList.push_back(foragersCapturedThisMinute);
+		}
+
+		lastMinForagerCapTotal = AttackerNest.GetNumCapturedRobots();
+
+		// size_t curDetractorsIsolated = 0;
+		
+		// if (detractorsIsolatedPerMinList.empty()){
+		// 	for (auto& bot : isolatedBots){
+		// 		if (bot.find("dt") != string::npos){
+		// 			curDetractorsIsolated++;
+		// 		}
+		// 	}
+		// 	detractorsIsolatedPerMinList.push_back(curDetractorsIsolated);
+		// } else {
+		// 	for (auto& bot : isolatedBots){
+		// 		if (bot.find("dt") != string::npos){
+		// 			curDetractorsIsolated++;
+		// 		}
+		// 	}
+		// 	size_t detractorsIsolatedThisMinute = curDetractorsIsolated - lastMinDetractorIsoTotal;
+		// 	detractorsIsolatedPerMinList.push_back(detractorsIsolatedThisMinute);
+		// }
+
+		// lastMinDetractorIsoTotal = curDetractorsIsolated;
+
+		detractorsIsolatedPerMinList.push_back(detractorIsolatedCount);
+		detractorIsolatedCount = 0;
+
+	}
+
 
 
 	// Ryan Luna 11/10/22
@@ -347,6 +430,7 @@ void CPFA_loop_functions::PreStep() {
 }
 
 void CPFA_loop_functions::PostStep() {
+
 
 	if (useDefense) {
 
@@ -567,7 +651,7 @@ void CPFA_loop_functions::PostStep() {
 		const auto& creator = it->first;
 		const auto& strikeSet = it->second;
 
-		if (strikeSet.size() >= strikeLimit && isolatedBots.find(creator) == isolatedBots.end()) {
+		if (strikeSet.size() >= strikeLimit && isolatedBots.find(creator) == isolatedBots.end() && !IsRobotSafeFromIsolation(creator)) {
 			
 			// if (creator == "fb13"){
 			// 	LOG << "Isolating " << creator << " for exceeding strike limit." << endl;
@@ -583,6 +667,9 @@ void CPFA_loop_functions::PostStep() {
 			IsolateBot(creator);
 			isolatedBots.insert(creator);
 			it = strikeMap.erase(it);  // Erase and move to the next element safely
+			if (creator.find("dt") != string::npos){
+				detractorIsolatedCount++;
+			}
 		} else {
 			++it;  // Move to the next element
 		}
@@ -835,7 +922,6 @@ void CPFA_loop_functions::PostExperiment() {
 			LOG << "Total Bots Captured: " << AttackerNest.GetNumCapturedRobots() << endl;
 		}
 
-
 		// Write to file ** Ryan Luna 11/17/22
 		ofstream DataOut((FilenameHeader+"AttackData.txt").c_str(), ios::app);
 		LOG << "Writing to file: " << FilenameHeader+"AttackData.txt" << endl;
@@ -883,6 +969,33 @@ void CPFA_loop_functions::PostExperiment() {
 		TerminateCount	<< 1 << ", ";
 	}
 
+	ofstream ResourcePerMin ((FilenameHeader+"ResourcePerMin.txt").c_str(), ios::app);
+	LOG << "Writing to file: " << FilenameHeader+"ResourcePerMin.txt" << endl;
+	if (ResourcePerMin.tellp() == 0){
+		ResourcePerMin << "Resources Colleted Per Minute of the Simulation" << endl;
+	}
+	for (const auto& resource : resourcePerMinList){
+		ResourcePerMin << resource << endl;
+	}
+
+	ofstream ForagersCapturedPerMin ((FilenameHeader+"ForagersCapturedPerMin.txt").c_str(), ios::app);
+	LOG << "Writing to file: " << FilenameHeader+"ForagersCapturedPerMin.txt" << endl;
+	if (ForagersCapturedPerMin.tellp() == 0){
+		ForagersCapturedPerMin << "Foragers Captured Per Minute of the Simulation" << endl;
+	}
+	for (const auto& forager : foragersCapturedPerMinList){
+		ForagersCapturedPerMin << forager << endl;
+	}
+
+	ofstream DetractorsIsolatedPerMin ((FilenameHeader+"DetractorsIsolatedPerMin.txt").c_str(), ios::app);
+	LOG << "Writing to file: " << FilenameHeader+"DetractorsIsolatedPerMin.txt" << endl;
+	if (DetractorsIsolatedPerMin.tellp() == 0){
+		DetractorsIsolatedPerMin << "Detractors Isolated Per Minute of the Simulation" << endl;
+	}
+	for (const auto& detractor : detractorsIsolatedPerMinList){
+		DetractorsIsolatedPerMin << detractor << endl;
+	}
+
 	// Close Python environment if initialized
 	if (useDefense && Py_IsInitialized()) {
 		Py_Finalize(); 
@@ -923,6 +1036,8 @@ void CPFA_loop_functions::UpdatePheromoneList() {
 	new_p_list.clear();
 }
 
+
+//TODO: all food distributions need to avoid obstacles
 // modified to include FakeFoodDistribution ** Ryan Luna 11/13/22
 void CPFA_loop_functions::SetFoodDistribution() {
 
@@ -1148,7 +1263,6 @@ void CPFA_loop_functions::RandomFoodDistribution() {
 	}
 }
 
-// Ryan Luna 11/13/22
 void CPFA_loop_functions::RandomFakeFoodDistribution(){
 
 	CVector2 placementPosition;
@@ -1198,7 +1312,6 @@ void CPFA_loop_functions::ClusterFoodDistribution() {
 	}
 }
 
-// Ryan Luna 11/13/22
 void CPFA_loop_functions::ClusterFakeFoodDistribution(){
 	
 	size_t			fakefoodToPlace = NumFakeClusters * FakeClusterWidthX * FakeClusterWidthY;
@@ -1442,6 +1555,7 @@ void CPFA_loop_functions::PowerLawFakeFoodDistribution() {
 	NumFakeFood = L_fakefoodPlaced;
 }
 
+// ADDED COLLISOIN WITH CYLINDER OBSTACLE CHECK
 bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t width) {
 	argos::CVector2 placementPosition = p;
 
@@ -1468,6 +1582,7 @@ bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t
 			if(IsCollidingWithFood(placementPosition)) return true;
 			if(IsCollidingWithNest(placementPosition)) return true;
 			if(IsCollidingWithAtkNest(placementPosition)) return true;
+			if(IsCollidingWithCylinderObstacle(placementPosition, FoodRadius)) return true;
 			placementPosition.SetX(placementPosition.GetX() + foodOffset);
 		}
 
@@ -1485,6 +1600,15 @@ bool CPFA_loop_functions::IsCollidingWithNest(argos::CVector2 p) {
       return ( (p - NestPosition).SquareLength() < NRPB_squared ) ;
 }
 
+// overloaded duplicate to handle cylinder obstacles
+bool CPFA_loop_functions::IsCollidingWithNest(argos::CVector2 p, argos::Real radius){
+	argos::Real nestRadiusPlusBuffer = NestRadius + radius;
+	argos::Real NRPB_squared = nestRadiusPlusBuffer * nestRadiusPlusBuffer;
+
+	return ( (p - NestPosition).SquareLength() < NRPB_squared ) ;
+
+}
+
 bool CPFA_loop_functions::IsCollidingWithAtkNest(argos::CVector2 p) {
 	argos::Real nestRadiusPlusBuffer = AtkNestRadius + FoodRadius;
 	argos::Real NRPB_squared = nestRadiusPlusBuffer * nestRadiusPlusBuffer;
@@ -1493,6 +1617,19 @@ bool CPFA_loop_functions::IsCollidingWithAtkNest(argos::CVector2 p) {
 	//   			(p - AtkNest2Position).SquareLength() < NRPB_squared ||
 	// 			(p - AtkNest3Position).SquareLength() < NRPB_squared ||
 	// 			(p - AtkNest4Position).SquareLength() < NRPB_squared	);
+
+	for (size_t i = 0; i < AtkNestPositions.size(); ++i) {
+		if ((p - AtkNestPositions[i]).SquareLength() < NRPB_squared) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// overloaded duplicate to handle cylinder obstacles
+bool CPFA_loop_functions::IsCollidingWithAtkNest(argos::CVector2 p, argos::Real radius){
+	argos::Real nestRadiusPlusBuffer = AtkNestRadius + radius;
+	argos::Real NRPB_squared = nestRadiusPlusBuffer * nestRadiusPlusBuffer;
 
 	for (size_t i = 0; i < AtkNestPositions.size(); ++i) {
 		if ((p - AtkNestPositions[i]).SquareLength() < NRPB_squared) {
@@ -1655,6 +1792,7 @@ void CPFA_loop_functions::CaptureRobotInAtkNest(string robot_id){
 					}
 
 					c2->SetAsCaptured();
+					numCapturedForagers++;
 
 					// LOG << footBot.GetId() << ": Captured and moved." << endl;
 
@@ -1712,6 +1850,29 @@ bool CPFA_loop_functions::IsNearRobot(const argos::CVector2& position) {
     return false; // Not close to any robot
 }
 
+bool CPFA_loop_functions::IsNearRobot(const argos::CVector2& position, argos::Real radius){
+	const Real buf = 0.01;
+	const Real minDistance = radius + buf;
+	
+    // Loop through all robots and check their positions
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+		CVector2 robotPosition = c->GetPosition();
+		// Real d = sqrt( pow( abs(position.GetX()) - abs(robotPosition.GetX()), 2) + pow( abs(position.GetY()) - abs(robotPosition.GetY()), 2) );
+		Real d = sqrt( pow(position.GetX() - robotPosition.GetX(), 2) + pow(position.GetY() - robotPosition.GetY(), 2) );
+
+        if(d < minDistance) {
+			// LOG << "Too close to robot " << footBot.GetId() << endl;
+            return true; // Too close to a robot
+        }
+	}
+
+    return false; // Not close to any robot
+}
+
+// TODO: maybe needs to avoid obstacle collision
 CVector2 CPFA_loop_functions::GetNestLocation(){
 	return NestPosition;
 }
@@ -1810,6 +1971,10 @@ void CPFA_loop_functions::LogReturn(std::string bot_id, Real returnTime, bool re
 		for (size_t j = 0; j < traveler.size(); j++){
 
 			if (traveler[j].first == bot_id && !found){
+
+				if (PheromoneList[i].IsMisleading()){
+					LOGERR << "ERROR: " << bot_id << " returned from \"Misleading Trail\" at location " << PheromoneList[i].GetLocation() << endl;
+				}
 
 				// for (auto& b_name : tmpNameStorage){
 				// 	if (b_name == bot_id){
@@ -1934,6 +2099,7 @@ void CPFA_loop_functions::LogReturn(std::string bot_id, Real returnTime, bool re
 						
 						std::set<int> neighbors = GetNeighbors(nodeId);
 						for (int neighborId : neighbors) {
+
 							for (int trailIndex : clusterMembers[neighborId]) {
 								string creator = PheromoneList[trailIndex].GetCreatorId();
 								creatorsToProcess.insert(creator);
@@ -1973,6 +2139,9 @@ void CPFA_loop_functions::LogReturn(std::string bot_id, Real returnTime, bool re
 								strikeMap.erase(creator);
 							}
 						} else if (isolatedBots.find(creator) != isolatedBots.end()) {
+							if (creator.find("dt") != string::npos) {
+								LOGERR << "ERROR: In LogReturn(): " << creator << " is neighbors with bot " << bot_id << "..." << endl;
+							}
 							UnIsolateBot(creator);
 							isolatedBots.erase(creator);
 						} else {
@@ -2086,6 +2255,26 @@ void CPFA_loop_functions::IsolateBot(std::string bot_id){
 
 					c2->SetAsIsolated();
 
+					bool found = false;
+
+					// remove bot from all traveler lists (it should have only been in one)
+					for (size_t i = 0; i < PheromoneList.size(); i++){
+		
+						vector<pair<string, Real>> traveler = PheromoneList[i].GetTravelerList();
+						
+						for (size_t j = 0; j < traveler.size(); j++){
+
+							if (traveler[j].first == bot_id && !found){
+
+								PheromoneList[i].RemoveTraveler(bot_id);
+
+							} else if (traveler[j].first == bot_id && found){
+								LOGERR << "ERROR: Multiple instances of " << bot_id << " found in traveler list of pheromone object at location " << PheromoneList[i].GetLocation() << endl;
+								Terminate();
+							}
+						}
+					}
+
 					LOG << footBot.GetId() << ": Isolated and moved." << endl;
 					if (footBot.GetId().find("fb") != string::npos){
 						IsoFalsePositives++;
@@ -2185,14 +2374,16 @@ void CPFA_loop_functions::UnIsolateBot(std::string bot_id){
 	}
 }
 
+// ADDED AVOID COLLISION WITH CYLINDER OBSTACLE
 CVector3 CPFA_loop_functions::GenUnIsoPosition(){
 	argos::CVector2 placementPosition;
+	argos::Real footBotRadius = 0.085;
 
 	// Generate a random placement within the holding area
 	placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
 
 	// make sure it isn't colliding with anything (like another robot)
-	while(IsNearRobot(placementPosition)) {
+	while(IsNearRobot(placementPosition) || IsCollidingWithCylinderObstacle(placementPosition, footBotRadius)) {
 		placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
 	}
 
@@ -2322,5 +2513,81 @@ vector<int> CPFA_loop_functions::RunDBSCAN(std::vector<std::pair<double, double>
 vector<pair<CVector2, int>>& CPFA_loop_functions::GetClusterList(){
 	return clusterList;
 }
+
+bool CPFA_loop_functions::IsRobotSafeFromIsolation(string id){
+	//loop through bots
+	argos::CSpace::TMapPerType& footbots = GetSpace().GetEntitiesByType("foot-bot");
+	for(argos::CSpace::TMapPerType::iterator it = footbots.begin(); it != footbots.end(); it++) {
+		argos::CFootBotEntity& footBot = *argos::any_cast<argos::CFootBotEntity*>(it->second);
+		// BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+		if (footBot.GetId() == id){
+			BaseController* c = dynamic_cast<BaseController*>(&footBot.GetControllableEntity().GetController());
+			if (c != nullptr){
+				CPFA_controller* c2 = dynamic_cast<CPFA_controller*>(c);
+				if (c2 != nullptr){
+					if (c2->IsSafeFromIsolation()){
+						return true;
+					} else {
+						return false;
+					}
+				} else {
+					LOG << "CPFA_controller cast failed." << endl;
+				}
+			} else {
+				LOG << "BaseController cast failed." << endl;
+			}
+		}
+	}
+	LOGERR << "ERROR: In IsRobotSafeFromIsolation(): No robot found with id: " << id << endl;
+	return false;
+}
+
+bool CPFA_loop_functions::IsCollidingWithCylinderObstacle(argos::CVector2 p, argos::Real radius){
+	// loop through cylinder obstacles
+	for(auto it = CylinderObstaclePositionList.begin(); it != CylinderObstaclePositionList.end(); it++){
+		argos::CVector3 c = it->first;
+		argos::Real r = it->second;
+		argos::Real d = sqrt( pow( abs(p.GetX()) - abs(c.GetX()), 2) + pow( abs(p.GetY()) - abs(c.GetY()), 2) );
+		if (d < radius + r){
+			return true;
+		}
+	}
+	return false;
+}
+
+CVector3 CPFA_loop_functions::GenCylinderObstaclePosition(){
+	// generate a position within the forage range and make sure it isn't colliding with anything
+	argos::CVector2 placementPosition;
+
+	// Generate a random placement within the holding area
+	placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+
+	while (	IsCollidingWithCylinderObstacle(placementPosition, cylinderObstacleRadius) ||
+			IsNearRobot(placementPosition, cylinderObstacleRadius) || IsCollidingWithNest(placementPosition, cylinderObstacleRadius) ||
+			IsCollidingWithFood(placementPosition) || IsCollidingWithAtkNest(placementPosition, cylinderObstacleRadius)	){
+			
+		placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+	}
+
+	return CVector3(placementPosition.GetX(), placementPosition.GetY(), 0.0);
+
+}
+
+void CPFA_loop_functions::DeployObstacles(size_t num_obstacles){
+	for (size_t i = 0; i < num_obstacles; i++){
+		CVector3 obstaclePosition = GenCylinderObstaclePosition();
+		CylinderObstaclePositionList.push_back(make_pair(obstaclePosition, cylinderObstacleRadius));
+	}
+}
+
+// bool CPFA_loop_functions::IsCollidingWithWallObstacle(const argos::CVector2& position, const argos::Real& radius) {
+// 	// check if a cylinder (food pellet, robot, or cylinder obstacle) is colliding with any wall obstacles
+// 	return false;
+// }
+
+// bool CPFA_loop_functions::IsCollidingWithWallObstacle(const argos::CVector2& p1, const argos::CVector2& p2, const argos::Real& width) {
+// 	// check if a wall obstacle is colliding with any other wall obstacles
+// 	return false;
+// }
 
 REGISTER_LOOP_FUNCTIONS(CPFA_loop_functions, "CPFA_loop_functions")

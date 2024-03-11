@@ -61,6 +61,7 @@ void CPFA_qt_user_functions::DrawOnArena(CFloorEntity& entity) {
 	DrawNest();
 	DrawQuarantineZone();
 	DrawClusters();
+	DrawCylinderObstacles();
 
 	if(loopFunctions.DrawTargetRays == 1) DrawTargetRays();
 }
@@ -361,6 +362,13 @@ void CPFA_qt_user_functions::DrawTargetRays() {
 			DrawRay(loopFunctions.TargetRayList[j], loopFunctions.TargetRayColorList[j]);
 		}
 	//}
+}
+
+void CPFA_qt_user_functions::DrawCylinderObstacles() {
+	// Draw obstacles
+	for(auto it = loopFunctions.CylinderObstaclePositionList.begin(); it != loopFunctions.CylinderObstaclePositionList.end(); it++) {
+		DrawCylinder(it->first, CQuaternion(), loopFunctions.cylinderObstacleRadius, 1, CColor::GRAY50);
+	}
 }
 
 /*

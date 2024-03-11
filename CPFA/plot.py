@@ -1,6 +1,7 @@
 import xml_config as config
 import os, time
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from datetime import datetime
 import numpy as np
 import shutil, sys
@@ -376,7 +377,7 @@ def PlotExp_AtkDef_varyLayRate():
     
     # get all filenames in directory for attack only
     flist_atk = []
-    for filename in os.listdir("./results/results_Exp3_r24_30it"):
+    for filename in os.listdir("./results/results_layrate_NEW/results_analysis4_r24_1800_rc30it"):
         if filename.endswith("AttackData.txt"):
             # print(filename)
             flist_atk.append(os.path.join("./results/results_Exp3_r24_30it", filename))
@@ -1088,7 +1089,7 @@ def PlotAnalysis2_NotLetDetractorsUseMLT():
     plt.savefig('./results/analysis_12-18-23/results_analysis2_r24_1800_rc30it/dExp_AtkOnly_varyLayRate.png')
 
 def PlotAnalysis4():
-    total_robots = 32
+    total_robots = 24
     total_food = 288
 
     # Font size variables
@@ -1099,7 +1100,7 @@ def PlotAnalysis4():
 
     # get all filenames in directory for attack only
     flist_attackData = []
-    for filename in os.listdir("./results/analysis_12-21-23/results_analysis4_r32_1800_rc30it"):
+    for filename in os.listdir("./results/analysis_layrate_NEW/results_analysis4_r24_1800_rc30it"):
         if filename.endswith("RatioCheck.txt"):
             flist_attackData.append(os.path.join("./results/analysis_12-21-23/results_analysis4_r32_1800_rc30it", filename))
         else:
@@ -1287,8 +1288,125 @@ def PlotAnalysis3():
     plt.tight_layout()
     plt.savefig('./results/analysis_12-18-23/results_analysis3_noAtk_r32_1800_rc30it/Analysis3_varyLayRate.png')
 
+def PlotAnalysis_IncreaseTrails_layrate():
+    total_robots = 24
+    total_food = 288
 
+    # Font size variables
+    x_tick_fontsize = 24
+    y_tick_fontsize = 24
+    xlabel_fontsize = 32
+    ylabel_fontsize = 32
+    legend_fontsize = 24
 
+    # Define lay rates and get all filenames in directory for attack only
+    lay_rates = ["1", "4", "8", "12"]
+    flist_attackData = []
+    for filename in os.listdir("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it"):
+        if filename.endswith("AttackData.txt"):
+            flist_attackData.append(os.path.join("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it", filename))
+
+    # Sort the filenames based on lay rates
+    flist_attackData.sort(key=extract_rlp_value)  # Use an appropriate function to extract lay rate values
+
+    # Parse data from files
+    TFClist_atk = []
+    Caplist_atk = []
+    for filename in flist_attackData:
+        Read2(filename)  # Ensure Read2 function processes the file correctly
+        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
+
+    # Calculate percentages
+    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
+    Cap_percent_atk = [(data / total_robots) * 100 for data in Caplist_atk]
+
+    # Plotting
+    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 10), sharex=True)
+
+    # Calculate positions for boxplots
+    gap = 0.5
+    width = 0.35
+    num_lay_rates = len(lay_rates)
+    positions = np.arange(1, num_lay_rates * 2, step=2)
+
+    # Plot boxplots and trend lines
+    for i in range(num_lay_rates):
+        box_pos = positions[i]
+        axes[0].boxplot(TFC_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        axes[1].boxplot(Cap_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+
+    # Plot trend lines
+    trend_positions = np.array(positions) + width / 2
+    axes[0].plot(trend_positions, [np.mean(data) for data in TFC_percent_atk], color="cyan", marker='o', label='Attack Only')
+    axes[1].plot(trend_positions, [np.mean(data) for data in Cap_percent_atk], color="cyan", marker='o', label='Attack Only')
+
+    # Axes labels and legends
+    axes[0].set_xticks(positions)
+    axes[0].set_xticklabels(lay_rates)
+    axes[0].set_yticks(np.arange(20, 101, 20))
+    axes[0].set_ylabel('Total Resources\nCollected (%)', fontsize=ylabel_fontsize, labelpad=15)
+    axes[0].legend(fontsize=legend_fontsize)
+    axes[1].set_xlabel(r"Rate of Laying Pheromone ($\lambda_{fg}$, $\lambda_{dt}$)", fontsize=xlabel_fontsize, labelpad=15)
+    axes[1].set_ylabel('Total Foragers\nCaptured (%)', fontsize=ylabel_fontsize, labelpad=15)
+
+    # Uniform tick sizes and adjust layout
+    for ax in axes:
+        ax.tick_params(axis='x', labelsize=x_tick_fontsize)
+        ax.tick_params(axis='y', labelsize=y_tick_fontsize)
+    plt.tight_layout(pad=2.0)
+
+    # Save the plot
+    plt.savefig('./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it/PlotAnalysis_IncreaseTrails.png')
+
+def Output_IncreaseTrails_layrate(output_file):
+    total_robots = 24
+    total_food = 288
+
+    # Font size variables
+    x_tick_fontsize = 18
+    y_tick_fontsize = 18
+    xlabel_fontsize = 24
+    ylabel_fontsize = 24
+
+    # Define lay rates and get all filenames in directory for attack only
+    lay_rates = ["1", "4", "8", "12"]
+    flist_attackData = []
+    for filename in os.listdir("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it"):
+        if filename.endswith("AttackData.txt"):
+            flist_attackData.append(os.path.join("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it", filename))
+
+    # Sort the filenames based on lay rates
+    flist_attackData.sort(key=extract_rlp_value)  # Use an appropriate function to extract lay rate values
+
+    # Parse data from files
+    TFClist_atk = []
+    Caplist_atk = []
+    for filename in flist_attackData:
+        Read2(filename)  # Ensure Read2 function processes the file correctly
+        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
+
+    # Calculate percentages
+    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
+    Cap_percent_atk = [(data / total_robots) * 100 for data in Caplist_atk]
+
+    with open(output_file, 'w') as out_file:
+        for i, lay_rate in enumerate(lay_rates):
+            out_file.write(f"Global Lay Rate: {lay_rate}\n")
+            out_file.write("Total Resources Collected (%):\n")
+            out_file.write(f"  Mean: {np.mean(TFC_percent_atk[i])}%\n")
+            out_file.write(f"  Median: {np.median(TFC_percent_atk[i])}%\n")
+            out_file.write(f"  Min: {np.min(TFC_percent_atk[i])}%\n")
+            out_file.write(f"  Max: {np.max(TFC_percent_atk[i])}%\n")
+            out_file.write(f"  StdDev: {np.std(TFC_percent_atk[i])}%\n")
+            out_file.write("Total Foragers Captured (%):\n")
+            out_file.write(f"  Mean: {np.mean(Cap_percent_atk[i])}%\n")
+            out_file.write(f"  Median: {np.median(Cap_percent_atk[i])}%\n")
+            out_file.write(f"  Min: {np.min(Cap_percent_atk[i])}%\n")
+            out_file.write(f"  Max: {np.max(Cap_percent_atk[i])}%\n")
+            out_file.write(f"  StdDev: {np.std(Cap_percent_atk[i])}%\n")
+            out_file.write("-------------------------------------------\n")
 
 
 
@@ -1390,25 +1508,26 @@ def PlotAnalysis_IncTrails_AtkDef():
     total_food = 288
 
     # Font size variables
-    x_tick_fontsize = 18
-    y_tick_fontsize = 18
-    xlabel_fontsize = 24
-    ylabel_fontsize = 24
+    x_tick_fontsize = 24
+    y_tick_fontsize = 24
+    xlabel_fontsize = 32
+    ylabel_fontsize = 32
+    legend_fontsize = 23
 
    # Calculate positions for boxplots# get all filenames in directory for attack only
     flist_atk = []
-    for filename in os.listdir("./results/results_RateIncrease_r24_rlpf6_rlpd1_st1800_30it"):
+    for filename in os.listdir("./results/resultsExp8_LOG_PER_MIN_DATA_RateIncrease_r24_rlpf4.0_rlpd1.0_st1800_30it"):
         if filename.endswith("AttackData.txt"):
             # print(filename)
-            flist_atk.append(os.path.join("./results/results_RateIncrease_r24_rlpf6_rlpd1_st1800_30it", filename))
+            flist_atk.append(os.path.join("./results/resultsExp8_LOG_PER_MIN_DATA_RateIncrease_r24_rlpf4.0_rlpd1.0_st1800_30it", filename))
         else:
             continue
 
     # get all filenames in directory for attack with defense
     flist_atkdef = []
-    for filename in os.listdir("./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it"):
+    for filename in os.listdir("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it"):
         if filename.endswith("AttackData.txt"):
-            flist_atkdef.append(os.path.join("./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it", filename))
+            flist_atkdef.append(os.path.join("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it", filename))
         else:
             continue
 
@@ -1468,16 +1587,17 @@ def PlotAnalysis_IncTrails_AtkDef():
 
     # Trend lines
     axes[0].plot(trend_positions_atk, [np.mean(data) for data in TFC_percent_atk], color="cyan", marker='o', label='Attack Only')
-    axes[0].plot(trend_positions_atkdef, [np.mean(data) for data in TFC_percent_atkdef], color="orange", marker='o', label='Attack With Defense')
+    axes[0].plot(trend_positions_atkdef, [np.mean(data) for data in TFC_percent_atkdef], color="orange", marker='o', label='Attack with Defense')
     axes[1].plot(trend_positions_atk, [np.mean(data) for data in Cap_percent_atk], color="cyan", marker='o', label='Attack Only')
-    axes[1].plot(trend_positions_atkdef, [np.mean(data) for data in Cap_percent_atkdef], color="orange", marker='o', label='Attack With Defense')
+    axes[1].plot(trend_positions_atkdef, [np.mean(data) for data in Cap_percent_atkdef], color="orange", marker='o', label='Attack with Defense')
 
     # Axes labels and legends
     axes[0].set_xticks((positions_atk + positions_atkdef) / 2)
     axes[0].set_xticklabels(detractor_percentages)
-    axes[0].set_ylabel('Total Resources\nCollected (%)', fontsize=ylabel_fontsize, labelpad=20)
+    axes[0].set_yticks(np.arange(25, 101, 15))
+    axes[0].set_ylabel('Total Resources\nCollected (%)', fontsize=ylabel_fontsize, labelpad=13)
     axes[0].tick_params(axis='y', labelsize=y_tick_fontsize)
-    axes[0].legend()
+    axes[0].legend(fontsize=legend_fontsize, frameon=False)
     axes[1].set_xlabel('Percentage of Detractors (%)', fontsize=xlabel_fontsize, labelpad=20)
     axes[1].set_ylabel('Total Foragers\nCaptured (%)', fontsize=ylabel_fontsize, labelpad=9)
     axes[1].tick_params(axis='x', labelsize=x_tick_fontsize)
@@ -1485,11 +1605,605 @@ def PlotAnalysis_IncTrails_AtkDef():
     # axes[1].legend()
 
     plt.tight_layout()
-    plt.savefig('./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it/PlotAnalysis_IncreaseTrails_AtkDef.png')
+    plt.savefig('./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/PlotAnalysis_IncreaseTrails_AtkDef.png')
 
 
 
 
+
+
+def plot_resources_per_min(directory_path):
+    total_robots = 24
+    total_food = 288
+
+    # Font size variables
+    x_tick_fontsize = 18
+    y_tick_fontsize = 18
+    xlabel_fontsize = 24
+    ylabel_fontsize = 24
+    title_fontsize = 24
+
+    # Find all relevant files
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("ResourcePerMin.txt")]
+
+    # Read data from files
+    data_per_file = []
+    for file_path in file_paths:
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+            data_per_file.append(data)
+
+    # Aggregate data for each minute across all simulations
+    aggregated_data_per_file = []
+    for data in data_per_file:
+        aggregated_data = [data[i::30] for i in range(30)]  # Assuming 30 minutes per simulation
+        aggregated_data_per_file.append(aggregated_data)
+
+    # Number of minutes
+    num_minutes = 30  # Assuming 30 minutes per simulation
+
+    # Creating subplots
+    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
+
+    det_percentages = ["0%", "10%", "20%", "30%", "40%", "50%"]
+
+    for i, aggregated_data in enumerate(aggregated_data_per_file):
+        # Mean of each minute
+        means = [np.mean(minute_data) for minute_data in aggregated_data]
+
+        # Plot boxplot and mean line
+        axes[i].boxplot(aggregated_data, positions=range(1, num_minutes + 1), widths=0.6, patch_artist=True)
+        axes[i].plot(range(1, num_minutes + 1), means, color='red', marker='o', label='Mean per Minute')
+
+        # Set labels and titles
+        axes[i].set_title(f'Resources Collected Per Minute (File {i+1})')
+        axes[i].set_ylabel('Resources Collected', fontsize=ylabel_fontsize)
+        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
+        axes[i].legend()
+        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+
+    # Set x-axis labels
+    axes[-1].set_xticks(range(1, num_minutes + 1))
+    axes[-1].set_xlabel('Simulated Minute', fontsize=xlabel_fontsize)
+    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+    # Adjust layout and save plot
+    plt.tight_layout(pad=4.0)
+    plt.savefig(os.path.join(directory_path, 'AggregatedResourcesPerMinutePlot.png'))
+
+def plot_detractors_isolated_per_min(directory_path, window_size=3):
+    total_robots = 24
+    total_food = 288
+
+    x_tick_fontsize = 24
+    y_tick_fontsize = 24
+    xlabel_fontsize = 32
+    ylabel_fontsize = 32
+    title_fontsize = 32
+
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("DetractorsIsolatedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+    data_per_file = []
+
+    for file_path in file_paths:
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+            data_per_file.append(data)
+
+    aggregated_data_per_file = []
+    for data in data_per_file:
+        aggregated_data = [data[i::30] for i in range(16)]  # Adjusted to 16 minutes
+        aggregated_data_per_file.append(aggregated_data)
+
+    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
+
+    for i, aggregated_data in enumerate(aggregated_data_per_file):
+        means = [np.mean(minute_data) for minute_data in aggregated_data]
+
+        # Calculate moving average
+        moving_averages = np.convolve(means, np.ones(window_size)/window_size, mode='valid')
+
+        axes[i].plot(range(1, 17), means, color='red', marker='o', label='Mean per Minute')
+        axes[i].plot(range(window_size, 17), moving_averages, color='blue', label=f'{window_size}-Minute Moving Average')
+        axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=15)
+        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
+        axes[i].legend()
+        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+
+    axes[-1].set_xticks(range(1, 17))
+    axes[-1].set_xlabel('Simulated Minute', fontsize=xlabel_fontsize)
+    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+    plt.tight_layout(pad=4.0)
+    plt.savefig(os.path.join(directory_path, 'DetractorsIsolatedPerMinuteWithMovingAverage.png'))
+
+def plot_detractors_isolated_per_min_moving_average_only(directory_path, window_size=3):
+    total_robots = 24
+    total_food = 288
+
+    x_tick_fontsize = 24
+    y_tick_fontsize = 24
+    xlabel_fontsize = 32
+    ylabel_fontsize = 32
+    title_fontsize = 32
+
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("DetractorsIsolatedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+    data_per_file = []
+
+    for file_path in file_paths:
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+            data_per_file.append(data)
+
+    aggregated_data_per_file = []
+    for data in data_per_file:
+        aggregated_data = [data[i::30] for i in range(16)]  # Adjusted to 16 minutes
+        aggregated_data_per_file.append(aggregated_data)
+
+    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
+
+    for i, aggregated_data in enumerate(aggregated_data_per_file):
+        means = [np.mean(minute_data) for minute_data in aggregated_data]
+
+        # Calculate moving average
+        moving_averages = np.convolve(means, np.ones(window_size)/window_size, mode='valid')
+
+        # Plot only moving average
+        axes[i].plot(range(window_size, 17), moving_averages, color='blue', label=f'{window_size}-Minute Moving Average')
+        axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=15)
+        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
+        axes[i].legend()
+        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+
+    axes[-1].set_xticks(range(1, 17))
+    axes[-1].set_xlabel('Simulated Minute', fontsize=xlabel_fontsize)
+    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+    plt.tight_layout(pad=4.0)
+    plt.savefig(os.path.join(directory_path, 'DetractorsIsolatedMovingAverageOnly.png'))
+
+def plot_detractors_isolated_per_min_moving_average_bar(directory_path, window_size=3):
+    total_robots = 24
+    total_food = 288
+
+    x_tick_fontsize = 32
+    y_tick_fontsize = 32
+    xlabel_fontsize = 48
+    ylabel_fontsize = 48
+    title_fontsize = 40
+    legend_fontsize = 32
+
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("DetractorsIsolatedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+    data_per_file = []
+
+    for file_path in file_paths:
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+            data_per_file.append(data)
+
+    aggregated_data_per_file = []
+    for data in data_per_file:
+        aggregated_data = [data[i::30] for i in range(16)]  # Adjusted to 16 minutes
+        aggregated_data_per_file.append(aggregated_data)
+
+    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
+
+    for i, aggregated_data in enumerate(aggregated_data_per_file):
+        means = [np.mean(minute_data) for minute_data in aggregated_data]
+
+        # Calculate moving average
+        moving_averages = np.convolve(means, np.ones(window_size)/window_size, mode='valid')
+
+        # Bar plot for actual data
+        axes[i].bar(range(1, 17), means, color='cyan', alpha=0.5)
+
+        # Plot moving average
+        axes[i].plot(range(window_size, 17), moving_averages, color='blue', linewidth=2)
+
+        # axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=15)
+        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
+        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+        
+        # Format y-axis ticks to two decimal points
+        axes[i].yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+        axes[i].set_yticks(np.arange(0.0,0.8,0.2))
+
+        if i == 2:
+            axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=50)
+
+        # Add legend only to the top subplot
+        # if i == 4:
+            # axes[i].legend([ f'{window_size}-Minute Moving Average','Actual Data'], fontsize=legend_fontsize)
+
+    axes[-1].set_xticks(range(1, 17))
+    axes[-1].set_xlabel('Time (minutes)', fontsize=xlabel_fontsize, labelpad = 25)
+    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+    plt.tight_layout(pad=4.0)
+    plt.savefig(os.path.join(directory_path, 'DetractorsIsolatedBarMovingAverage.png'))
+
+
+
+def plot_foragers_captured_per_min_moving_average_bar(directory_path, window_size=3):
+    total_robots = 24
+    total_food = 288
+
+    x_tick_fontsize = 32
+    y_tick_fontsize = 32
+    xlabel_fontsize = 48
+    ylabel_fontsize = 48
+    title_fontsize = 40
+    legend_fontsize = 32
+
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("ForagersCapturedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+    data_per_file = []
+
+    for file_path in file_paths:
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+            data_per_file.append(data)
+
+    aggregated_data_per_file = []
+    for data in data_per_file:
+        aggregated_data = [data[i::30] for i in range(16)]  # Adjusted to 16 minutes
+        aggregated_data_per_file.append(aggregated_data)
+
+    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
+
+    for i, aggregated_data in enumerate(aggregated_data_per_file):
+        means = [np.mean(minute_data) for minute_data in aggregated_data]
+
+        # Calculate moving average
+        moving_averages = np.convolve(means, np.ones(window_size)/window_size, mode='valid')
+
+        # Bar plot for actual data
+        axes[i].bar(range(1, 17), means, color='cyan', alpha=0.5)
+
+        # Plot moving average
+        axes[i].plot(range(window_size, 17), moving_averages, color='blue', linewidth=2)
+
+        # axes[i].set_ylabel('Foragers Captured', fontsize=ylabel_fontsize, labelpad=15)
+        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
+        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+        
+        # Format y-axis ticks to two decimal points
+        axes[i].yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+        axes[i].set_yticks(np.arange(0.0,3.25,0.75))
+
+        if i == 2:
+            axes[i].set_ylabel('Foragers Captured', fontsize=ylabel_fontsize, labelpad=50)
+        
+        # Add legend only to the top subplot
+        # if i == 4:
+            # axes[i].legend([f'{window_size}-Minute Moving Average', 'Actual Data'], fontsize=legend_fontsize)
+
+    axes[-1].set_xticks(range(1, 17))
+    axes[-1].set_xlabel('Time (minutes)', fontsize=xlabel_fontsize, labelpad = 25)
+    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+    plt.tight_layout(pad=4.0)
+    plt.savefig(os.path.join(directory_path, 'ForagersCapturedBarMovingAverage.png'))
+
+
+
+def output_foragers_cap_per_min(directory_path):
+    # Similar setup as in your plotting function
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("ForagersCapturedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    # Detractor percentages
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+
+    # Process and output data
+    for file_path, det_percentage in zip(file_paths, det_percentages):
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+
+            # Aggregate data for each minute across all simulations
+            aggregated_data = [data[i::30] for i in range(30)]  # Assuming 30 minutes per simulation
+
+            # Output statistics for each minute
+            print(f"Detractor Percentage: {det_percentage}")
+            for minute, minute_data in enumerate(aggregated_data, start=1):
+                mean = np.mean(minute_data)
+                median = np.median(minute_data)
+                min_val = min(minute_data)
+                max_val = max(minute_data)
+                std_dev = np.std(minute_data)
+
+                print(f"Minute {minute}: Mean={mean}, Median={median}, Min={min_val}, Max={max_val}, StdDev={std_dev}")
+
+def output_foragers_cap_per_min_to_file(directory_path, output_file):
+    # Similar setup as in your plotting function
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("ForagersCapturedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    # Detractor percentages
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+
+    with open(output_file, 'w') as out_file:
+        # Process and output data
+        for file_path, det_percentage in zip(file_paths, det_percentages):
+            with open(file_path, 'r') as file:
+                next(file)  # Skip the header
+                data = [float(line.strip()) for line in file.readlines()]
+
+                # Aggregate data for each minute across all simulations
+                aggregated_data = [data[i::30] for i in range(30)]  # Assuming 30 minutes per simulation
+
+                # Output statistics for each minute
+                out_file.write(f"Detractor Percentage: {det_percentage}\n")
+                for minute, minute_data in enumerate(aggregated_data, start=1):
+                    mean = np.mean(minute_data)
+                    median = np.median(minute_data)
+                    min_val = min(minute_data)
+                    max_val = max(minute_data)
+                    std_dev = np.std(minute_data)
+
+                    out_file.write(f"Minute {minute}: Mean={mean}, Median={median}, Min={min_val}, Max={max_val}, StdDev={std_dev}\n")
+                out_file.write("\n")
+
+def output_detractors_iso_per_min(directory_path):
+    # Font size variables
+    title_fontsize = 32
+
+    # Find all relevant files
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("DetractorsIsolatedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    # Detractor percentages
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+
+    # Process and output data
+    for file_path, det_percentage in zip(file_paths, det_percentages):
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+
+            # Aggregate data for each minute across all simulations
+            aggregated_data = [data[i::30] for i in range(30)]  # Assuming 30 minutes per simulation
+
+            # Output statistics for each minute
+            print(f"Detractor Percentage: {det_percentage} ({title_fontsize})")
+            for minute, minute_data in enumerate(aggregated_data, start=1):
+                mean = np.mean(minute_data)
+                median = np.median(minute_data)
+                min_val = min(minute_data)
+                max_val = max(minute_data)
+                std_dev = np.std(minute_data)
+
+                print(f"Minute {minute}: Mean={mean}, Median={median}, Min={min_val}, Max={max_val}, StdDev={std_dev}")
+
+def output_detractors_iso_per_min_to_file(directory_path, output_file):
+    # Find all relevant files
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("DetractorsIsolatedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    # Detractor percentages
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+
+    with open(output_file, 'w') as out_file:
+        # Process and output data
+        for file_path, det_percentage in zip(file_paths, det_percentages):
+            with open(file_path, 'r') as file:
+                next(file)  # Skip the header
+                data = [float(line.strip()) for line in file.readlines()]
+
+                # Aggregate data for each minute across all simulations
+                aggregated_data = [data[i::30] for i in range(30)]  # Assuming 30 minutes per simulation
+
+                # Output statistics for each minute
+                out_file.write(f"Detractor Percentage: {det_percentage}\n")
+                for minute, minute_data in enumerate(aggregated_data, start=1):
+                    mean = np.mean(minute_data)
+                    median = np.median(minute_data)
+                    min_val = min(minute_data)
+                    max_val = max(minute_data)
+                    std_dev = np.std(minute_data)
+
+                    out_file.write(f"Minute {minute}: Mean={mean}, Median={median}, Min={min_val}, Max={max_val}, StdDev={std_dev}\n")
+                out_file.write("\n")
+
+def output_atkdef(directory_path_atk, directory_path_atkdef):
+    total_robots = 24
+    total_food = 288
+
+    # Function to read data from a file
+    def read_data(file_path):
+        with open(file_path, 'r') as file:
+            return [int(line.strip()) for line in file]
+
+    # Get all filenames
+    flist_atk = [os.path.join(directory_path_atk, f) for f in os.listdir(directory_path_atk) if f.endswith("AttackData.txt")]
+    flist_atkdef = [os.path.join(directory_path_atkdef, f) for f in os.listdir(directory_path_atkdef) if f.endswith("AttackData.txt")]
+
+    # Sort the filenames
+    flist_atk.sort(key=extract_d_value)
+    flist_atkdef.sort(key=extract_d_value)
+
+    # Read and process data
+    for file_atk, file_atkdef in zip(flist_atk, flist_atkdef):
+        TFC_atk = read_data(file_atk)
+        TFC_atkdef = read_data(file_atkdef)
+        
+        # Calculate percentages
+        TFC_percent_atk = [(data / total_food) * 100 for data in TFC_atk]
+        TFC_percent_atkdef = [(data / total_food) * 100 for data in TFC_atkdef]
+
+        # Output statistics
+        print(f"File: {os.path.basename(file_atk)}")
+        print("Attack Only:")
+        print(f"  Mean: {np.mean(TFC_percent_atk)}%")
+        print(f"  Median: {np.median(TFC_percent_atk)}%")
+        print(f"  Min: {np.min(TFC_percent_atk)}%")
+        print(f"  Max: {np.max(TFC_percent_atk)}%")
+        print(f"  StdDev: {np.std(TFC_percent_atk)}%")
+        print("Attack with Defense:")
+        print(f"  Mean: {np.mean(TFC_percent_atkdef)}%")
+        print(f"  Median: {np.median(TFC_percent_atkdef)}%")
+        print(f"  Min: {np.min(TFC_percent_atkdef)}%")
+        print(f"  Max: {np.max(TFC_percent_atkdef)}%")
+        print(f"  StdDev: {np.std(TFC_percent_atkdef)}%")
+        print("-------------------------------------------")
+
+def output_atkdef_to_file(output_file):
+    total_robots = 24
+    total_food = 288
+
+   # Calculate positions for boxplots# get all filenames in directory for attack only
+    flist_atk = []
+    for filename in os.listdir("./results/resultsExp8_LOG_PER_MIN_DATA_RateIncrease_r24_rlpf4.0_rlpd1.0_st1800_30it"):
+        if filename.endswith("AttackData.txt"):
+            # print(filename)
+            flist_atk.append(os.path.join("./results/resultsExp8_LOG_PER_MIN_DATA_RateIncrease_r24_rlpf4.0_rlpd1.0_st1800_30it", filename))
+        else:
+            continue
+
+    # get all filenames in directory for attack with defense
+    flist_atkdef = []
+    for filename in os.listdir("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it"):
+        if filename.endswith("AttackData.txt"):
+            flist_atkdef.append(os.path.join("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it", filename))
+        else:
+            continue
+
+    # Sort the filenames based on the extracted rlp value
+    flist_atk.sort(key=extract_d_value)
+    flist_atkdef.sort(key=extract_d_value)
+
+    # print(flist_atk)
+    # print(flist_atkdef)
+
+    # parse data from files
+    TFClist_atk = []
+    Caplist_atk = []
+    for filename in flist_atk:
+        Read2(filename)
+        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
+    
+    TFClist_atkdef = []
+    Caplist_atkdef = []
+    for filename in flist_atkdef:
+        Read(filename)
+        TFClist_atkdef.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atkdef.append(np.array(ROBOTS_CAPTURED).astype(int))
+    
+    # calculate percentages
+    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
+    Cap_percent_atk = [(data / (total_robots)) * 100 for data in Caplist_atk] # 25% are detractors, so 75% are normal agents
+    TFC_percent_atkdef = [(data / total_food) * 100 for data in TFClist_atkdef]
+    Cap_percent_atkdef = [(data / (total_robots)) * 100 for data in Caplist_atkdef] # 25% are detractors, so 75% are normal agents
+
+
+    with open(output_file, 'w') as out_file:
+        # Read and process data
+        for (file_atk, file_atkdef, TFC_atk, TFC_atkdef, Cap_atk, Cap_atkdef) in zip(flist_atk, flist_atkdef, TFClist_atk, TFClist_atkdef, Caplist_atk, Caplist_atkdef):
+            # Calculate percentages for Total Food Collected and Robots Captured
+            TFC_percent_atk = [(data / total_food) * 100 for data in TFC_atk]
+            TFC_percent_atkdef = [(data / total_food) * 100 for data in TFC_atkdef]
+            Cap_percent_atk = [(data / total_robots) * 100 for data in Cap_atk]
+            Cap_percent_atkdef = [(data / total_robots) * 100 for data in Cap_atkdef]
+
+            # Output statistics
+            out_file.write(f"File: {os.path.basename(file_atk)}\n")
+            out_file.write("Attack Only:\n")
+            out_file.write(f"  Total Food Collected: Mean={np.mean(TFC_percent_atk)}%, Median={np.median(TFC_percent_atk)}%, Min={np.min(TFC_percent_atk)}%, Max={np.max(TFC_percent_atk)}%, StdDev={np.std(TFC_percent_atk)}%\n")
+            out_file.write(f"  Robots Captured: Mean={np.mean(Cap_percent_atk)}%, Median={np.median(Cap_percent_atk)}%, Min={np.min(Cap_percent_atk)}%, Max={np.max(Cap_percent_atk)}%, StdDev={np.std(Cap_percent_atk)}%\n")
+            out_file.write("Attack with Defense:\n")
+            out_file.write(f"  Total Food Collected: Mean={np.mean(TFC_percent_atkdef)}%, Median={np.median(TFC_percent_atkdef)}%, Min={np.min(TFC_percent_atkdef)}%, Max={np.max(TFC_percent_atkdef)}%, StdDev={np.std(TFC_percent_atkdef)}%\n")
+            out_file.write(f"  Robots Captured: Mean={np.mean(Cap_percent_atkdef)}%, Median={np.median(Cap_percent_atkdef)}%, Min={np.min(Cap_percent_atkdef)}%, Max={np.max(Cap_percent_atkdef)}%, StdDev={np.std(Cap_percent_atkdef)}%\n")
+            out_file.write("-------------------------------------------\n")
+
+
+
+
+# def plot_detractors_isolated_per_min(directory_path):
+#     total_robots = 24
+#     total_food = 288
+
+#     # Font size variables
+#     x_tick_fontsize = 18
+#     y_tick_fontsize = 18
+#     xlabel_fontsize = 24
+#     ylabel_fontsize = 24
+#     title_fontsize = 24
+
+#     # Find all relevant files
+#     file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("DetractorsIsolatedPerMin.txt")]
+
+#     # Sort files
+#     file_paths.sort(key=extract_d_value)
+
+#     # Read data from files
+#     data_per_file = []
+#     for file_path in file_paths:
+#         with open(file_path, 'r') as file:
+#             next(file)  # Skip the header
+#             data = [float(line.strip()) for line in file.readlines()]
+#             data_per_file.append(data)
+
+#     # Aggregate data for each minute across all simulations
+#     aggregated_data_per_file = []
+#     for data in data_per_file:
+#         aggregated_data = [data[i::30] for i in range(30)]  # Assuming 30 minutes per simulation
+#         aggregated_data_per_file.append(aggregated_data)
+
+#     # Number of minutes
+#     num_minutes = 30  # Assuming 30 minutes per simulation
+
+#     # Creating subplots
+#     fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
+
+#     det_percentages = ["0%", "10%", "20%", "30%", "40%", "50%"]
+
+#     for i, aggregated_data in enumerate(aggregated_data_per_file):
+#         # Mean of each minute
+#         means = [np.mean(minute_data) for minute_data in aggregated_data]
+
+#         # Plot boxplot and mean line
+#         axes[i].boxplot(aggregated_data, positions=range(1, num_minutes + 1), widths=0.6, patch_artist=True)
+#         axes[i].plot(range(1, num_minutes + 1), means, color='red', marker='o', label='Mean per Minute')
+
+#         # Set labels and titles
+#         axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=15)
+#         axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
+#         axes[i].legend()
+#         axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+
+#     # Set x-axis labels
+#     axes[-1].set_xticks(range(1, num_minutes + 1))
+#     axes[-1].set_xlabel('Simulated Minute', fontsize=xlabel_fontsize)
+#     axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+#     # Adjust layout and save plot
+#     plt.tight_layout(pad=4.0)
+#     plt.savefig(os.path.join(directory_path, 'AggregatedDetractorsIsolatedPerMinutePlot.png'))
 
 
 
@@ -1518,7 +2232,7 @@ def extract_rlp_value(filename):
     Extract the rlp value from the filename.
     Assumes the filename contains 'rlp' followed by a number (e.g., 'rlp8.0').
     """
-    match = re.search(r"rlp(\d+\.\d+)", filename)
+    match = re.search(r"rlpf(\d+\.\d+)", filename)
     if match:
         return float(match.group(1))
     else:
@@ -1623,19 +2337,22 @@ if __name__ == "__main__":
     # PlotAnalysis4()
     # PlotAnalysis_IncreaseTrails()
     PlotAnalysis_IncTrails_AtkDef()
+    
+    # plot_resources_per_min("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
+    # plot_foragers_captured_per_min("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
+    # plot_detractors_isolated_per_min("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
+    # plot_detractors_isolated_per_min_moving_average_only("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
+    # plot_detractors_isolated_per_min_moving_average_bar("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
+    # plot_foragers_captured_per_min_moving_average_bar("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
+
+    # PlotAnalysis_IncreaseTrails_layrate()
+    # Output_IncreaseTrails_layrate("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it/layrate_results.txt")
 
 
 
-
-
-
-
-
-
-
-
-
-
+    # output_foragers_cap_per_min_to_file("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it", "./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/ForagersCapturedPerMinResults.txt")
+    # output_detractors_iso_per_min_to_file("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it", "./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/DetractorsIsolatedPerMinResults.txt")
+    # output_atkdef_to_file("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/AttackWithDefenseResults.txt")
 
 
 
