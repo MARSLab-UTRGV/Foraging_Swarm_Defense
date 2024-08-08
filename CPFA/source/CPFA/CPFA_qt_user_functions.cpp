@@ -61,7 +61,7 @@ void CPFA_qt_user_functions::DrawOnArena(CFloorEntity& entity) {
 	DrawNest();
 	DrawQuarantineZone();
 	DrawClusters();
-	DrawCylinderObstacles();
+	// DrawCylinderObstacles();		// these do not need to be drawn as they are renedered in when generated as CCylinderEntities in the loop functions.
 
 	if(loopFunctions.DrawTargetRays == 1) DrawTargetRays();
 }

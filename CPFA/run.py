@@ -5,6 +5,7 @@ from datetime import datetime
 import numpy as np
 import shutil, sys
 import pandas as pd
+import subprocess
 np.set_printoptions(suppress=True)
 
 SIM_TIME = []
@@ -118,10 +119,7 @@ def quickTest():
     # XML.INC_MLT = "true"
     XML.LET_DET_USE_MLT = "false"
     XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
-
-    XML.USE_OBSTACLES = "true"
-    XML.USE_CYLINDERS = "true"
-    XML.NUM_CYL_OBS = 10
+    XML.ANNULAR_DIST = "true"
 
     if (not DirectoryExists(XML.RD_PATH)):
         print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
@@ -142,7 +140,7 @@ def quickTest():
 
     total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
 
-    percent_list = [0]     # Percentage of detractors
+    num_obs_list = [12]
 
     # Set detractors to have a higher rate of laying pheromones
     XML.RLP_F = "4.0"
@@ -150,32 +148,37 @@ def quickTest():
 
     flist = []
 
-    XML.USE_DEF = "false"
-    XML.USE_DEF_CL = "false"
-    XML.USE_DEF_CG = "false"
+    XML.USE_DEF = "true"
+    XML.USE_DEF_CL = "true"
+    XML.USE_DEF_CG = "true"
 
-    for p in percent_list:
-        XML.setDetractorPercentage(p, True)
+    for p in num_obs_list:
+        XML.setDetractorPercentage(25, True)
+        XML.NUM_CYL_OBS = p
+        if (p > 0):
+            XML.USE_OBSTACLES = "true"
+            XML.USE_CYLINDERS = "true"
         flist.append(XML.setFname()+"AttackData.txt")
         XML.createXML()
+        print(XML.ANNULAR_DIST)
         for j in range(run_count):
             time.sleep(0.05)
-            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {p}%\n')
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {25}%, Num Cylinder Obstacles: {p}\n')
             os.system(f'argos3 -c {XML.XML_FNAME}')
 
 
     # fname = XML.setFname()+"AttackData.txt"
 
-    for i in range(run_count):
-        XML.RLP_F = "4.0"
-        # XML.FLW = 0.5
-        XML.USE_DEF = "false"
-        XML.USE_DEF_CL = "false"
-        XML.USE_DEF_CG = "false"
-        XML.STRIKE_LIMIT = 5            # strike limit
-        XML.TTT = 0.1                   # tolerance
-        XML.createXML()
-        os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
+    # for i in range(run_count):
+    #     XML.RLP_F = "4.0"
+    #     # XML.FLW = 0.5
+    #     XML.USE_DEF = "false"
+    #     XML.USE_DEF_CL = "false"
+    #     XML.USE_DEF_CG = "false"
+    #     XML.STRIKE_LIMIT = 5            # strike limit
+    #     XML.TTT = 0.1                   # tolerance
+    #     XML.createXML()
+    #     os.system("argos3 -c ./experiments/Misleading_Trail_1.xml")
 
 def visualTest():
     
@@ -256,6 +259,79 @@ def visualTest():
             else:
                 print("Invalid input. Proceeding with current lambda value...")
                 pass
+
+def runtimeErrorTest():
+    run_count = 100
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 10
+    XML.MAX_SIM_TIME = sim_time     # increased from 1800 to 2700 (+50%)
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.setBotCount(total_robots)
+    XML.BOT_COUNT = total_robots
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.DRAW_TRAILS = 1
+    XML.RD_PATH=f'results/trash'
+    # XML.INC_MLT = "true"
+    XML.LET_DET_USE_MLT = "false"
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    num_obs_list = [16]
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "false"
+    XML.USE_DEF_CL = "false"
+    XML.USE_DEF_CG = "false"
+
+    fatal_error_count = 0
+    for p in num_obs_list:
+        XML.setDetractorPercentage(25, True)
+        XML.NUM_CYL_OBS = p
+        if (p > 0):
+            XML.USE_OBSTACLES = "true"
+            XML.USE_CYLINDERS = "true"
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {25}%, Num Cylinder Obstacles: {p}\n')
+            # Execute ARGoS simulation and capture stderr
+            process = subprocess.run(['argos3', '-c', XML.XML_FNAME], stderr=subprocess.PIPE, text=True)
+
+            # Check if 'FATAL' is in the stderr output
+            if 'FATAL' in process.stderr:
+                fatal_error_count += 1
+                print("Fatal error encountered during simulation.")
+
+    print(f"Number of simulations with fatal errors: {fatal_error_count}")
+
 
 def PreExperiment(rc):
     run_count = rc
@@ -2784,6 +2860,208 @@ def Experiment10(rc):
             os.system(f'argos3 -c {XML.XML_FNAME}')
 
 
+######### EXPERIMENT 10-2 (w/ def) (w/ cylinder obstacles) #########
+# This experiment is cloned from Experiment 10, but with the addition of cylinder obstacles
+# Here the cylinder obstacles were placed randomly in the environment except for the nest area and robots spawn locations
+def Experiment10_2(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/resultsExp10-2_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st{sim_time}_{run_count}it/'
+    # XML.INC_MLT = "true"
+    
+    XML.LET_DET_USE_MLT = "false"
+    XML.PRI = "true"
+    XML.ANNULAR_DIST = "false"
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    obs_count_list = [0,4,8,12,16]     # num_obstacles list
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "true"
+    XML.USE_DEF_CL = "true"
+    XML.USE_DEF_CG = "true"
+
+    for p in obs_count_list:
+        XML.setDetractorPercentage(25, True)
+        if (p > 0):
+            XML.USE_OBSTACLES = "true"
+            XML.USE_CYLINDERS = "true"
+        XML.NUM_CYL_OBS = p
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {25}%, Num Cylinder Obstacles: {p}\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
+
+######### EXPERIMENT 10-3 (w/ def) (w/ cylinder obstacles) #########
+# This experiment is cloned from Experiment 10-2, but using annular distribution and the resrouces place outside of the annular region
+def Experiment10_3(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/resultsExp10-3_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st{sim_time}_{run_count}it/'
+    # XML.INC_MLT = "true"
+    
+    XML.LET_DET_USE_MLT = "false"
+    XML.PRI = "true"
+    XML.ANNULAR_DIST = "true"
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    obs_count_list = [0,4,8,12,16]     # num_obstacles list
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "true"
+    XML.USE_DEF_CL = "true"
+    XML.USE_DEF_CG = "true"
+
+    for p in obs_count_list:
+        XML.setDetractorPercentage(25, True)
+        if (p > 0):
+            XML.USE_OBSTACLES = "true"
+            XML.USE_CYLINDERS = "true"
+        XML.NUM_CYL_OBS = p
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {25}%, Num Cylinder Obstacles: {p}\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
+
+
+def Experiment10_2_atkonly(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/resultsExp10-2_atkonly_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st{sim_time}_{run_count}it/'
+    # XML.INC_MLT = "true"
+    XML.USE_OBSTACLES = "false"
+    XML.USE_CYLINDERS = "false"
+
+    XML.LET_DET_USE_MLT = "false"
+    XML.PRI = "true"
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    percent_list = [0, 10, 20, 30, 40, 50]     # Percentage of detractors
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "false"
+    XML.USE_DEF_CL = "false"
+    XML.USE_DEF_CG = "false"
+
+    for p in percent_list:
+        XML.setDetractorPercentage(p, True)
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {p}%\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
+
+
 if __name__ == "__main__":
 
     # Experiment1(30)
@@ -2812,7 +3090,15 @@ if __name__ == "__main__":
 
     # Experiment10(30)
 
-    quickTest()
+    # Experiment10_2(60)
+
+    # Experiment10_3(60)
+
+    # Experiment10_2_atkonly(20)
+
+    quickTest() 
+
+    # runtimeErrorTest()
 
 
 

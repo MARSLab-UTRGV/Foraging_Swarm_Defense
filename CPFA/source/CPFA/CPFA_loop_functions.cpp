@@ -84,6 +84,7 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	lastMinResourceTotal(0),
 	lastMinForagerCapTotal(0),
 	detractorIsolatedCount(0),
+	NestFoodBufferRadius(0.0),
 
 	/******* OBSTACLES ********/
 	useObstacles(false),
@@ -95,7 +96,8 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	cylinderObstacleRadius(0.5),
 	wallObstacleWidth(0.1),
 	wallObstacleLength(0.5),
-	numCylinderObstacles(10)
+	numCylinderObstacles(10),
+	useAnnularObstacleDistribution(true)
 	/**************************/
 {}
 
@@ -163,6 +165,7 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "RatioCheckFreq",				ratioCheckFreq);
 	argos::GetNodeAttribute(settings_node, "CheckRatio",					checkRatio);
 	argos::GetNodeAttribute(settings_node, "CheckResourcesPerMin",			checkResourcesPerMin);
+	argos::GetNodeAttribute(settings_node, "NestFoodBufferRadius",			NestFoodBufferRadius);
 
 	/************************************* 	OBSTACLES *****************************************/
 	argos::GetNodeAttribute(settings_node, "UseObstacles",					useObstacles);
@@ -175,6 +178,7 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::GetNodeAttribute(settings_node, "WallObstacleWidth",				wallObstacleWidth);
 	argos::GetNodeAttribute(settings_node, "WallObstacleLength",			wallObstacleLength);
 	argos::GetNodeAttribute(settings_node, "NumCylinderObstacles",			numCylinderObstacles);
+	argos::GetNodeAttribute(settings_node, "UseAnnularObstacleDistribution", useAnnularObstacleDistribution);
 	/******************************************************************************************/
 
 	FoodRadiusSquared = FoodRadius*FoodRadius;
@@ -267,7 +271,7 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	/**
 	 * Distribute obstacles first
 	*/
-	DeployObstacles(numCylinderObstacles);
+	if(useObstacles && useCylinderObstacles) GetCylinderEntityPositionsAndRadii();
 
 	/**
 	 * Distribute atk nests randomly one quadrant of the arena at a time (ignoring innermost subquadrants).
@@ -933,7 +937,8 @@ void CPFA_loop_functions::PostExperiment() {
 							<< "Total Collision Time, Random Seed Used, " 
 							<< "Total Robots Isolated, Num False Positives, " 
 							<< "Total Isolated Detractors, Total Isolated Foragers, " 
-							<< "Forager Performance, Detractor Performance" << endl;
+							<< "Forager Performance, Detractor Performance, " 
+							<< "Final 'uniVelocity' Value" << endl;
 
 							// << "Fake Food Collected, Fake Food Collection Rate (per second), " 
 							// << "Real Food Trails Created, Fake Food Trails Created, False Positives, QZones" << endl;
@@ -947,7 +952,8 @@ void CPFA_loop_functions::PostExperiment() {
 						<< CollisionTime/(2*ticks_per_second) << ',' << RandomSeed << ','
 						<< numIsolatedBots << ',' << IsoFalsePositives << ','
 						<< numIsolatedDetractors << ',' << numIsolatedForagers << ','
-						<< ForagerFoodCollected << ',' << DetractorFoodCollected << endl;
+						<< ForagerFoodCollected << ',' << DetractorFoodCollected << ','
+						<< uniVelocity << endl;
 						
 						// << FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
 						// << numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << ',' << MainNest.GetZoneList().size() << endl;
@@ -1239,6 +1245,11 @@ void CPFA_loop_functions::DistributeAtkNests(){
         argos::Real x = RNG->Uniform(CRange<argos::Real>(x_min, x_max));
         argos::Real y = RNG->Uniform(CRange<argos::Real>(y_min, y_max));
 
+		while (IsCollidingWithCylinderObstacle(CVector2(x, y), AtkNestRadius)) {
+			x = RNG->Uniform(CRange<argos::Real>(x_min, x_max));
+			y = RNG->Uniform(CRange<argos::Real>(y_min, y_max));
+		}
+
         // Create the nest position and add it to the list
         CVector2 nestPosition(x, y);
         AtkNestPositions.push_back(nestPosition);
@@ -1289,25 +1300,57 @@ void CPFA_loop_functions::ClusterFoodDistribution() {
 
 	NumRealFood = foodToPlace;
 
-	for(size_t i = 0; i < NumberOfClusters; i++) {
-		placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+	if (useAnnularObstacleDistribution){
 
-		while(IsOutOfBounds(placementPosition, ClusterWidthY, ClusterWidthX)) {
-			placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
-		}
+		for (size_t i = 0; i < NumberOfClusters; i++) {
+			bool validPlacement = false;
+			while (!validPlacement) {
+				placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+				float x = placementPosition.GetX();
+				float y = placementPosition.GetY();
 
-		for(size_t j = 0; j < ClusterWidthY; j++) {
-			for(size_t k = 0; k < ClusterWidthX; k++) {
-				foodPlaced++;
-
-				Food tmp(placementPosition, Food::FoodType::REAL);	// Ryan Luna 11/10/22
-				FoodList.push_back(tmp);							// Ryan Luna 11/10/22
-
-				placementPosition.SetX(placementPosition.GetX() + foodOffset);
+				// Check to make sure the position is outside the annular region and satisfies IsOutOfBounds()
+				if (!((x > -2.5 && x < 2.5) && (y > -2.5 && y < 2.5)) && !IsOutOfBounds(placementPosition, ClusterWidthY, ClusterWidthX)) {
+					validPlacement = true;
+				}
 			}
 
-			placementPosition.SetX(placementPosition.GetX() - (ClusterWidthX * foodOffset));
-			placementPosition.SetY(placementPosition.GetY() + foodOffset);
+			for (size_t j = 0; j < ClusterWidthY; j++) {
+				for (size_t k = 0; k < ClusterWidthX; k++) {
+					foodPlaced++;
+
+					Food tmp(placementPosition, Food::FoodType::REAL); // Ryan Luna 11/10/22
+					FoodList.push_back(tmp); // Ryan Luna 11/10/22
+
+					placementPosition.SetX(placementPosition.GetX() + foodOffset);
+				}
+
+				placementPosition.SetX(placementPosition.GetX() - (ClusterWidthX * foodOffset));
+				placementPosition.SetY(placementPosition.GetY() + foodOffset);
+			}
+		}
+	}else{
+
+		for(size_t i = 0; i < NumberOfClusters; i++) {
+			placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+
+			while(IsOutOfBounds(placementPosition, ClusterWidthY, ClusterWidthX)) {
+				placementPosition.Set(RNG->Uniform(ForageRangeX), RNG->Uniform(ForageRangeY));
+			}
+
+			for(size_t j = 0; j < ClusterWidthY; j++) {
+				for(size_t k = 0; k < ClusterWidthX; k++) {
+					foodPlaced++;
+
+					Food tmp(placementPosition, Food::FoodType::REAL);	// Ryan Luna 11/10/22
+					FoodList.push_back(tmp);							// Ryan Luna 11/10/22
+
+					placementPosition.SetX(placementPosition.GetX() + foodOffset);
+				}
+
+				placementPosition.SetX(placementPosition.GetX() - (ClusterWidthX * foodOffset));
+				placementPosition.SetY(placementPosition.GetY() + foodOffset);
+			}
 		}
 	}
 }
@@ -1583,6 +1626,8 @@ bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t
 			if(IsCollidingWithNest(placementPosition)) return true;
 			if(IsCollidingWithAtkNest(placementPosition)) return true;
 			if(IsCollidingWithCylinderObstacle(placementPosition, FoodRadius)) return true;
+			if(IsNearRobot(placementPosition)) return true;
+			if(IsCollidingWithNestFoodBuffer(placementPosition)) return true;
 			placementPosition.SetX(placementPosition.GetX() + foodOffset);
 		}
 
@@ -1591,6 +1636,11 @@ bool CPFA_loop_functions::IsOutOfBounds(argos::CVector2 p, size_t length, size_t
 	}
 
 	return false;
+}
+
+bool CPFA_loop_functions::IsCollidingWithNestFoodBuffer(argos::CVector2 p) {
+    argos::Real distanceFromNestCenter = p.Length(); // Assuming nest is at (0,0)
+    return distanceFromNestCenter < NestRadius + NestFoodBufferRadius;
 }
 
 bool CPFA_loop_functions::IsCollidingWithNest(argos::CVector2 p) {
@@ -2555,6 +2605,9 @@ bool CPFA_loop_functions::IsCollidingWithCylinderObstacle(argos::CVector2 p, arg
 	return false;
 }
 
+/**
+ * This funciton is no longer being use, but it is kept here as a reference. 
+ */
 CVector3 CPFA_loop_functions::GenCylinderObstaclePosition(){
 	// generate a position within the forage range and make sure it isn't colliding with anything
 	argos::CVector2 placementPosition;
@@ -2573,11 +2626,47 @@ CVector3 CPFA_loop_functions::GenCylinderObstaclePosition(){
 
 }
 
+/**
+ * This function is no longer being used, but it is kept here as a reference.
+ * 
+ * There was an issue where the robots were just walking through the cylinder entities without colliding with them.
+ */
 void CPFA_loop_functions::DeployObstacles(size_t num_obstacles){
+
+	// Deploy Cylinder Obstacles
 	for (size_t i = 0; i < num_obstacles; i++){
+
 		CVector3 obstaclePosition = GenCylinderObstaclePosition();
 		CylinderObstaclePositionList.push_back(make_pair(obstaclePosition, cylinderObstacleRadius));
+
+		// create the cylinder entity
+		CCylinderEntity* pcCylinder = new CCylinderEntity(
+			"obstacle_" + to_string(i), // id
+			obstaclePosition, 			// position
+			CQuaternion(), 				// orientation
+			false, 						// movable
+			cylinderObstacleRadius, 	// radius
+			ObstacleHeight				// height
+		);
+		// Get a reference to the CSpace isntance
+		CSpace& cSpace = CSimulator::GetInstance().GetSpace();
+		// Add the cylinder to the space
+		cSpace.AddEntity(*pcCylinder);	
+		
 	}
+}
+
+void CPFA_loop_functions::GetCylinderEntityPositionsAndRadii(){
+	
+	// get positions of all cylinder entities
+	argos::CSpace::TMapPerType& cylinders = GetSpace().GetEntitiesByType("cylinder");
+	for (argos::CSpace::TMapPerType::iterator it = cylinders.begin(); it != cylinders.end(); it++){
+		argos::CCylinderEntity& cylinder = *argos::any_cast<argos::CCylinderEntity*>(it->second);
+		CVector3 position = cylinder.GetEmbodiedEntity().GetOriginAnchor().Position;
+		Real radius = cylinder.GetRadius();
+		CylinderObstaclePositionList.push_back(make_pair(position, radius));
+	}
+
 }
 
 // bool CPFA_loop_functions::IsCollidingWithWallObstacle(const argos::CVector2& position, const argos::Real& radius) {

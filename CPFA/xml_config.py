@@ -1,5 +1,6 @@
 from xml.dom import minidom
 import math
+import random
 
 ####### GLOBAL CONSTANTS (DON'T MODIFY) #######
 
@@ -38,6 +39,9 @@ class C_XML_CONFIG:
                                                          # will be used instead in grid distribution mode
         self.USE_MISLEADING_TRAIL_ATTACK = False         # Use misleading trail attack
 
+        self.BOT_RADIUS =        0.085                   # Robot radius
+
+        ####### BOT DISTRIBUTION #######
         self.T_BOT_COUNT =       32                      # total bot count
         self.D_BOT_COUNT =       0                       # detractor bot count
         self.BOT_COUNT =         self.T_BOT_COUNT        # normal bot count (not detractors)
@@ -45,6 +49,13 @@ class C_XML_CONFIG:
         self.BOT_DIST_RAD =      1.5                     # Bot distribution radius (uniform distribution in central area)
         self.BOT_LAYOUT =        (2,4)                   # Bot layout (x,y) * DEFAULT DISTRIBUTION ONLY*
         self.D_BOT_LAYOUT =      (0,0)                   # Detractor bot layout (x,y) * DEFAULT DISTRIBUTION ONLY*
+        self.BOT_OFFSET =        0.2                     # Spacing between robots in a group
+        self.NUM_GROUPS =        4                       # Number of groups
+        self.GROUP_CENTERS =     [('1,1,0.0'), 
+                                  ('1,-1,0.0'), 
+                                  ('-1,1,0.0'), 
+                                  ('-1,-1,0.0')]         # Centers for 4 groups
+        
 
         self.ARENA_SIZE =        (10,10,1)               # (x,y,z) foraging area size
         self.TOTAL_SIZE =        (12,10,1)               # to allow space for holding area for capture bots
@@ -98,7 +109,8 @@ class C_XML_CONFIG:
         self.NUM_RCL =           2                       # Number of real food clusters for cluster distribution
         self.RCL_X =             8                       # Real cluster width X for cluster distribution
         self.RCL_Y =             8                       # Real cluster width Y for cluster distribution
-        self.NUM_PLAW_RF =       192                     # Number of real food to distribute for power law distribution
+        self.NUM_PLAW_RF =       192                     # Number of real food to distribute for power law 
+        self.NFBR =              1.0                     # Nest Food Buffer Radius
 
         # Other Loop Function Settings
         self.DRAW_ID =           1                       # Draw bot IDs
@@ -166,7 +178,8 @@ class C_XML_CONFIG:
         self.WALL_OBS_WIDTH =    0.1                     # Wall obstacle width
         self.WALL_OBS_LENGTH =   1.0                     # Wall obstacle length
         self.NUM_CYL_OBS =       0                       # Number of cylinder obstacles
-
+        self.ANNULAR_DIST =      "true"                  # Use annular distribution for cylinder obstacles
+        self.UAD =               True                    # Bool for annular distribution for cylinder obstacles
 
     def UseDefenseMethod(self, useDef):
         if (useDef):
@@ -410,8 +423,9 @@ class C_XML_CONFIG:
         time = f'time{self.MAX_SIM_TIME}'
         iter = f'iter{self.num_iterations}'
         ttt = f'ttt{self.TTT}'
+        ncobs = f'ncobs{self.NUM_CYL_OBS}'
 
-        self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{detractor_count}_{ttt}_{rlpf}_{rlpd}_{rfc}_{arena}_{time}_{iter}_'
+        self.fname_header = f'{path}{alg}_{dense}_{dist}_{bot_count}_{detractor_count}_{ttt}_{rlpf}_{rlpd}_{rfc}_{ncobs}_{arena}_{time}_{iter}_'
 
         return self.fname_header
 
@@ -420,6 +434,124 @@ class C_XML_CONFIG:
             print ("Warning: Number of bots not divisible by 4. Default bot distribution not supported...\n\n")
         self.T_BOT_COUNT = botCount
         self.BOTS_PER_GROUP = botCount/4
+
+    def get_valid_coordinate(self, min_coord, max_coord, nest_buffer):
+        # Define the two valid ranges, excluding the nest_buffer zone around the center
+        valid_ranges = [(min_coord, -nest_buffer), (nest_buffer, max_coord)]
+        print(f'Valid ranges: {valid_ranges}')
+        
+        # Randomly select one of the valid ranges
+        selected_range = random.choice(valid_ranges)
+        print(f'Selected range: {selected_range}')
+        
+        # Generate and return a random coordinate within the selected range
+        return random.uniform(*selected_range)
+
+    def genCylinderObstaclePositions(self):
+        print(f'Generating {self.NUM_CYL_OBS} cylinder obstacle positions (NON-ANNULAR)...')
+        positions = []
+        nest_buffer = self.NEST_RAD*5 + self.CYL_OBS_RADIUS  # Define how far from the nest center to start placing obstacles
+        arena_wall_buffer = 0.25
+
+        for _ in range(self.NUM_CYL_OBS):
+            # Generate valid x and y coordinates by excluding the nest_buffer zone
+            x = self.get_valid_coordinate(-self.ARENA_SIZE[0]/2 + arena_wall_buffer, self.ARENA_SIZE[0]/2 - arena_wall_buffer, nest_buffer)
+            y = self.get_valid_coordinate(-self.ARENA_SIZE[1]/2 + arena_wall_buffer, self.ARENA_SIZE[1]/2 - arena_wall_buffer, nest_buffer)
+            z = 0  # Assuming z is not relevant for obstacle placement
+            
+            # Add the newly generated position if it's not too close to existing obstacles
+            if all(math.sqrt((x - pos[0])**2 + (y - pos[1])**2) >= self.CYL_OBS_RADIUS * 2 for pos in positions):
+                positions.append((x, y, z))
+
+        return positions
+    
+    import random
+
+    def genAnnularObstaclePositions(self, num_obstacles, inner_square=(-1.5, 1.5, 1.5, -1.5), outer_square=(-2.5, 2.5, 2.5, -2.5), min_distance=0.5):
+        
+        print(f'Generating {num_obstacles} cylinder obstacle positions (ANNULAR)...')
+        positions = []
+
+        inner_left, inner_top, inner_right, inner_bottom = inner_square
+        outer_left, outer_top, outer_right, outer_bottom = outer_square
+
+        while len(positions) < num_obstacles:
+            x = random.uniform(outer_left, outer_right)
+            y = random.uniform(outer_bottom, outer_top)
+
+            # Check if (x, y) is outside the inner square
+            if not (inner_left < x < inner_right and inner_bottom < y < inner_top):
+                # Check if new position is far enough from all existing positions
+                if all(math.sqrt((x - pos[0])**2 + (y - pos[1])**2) >= min_distance for pos in positions):
+                    positions.append((x, y))
+
+        return positions
+
+
+    # def genAnnularObstaclePositions(self, num_obstacles, inner_square=(-1.5, 1.5, 1.5, -1.5), outer_square=(-2.5, 2.5, 2.5, -2.5)):
+    #     positions = []
+        
+    #     while len(positions) < num_obstacles:
+    #         x = random.uniform(outer_square[0], outer_square[2])  # Use outer_left (index 0) and outer_right (index 2)
+    #         y = random.uniform(outer_square[3], outer_square[1])  # Use outer_bottom (index 3) and outer_top (index 1)
+            
+    #         # Check if (x, y) is outside the inner square by checking against the inner square's coordinates directly
+    #         if not (inner_square[0] <= x <= inner_square[2] and inner_square[3] <= y <= inner_square[1]):
+    #             positions.append((x, y))
+        
+    #     return positions
+
+
+
+
+    
+    # def genCylinderObstaclePositions(self):
+    #     positions = []
+    #     for _ in range(self.NUM_CYL_OBS):
+    #         valid_position_found = False
+    #         while not valid_position_found:
+    #             x = random.uniform(-self.ARENA_SIZE[0]/2 + self.CYL_OBS_RADIUS, self.ARENA_SIZE[0]/2 - self.CYL_OBS_RADIUS)
+    #             y = random.uniform(-self.ARENA_SIZE[1]/2 + self.CYL_OBS_RADIUS, self.ARENA_SIZE[1]/2 - self.CYL_OBS_RADIUS)
+    #             z = 0
+
+    #             # Check if within any robot group area or too close to other obstacles
+    #             if not self.isWithinRobotGroupArea(x, y) and not self.isTooCloseToOtherObstacles(x, y, positions):
+    #                 valid_position_found = True
+    #                 positions.append((x, y, z))
+    #     return positions
+        
+    # def calculateGroupArea(self, center, layout):
+    #     centerX, centerY, _ = map(float, center.split(','))
+    #     rows, cols = map(int, layout.split(',')[:2])
+    #     group_width = (cols - 1) * self.BOT_OFFSET + 2 * self.BOT_RADIUS
+    #     group_height = (rows - 1) * self.BOT_OFFSET + 2 * self.BOT_RADIUS
+        
+    #     # Define a buffer distance to expand the group area
+    #     buffer_distance = 0.5  # Adjust this value as needed
+
+    #     # Apply the buffer distance to expand the group area
+    #     return (centerX - group_width / 2 - buffer_distance, 
+    #             centerX + group_width / 2 + buffer_distance, 
+    #             centerY - group_height / 2 - buffer_distance, 
+    #             centerY + group_height / 2 + buffer_distance)
+
+    # def isWithinRobotGroupArea(self, x, y):
+    #     # Check if the position is within the area reserved for any robot group
+    #     for center, layout_info in zip(self.GROUP_CENTERS, self.genBotLayouts(self.NUM_GROUPS)):
+    #         # layout_info[0] is already a tuple, no need to split and convert
+    #         minX, maxX, minY, maxY = self.calculateGroupArea(center, layout_info[0])
+    #         # print (f'x: {x}, y: {y}, minX: {minX}, maxX: {maxX}, minY: {minY}, maxY: {maxY}')
+    #         if minX <= x <= maxX and minY <= y <= maxY:
+    #             return True
+    #     return False
+
+
+    # def isTooCloseToOtherObstacles(self, x, y, positions):
+    #     # Check if the position is too close to existing obstacles
+    #     for pos in positions:
+    #         if math.sqrt((x - pos[0]) ** 2 + (y - pos[1]) ** 2) < self.CYL_OBS_RADIUS * 2:
+    #             return True
+    #     return False
 
     def createXML(self):
 
@@ -598,6 +730,7 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('RatioCheckFreq', str(self.RATIO_CHECK_FREQ))
         lf_settings.setAttribute('CheckRatio', str(self.USE_RATIO_CHECK))
         lf_settings.setAttribute('CheckResourcesPerMin', str(self.CHECK_RESOURCES_PER_MIN))
+        lf_settings.setAttribute('NestFoodBufferRadius', str(self.NFBR))
 
         lf_settings.setAttribute('UseObstacles', str(self.USE_OBSTACLES))
         lf_settings.setAttribute('UseCylinderObstacles', str(self.USE_CYLINDERS))
@@ -609,6 +742,7 @@ class C_XML_CONFIG:
         lf_settings.setAttribute('WallObstacleWidth', str(self.WALL_OBS_WIDTH))
         lf_settings.setAttribute('WallObstacleLength', str(self.WALL_OBS_LENGTH))
         lf_settings.setAttribute('NumCylinderObstacles', str(self.NUM_CYL_OBS))
+        lf_settings.setAttribute('UseAnnularObstacleDistribution', str(self.ANNULAR_DIST))
 
         loops.appendChild(lf_settings)
         #       </settings>
@@ -695,7 +829,7 @@ class C_XML_CONFIG:
 
             layouts = self.genBotLayouts()
 
-            centers = [('1,1,0.0'), ('1,-1,0.0'), ('-1,1,0.0'), ('-1,-1,0.0')]  # Centers for 4 groups
+            centers = [('0.75,0.75,0.0'), ('0.75,-0.75,0.0'), ('-0.75,0.75,0.0'), ('-0.75,-0.75,0.0')]  # Centers for 4 groups
             entity_ids = ['fb0', 'fb1', 'fb2', 'fb3']  # Entity IDs for 4 groups
 
             # If there are detractors, add their layout information
@@ -738,13 +872,52 @@ class C_XML_CONFIG:
                 controller = xml.createElement('controller')
                 controller.setAttribute('config', 'CPFA')
                 foot_bot.appendChild(controller)
+
+        #   Distribute cylinder obstacles
+        # print (f'ANNULAR_DIST: {self.ANNULAR_DIST}')
+        if (self.ANNULAR_DIST == "false"):      # by default this should be true so only check if it was set to false
+            self.UAD = False
+        if (self.UAD):
+            # print("In 'if' conditional")
+            if (self.USE_OBSTACLES and self.USE_CYLINDERS and self.NUM_CYL_OBS > 0):
+                positions = self.genAnnularObstaclePositions(self.NUM_CYL_OBS)
+                for i, position in enumerate(positions):
+                    cylinder = xml.createElement('cylinder')
+                    cylinder.setAttribute('id', f'cyl{i}')
+                    cylinder.setAttribute('movable', 'false')
+                    cylinder.setAttribute('radius', str(self.CYL_OBS_RADIUS))
+                    cylinder.setAttribute('height', str(self.OBS_HEIGHT))
+                    
+                    body = xml.createElement('body')
+                    body.setAttribute('position', f'{position[0]:.1f},{position[1]:.1f},0')
+                    body.setAttribute('orientation', '0,0,0')
+                    cylinder.appendChild(body)
+                    
+                    arena.appendChild(cylinder)
+        else:
+            # print("In 'else' conditional")
+            if (self.USE_OBSTACLES and self.USE_CYLINDERS and self.NUM_CYL_OBS > 0):
+                positions = self.genCylinderObstaclePositions()
+                for i, position in enumerate(positions):
+                    cylinder = xml.createElement('cylinder')
+                    cylinder.setAttribute('id', f'cyl{i}')
+                    cylinder.setAttribute('movable', 'false')
+                    cylinder.setAttribute('radius', str(self.CYL_OBS_RADIUS))
+                    cylinder.setAttribute('height', str(self.OBS_HEIGHT))
+                    
+                    body = xml.createElement('body')
+                    body.setAttribute('position', f'{position[0]:.1f},{position[1]:.1f},0')
+                    body.setAttribute('orientation', '0,0,0')
+                    cylinder.appendChild(body)
+                    
+                    arena.appendChild(cylinder)
+                
         
         #   </arena>
 
         #   <physics_engines>
         physics_eng = xml.createElement('physics_engines')
         argos_config.appendChild(physics_eng)
-
         #       <dynamics2d>
         dynamics = xml.createElement('dynamics2d')
         dynamics.setAttribute('id','dyn2d')

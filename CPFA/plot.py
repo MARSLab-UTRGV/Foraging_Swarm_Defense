@@ -23,6 +23,7 @@ TOTAL_ISOLATED_DETRACTORS = []
 TOTAL_ISOLATED_FORAGERS = []
 FORAGER_FOOD_COLLECTED = []
 DETRACTOR_FOOD_COLLECTED = []
+FINAL_UNIVELOSITY = []
 
 TIME_IN_SECONDS = []
 REAL_PTRAILS_PER10SECS = []
@@ -45,6 +46,7 @@ def Read(fname):
     TOTAL_ISOLATED_FORAGERS.clear()
     FORAGER_FOOD_COLLECTED.clear()
     DETRACTOR_FOOD_COLLECTED.clear()
+    FINAL_UNIVELOSITY.clear()
     
     with open(fname) as f:
         for line in f.readlines():
@@ -66,6 +68,7 @@ def Read(fname):
             TOTAL_ISOLATED_FORAGERS.append(data[12])
             FORAGER_FOOD_COLLECTED.append(data[13])
             DETRACTOR_FOOD_COLLECTED.append(data[14])
+            FINAL_UNIVELOSITY.append(data[15])
 
 def Read2(fname):
     count = 0
@@ -151,8 +154,6 @@ def ClearDirectory(path):
                 shutil.rmtree(file_path)
         except Exception as e:
             print('Failed to delete %s. Reason: %s' % (file_path, e))
-
-
 
 ####### Plot Tests ########
 
@@ -1288,77 +1289,6 @@ def PlotAnalysis3():
     plt.tight_layout()
     plt.savefig('./results/analysis_12-18-23/results_analysis3_noAtk_r32_1800_rc30it/Analysis3_varyLayRate.png')
 
-def PlotAnalysis_IncreaseTrails_layrate():
-    total_robots = 24
-    total_food = 288
-
-    # Font size variables
-    x_tick_fontsize = 24
-    y_tick_fontsize = 24
-    xlabel_fontsize = 32
-    ylabel_fontsize = 32
-    legend_fontsize = 24
-
-    # Define lay rates and get all filenames in directory for attack only
-    lay_rates = ["1", "4", "8", "12"]
-    flist_attackData = []
-    for filename in os.listdir("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it"):
-        if filename.endswith("AttackData.txt"):
-            flist_attackData.append(os.path.join("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it", filename))
-
-    # Sort the filenames based on lay rates
-    flist_attackData.sort(key=extract_rlp_value)  # Use an appropriate function to extract lay rate values
-
-    # Parse data from files
-    TFClist_atk = []
-    Caplist_atk = []
-    for filename in flist_attackData:
-        Read2(filename)  # Ensure Read2 function processes the file correctly
-        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
-        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
-
-    # Calculate percentages
-    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
-    Cap_percent_atk = [(data / total_robots) * 100 for data in Caplist_atk]
-
-    # Plotting
-    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 10), sharex=True)
-
-    # Calculate positions for boxplots
-    gap = 0.5
-    width = 0.35
-    num_lay_rates = len(lay_rates)
-    positions = np.arange(1, num_lay_rates * 2, step=2)
-
-    # Plot boxplots and trend lines
-    for i in range(num_lay_rates):
-        box_pos = positions[i]
-        axes[0].boxplot(TFC_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
-        axes[1].boxplot(Cap_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
-
-    # Plot trend lines
-    trend_positions = np.array(positions) + width / 2
-    axes[0].plot(trend_positions, [np.mean(data) for data in TFC_percent_atk], color="cyan", marker='o', label='Attack Only')
-    axes[1].plot(trend_positions, [np.mean(data) for data in Cap_percent_atk], color="cyan", marker='o', label='Attack Only')
-
-    # Axes labels and legends
-    axes[0].set_xticks(positions)
-    axes[0].set_xticklabels(lay_rates)
-    axes[0].set_yticks(np.arange(20, 101, 20))
-    axes[0].set_ylabel('Total Resources\nCollected (%)', fontsize=ylabel_fontsize, labelpad=15)
-    axes[0].legend(fontsize=legend_fontsize)
-    axes[1].set_xlabel(r"Rate of Laying Pheromone ($\lambda_{fg}$, $\lambda_{dt}$)", fontsize=xlabel_fontsize, labelpad=15)
-    axes[1].set_ylabel('Total Foragers\nCaptured (%)', fontsize=ylabel_fontsize, labelpad=15)
-
-    # Uniform tick sizes and adjust layout
-    for ax in axes:
-        ax.tick_params(axis='x', labelsize=x_tick_fontsize)
-        ax.tick_params(axis='y', labelsize=y_tick_fontsize)
-    plt.tight_layout(pad=2.0)
-
-    # Save the plot
-    plt.savefig('./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it/PlotAnalysis_IncreaseTrails.png')
-
 def Output_IncreaseTrails_layrate(output_file):
     total_robots = 24
     total_food = 288
@@ -1407,11 +1337,6 @@ def Output_IncreaseTrails_layrate(output_file):
             out_file.write(f"  Max: {np.max(Cap_percent_atk[i])}%\n")
             out_file.write(f"  StdDev: {np.std(Cap_percent_atk[i])}%\n")
             out_file.write("-------------------------------------------\n")
-
-
-
-
-
 
 def PlotAnalysis_IncreaseTrails():
     total_robots = 24
@@ -1503,6 +1428,224 @@ def PlotAnalysis_IncreaseTrails():
     # plt.savefig('./results/results_IncreaseTrails_r24_rlp4_st1800_30it/PlotAnalysis_IncreaseTrails.png')
     plt.savefig('./results/results_RateIncrease_DEF_r24_rlpf6_rlpd1_st1800_30it/PlotAnalysis_IncreaseTrails.png')
 
+
+
+
+############################################################################################
+'''
+PlotAnalysis_IncreaseTrails_layrate() was used to generate the plot for Experiment 1 (figure 4) 
+in the paper "Detection and Mitigation of Misleading Pheromone Trails in Foraging Robot Swarms"
+'''
+############################################################################################
+def PlotAnalysis_VaryNumCylinderObstacles_AtkDef():
+    total_robots = 24
+    total_food = 288
+
+    # Font size variables
+    x_tick_fontsize = 24
+    y_tick_fontsize = 24
+    xlabel_fontsize = 28
+    ylabel_fontsize = 28
+    legend_fontsize = 18
+
+    # Define lay rates and get all filenames in directory for attack only
+    num_cylinder_obstacles = ["0", "4", "8", "12", "16"]
+    flist_attackData = []
+    for filename in os.listdir("./results/resultsExp10-2_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it"):
+    # for filename in os.listdir("./results/resultsExp10-3_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it"):
+        if filename.endswith("AttackData.txt"):
+            flist_attackData.append(os.path.join("./results/resultsExp10-2_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it", filename))
+            # flist_attackData.append(os.path.join("./results/resultsExp10-3_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it", filename))
+    # Sort the filenames based on lay rates
+    flist_attackData.sort(key=extract_ncobs_value)  # Use an appropriate function to extract lay rate values
+
+    # Parse data from files
+    TFClist_atk = []
+    Caplist_atk = []
+    NFPlist_atk = []
+    UVlist_atk = []
+    for filename in flist_attackData:
+        Read(filename)  # Ensure Read2 function processes the file correctly
+        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
+        NFPlist_atk.append(np.array(NUM_FALSE_POSITIVES).astype(int))
+        UVlist_atk.append(np.array(FINAL_UNIVELOSITY).astype(float))
+
+    # Calculate percentages
+    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
+    Cap_percent_atk = [(data / total_robots) * 100 for data in Caplist_atk]
+
+    # Plotting
+    fig, axes = plt.subplots(nrows=4, ncols=1, figsize=(12, 16), sharex=True)
+
+    # Calculate positions for boxplots
+    gap = 0.5
+    width = 0.35
+    lengthof_num_cylinder_obstacles = len(num_cylinder_obstacles)
+    positions = np.arange(1, lengthof_num_cylinder_obstacles * 2, step=2)
+
+    # Plot boxplots and trend lines
+    for i in range(lengthof_num_cylinder_obstacles):
+        box_pos = positions[i]
+        if (len(TFC_percent_atk[i]) > 0):
+            axes[0].boxplot(TFC_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        else:
+            print("TFC_percent_atk[i] is 0")
+        if (len(Cap_percent_atk[i]) > 0):
+            axes[1].boxplot(Cap_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        else:
+            print("Cap_percent_atk[i] is 0")
+        if (len(NFPlist_atk[i]) > 0):
+            axes[2].boxplot(NFPlist_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        else:
+            print("NFPlist_atk[i] is 0")
+        if (len(UVlist_atk[i]) > 0):
+            axes[3].boxplot(UVlist_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        else:
+            print("UVlist_atk[i] is 0")
+
+    # Plot trend lines
+    trend_positions = np.array(positions) + width / 2
+    axes[0].plot(trend_positions, [np.mean(data) for data in TFC_percent_atk], color="cyan", marker='o', label='Attack + Def')
+    axes[1].plot(trend_positions, [np.mean(data) for data in Cap_percent_atk], color="cyan", marker='o', label='Attack + Def')
+    axes[2].plot(trend_positions, [np.mean(data) for data in NFPlist_atk], color="cyan", marker='o', label='Attack + Def')
+    axes[3].plot(trend_positions, [np.mean(data) for data in UVlist_atk], color="cyan", marker='o', label='Attack + Def')
+
+    # Axes labels and legends
+    axes[0].set_xticks(positions)
+    axes[0].set_xticklabels(num_cylinder_obstacles)
+    axes[0].set_yticks(np.arange(20, 101, 20))
+    axes[0].set_ylabel('Total Resources\nCollected (%)', fontsize=ylabel_fontsize, labelpad=50, rotation=67.5)
+    axes[0].legend(fontsize=legend_fontsize)
+    axes[1].set_ylabel('Total Foragers\nCaptured (%)', fontsize=ylabel_fontsize, labelpad=50, rotation=67.5)
+    axes[2].set_ylabel('False Positives\nDetected', fontsize=ylabel_fontsize, labelpad=50, rotation=67.5)
+    axes[3].set_ylabel('Final Univelocity', fontsize=ylabel_fontsize, labelpad=50, rotation=67.5)
+    axes[3].set_xlabel("Number of Cylinder Obstacles", fontsize=xlabel_fontsize, labelpad=15)
+
+    # Uniform tick sizes and adjust layout
+    for ax in axes:
+        ax.tick_params(axis='x', labelsize=x_tick_fontsize)
+        ax.tick_params(axis='y', labelsize=y_tick_fontsize)
+    plt.tight_layout(pad=2.0)
+
+    # Save the plot
+    plt.savefig('./results/resultsExp10-2_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it/PlotAnalysis_VaryNumCylinderObstacles.png')
+    # plt.savefig('./results/resultsExp10-3_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it/PlotAnalysis_VaryNumCylinderObstacles.png')
+    # Open a file to write the results
+    with open('./results/resultsExp10-2_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it/AnalysisSummary.txt', 'w') as outfile:
+    # with open('./results/resultsExp10-3_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it/AnalysisSummary.txt', 'w') as outfile:
+        outfile.write("Summary of Experiment Results\n")
+        outfile.write("----------------------------\n")
+        outfile.write("Number of Cylinder Obstacles | Total Resources Collected (%) Mean (Std Dev) | Total Foragers Captured (%) Mean (Std Dev) | False Positives Detected Mean (Std Dev) | Final Univelocity Mean (Std Dev)\n")
+        outfile.write("--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n")
+        
+        for i, n_obs in enumerate(num_cylinder_obstacles):
+            mean_TFC = np.mean(TFC_percent_atk[i]) if len(TFC_percent_atk[i]) > 0 else "N/A"
+            std_TFC = np.std(TFC_percent_atk[i]) if len(TFC_percent_atk[i]) > 0 else "N/A"
+            mean_Cap = np.mean(Cap_percent_atk[i]) if len(Cap_percent_atk[i]) > 0 else "N/A"
+            std_Cap = np.std(Cap_percent_atk[i]) if len(Cap_percent_atk[i]) > 0 else "N/A"
+            mean_NFP = np.mean(NFPlist_atk[i]) if len(NFPlist_atk[i]) > 0 else "N/A"
+            std_NFP = np.std(NFPlist_atk[i]) if len(NFPlist_atk[i]) > 0 else "N/A"
+            mean_UV = np.mean(UVlist_atk[i]) if len(UVlist_atk[i]) > 0 else "N/A"
+            std_UV = np.std(UVlist_atk[i]) if len(UVlist_atk[i]) > 0 else "N/A"
+            
+            # Write the data for the current number of obstacles with standard deviation
+            outfile.write(f"{n_obs} | {mean_TFC} ({std_TFC}) | {mean_Cap} ({std_Cap}) | {mean_NFP} ({std_NFP}) | {mean_UV} ({std_UV})\n")
+    
+    print("Analysis summary has been written to AnalysisSummary.txt")
+
+
+
+
+
+
+
+
+
+############################################################################################
+'''
+PlotAnalysis_IncreaseTrails_layrate() was used to generate the plot for Experiment 1 (figure 4) 
+in the paper "Detection and Mitigation of Misleading Pheromone Trails in Foraging Robot Swarms"
+'''
+############################################################################################
+def PlotAnalysis_IncreaseTrails_layrate():
+    total_robots = 24
+    total_food = 288
+
+    # Font size variables
+    x_tick_fontsize = 24
+    y_tick_fontsize = 24
+    xlabel_fontsize = 32
+    ylabel_fontsize = 32
+    legend_fontsize = 24
+
+    # Define lay rates and get all filenames in directory for attack only
+    lay_rates = ["1", "4", "8", "12"]
+    flist_attackData = []
+    for filename in os.listdir("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it"):
+        if filename.endswith("AttackData.txt"):
+            flist_attackData.append(os.path.join("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it", filename))
+
+    # Sort the filenames based on lay rates
+    flist_attackData.sort(key=extract_rlp_value)  # Use an appropriate function to extract lay rate values
+
+    # Parse data from files
+    TFClist_atk = []
+    Caplist_atk = []
+    for filename in flist_attackData:
+        Read2(filename)  # Ensure Read2 function processes the file correctly
+        TFClist_atk.append(np.array(TOTAL_FOOD_COLLECTED).astype(int))
+        Caplist_atk.append(np.array(ROBOTS_CAPTURED).astype(int))
+
+    # Calculate percentages
+    TFC_percent_atk = [(data / total_food) * 100 for data in TFClist_atk]
+    Cap_percent_atk = [(data / total_robots) * 100 for data in Caplist_atk]
+
+    # Plotting
+    fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(12, 10), sharex=True)
+
+    # Calculate positions for boxplots
+    gap = 0.5
+    width = 0.35
+    num_lay_rates = len(lay_rates)
+    positions = np.arange(1, num_lay_rates * 2, step=2)
+
+    # Plot boxplots and trend lines
+    for i in range(num_lay_rates):
+        box_pos = positions[i]
+        axes[0].boxplot(TFC_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+        axes[1].boxplot(Cap_percent_atk[i], positions=[box_pos], widths=width, patch_artist=True, boxprops=dict(facecolor="cyan"))
+
+    # Plot trend lines
+    trend_positions = np.array(positions) + width / 2
+    axes[0].plot(trend_positions, [np.mean(data) for data in TFC_percent_atk], color="cyan", marker='o', label='Attack Only')
+    axes[1].plot(trend_positions, [np.mean(data) for data in Cap_percent_atk], color="cyan", marker='o', label='Attack Only')
+
+    # Axes labels and legends
+    axes[0].set_xticks(positions)
+    axes[0].set_xticklabels(lay_rates)
+    axes[0].set_yticks(np.arange(20, 101, 20))
+    axes[0].set_ylabel('Total Resources\nCollected (%)', fontsize=ylabel_fontsize, labelpad=15)
+    axes[0].legend(fontsize=legend_fontsize)
+    axes[1].set_xlabel(r"Rate of Laying Pheromone ($\lambda_{fg}$, $\lambda_{dt}$)", fontsize=xlabel_fontsize, labelpad=15)
+    axes[1].set_ylabel('Total Foragers\nCaptured (%)', fontsize=ylabel_fontsize, labelpad=15)
+
+    # Uniform tick sizes and adjust layout
+    for ax in axes:
+        ax.tick_params(axis='x', labelsize=x_tick_fontsize)
+        ax.tick_params(axis='y', labelsize=y_tick_fontsize)
+    plt.tight_layout(pad=2.0)
+
+    # Save the plot
+    plt.savefig('./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it/PlotAnalysis_IncreaseTrails.png')
+
+
+############################################################################################
+'''
+PlotAnalysis_IncTrails_AtkDef() was used to generate the plot for Experiment 2-1 (figure 5) in 
+the paper "Detection and Mitigation of Misleading Pheromone Trails in Foraging Robot Swarms"
+'''
+############################################################################################
 def PlotAnalysis_IncTrails_AtkDef():
     total_robots = 24
     total_food = 288
@@ -1606,6 +1749,263 @@ def PlotAnalysis_IncTrails_AtkDef():
 
     plt.tight_layout()
     plt.savefig('./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/PlotAnalysis_IncreaseTrails_AtkDef.png')
+
+
+############################################################################################
+'''
+plot_foragers_captured_per_min_moving_average_bar() was used to generate the plot for Experiment 2-2
+(figure 6) in the paper "Detection and Mitigation of Misleading Pheromone Trails in Foraging Robot Swarms"
+'''
+############################################################################################
+def plot_foragers_captured_per_min_moving_average_bar(directory_path, window_size=3):
+    total_robots = 24
+    total_food = 288
+
+    x_tick_fontsize = 32
+    y_tick_fontsize = 32
+    xlabel_fontsize = 48
+    ylabel_fontsize = 48
+    title_fontsize = 40
+    legend_fontsize = 32
+
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("ForagersCapturedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+    data_per_file = []
+
+    for file_path in file_paths:
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+            data_per_file.append(data)
+
+    aggregated_data_per_file = []
+    for data in data_per_file:
+        aggregated_data = [data[i::30] for i in range(16)]  # Adjusted to 16 minutes
+        aggregated_data_per_file.append(aggregated_data)
+
+    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
+
+    for i, aggregated_data in enumerate(aggregated_data_per_file):
+        means = [np.mean(minute_data) for minute_data in aggregated_data]
+
+        # Calculate moving average
+        moving_averages = np.convolve(means, np.ones(window_size)/window_size, mode='valid')
+
+        # Bar plot for actual data
+        axes[i].bar(range(1, 17), means, color='cyan', alpha=0.5)
+
+        # Plot moving average
+        axes[i].plot(range(window_size, 17), moving_averages, color='blue', linewidth=2)
+
+        # axes[i].set_ylabel('Foragers Captured', fontsize=ylabel_fontsize, labelpad=15)
+        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
+        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+        
+        # Format y-axis ticks to two decimal points
+        axes[i].yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+        axes[i].set_yticks(np.arange(0.0,3.25,0.75))
+
+        if i == 2:
+            axes[i].set_ylabel('Foragers Captured', fontsize=ylabel_fontsize, labelpad=50)
+        
+        # Add legend only to the top subplot
+        # if i == 4:
+            # axes[i].legend([f'{window_size}-Minute Moving Average', 'Actual Data'], fontsize=legend_fontsize)
+
+    axes[-1].set_xticks(range(1, 17))
+    axes[-1].set_xlabel('Time (minutes)', fontsize=xlabel_fontsize, labelpad = 25)
+    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+    plt.tight_layout(pad=4.0)
+    plt.savefig(os.path.join(directory_path, 'ForagersCapturedBarMovingAverage.png'))
+
+
+def plot_foragers_captured_per_min_with_atkonly_overlay(directory_path1, directory_path2, window_size=3):
+    total_robots = 24
+    total_food = 288
+
+    x_tick_fontsize = 32
+    y_tick_fontsize = 32
+    xlabel_fontsize = 48
+    ylabel_fontsize = 48
+    title_fontsize = 40
+    legend_fontsize = 32
+
+    file_paths1 = [os.path.join(directory_path1, f) for f in os.listdir(directory_path1) if f.endswith("ForagersCapturedPerMin.txt")]
+    file_paths1.sort(key=extract_d_value)
+    file_paths1 = [f for f in file_paths1 if "d0" not in f]
+
+    file_paths2 = [os.path.join(directory_path2, f) for f in os.listdir(directory_path2) if f.endswith("ForagersCapturedPerMin.txt")]
+    file_paths2.sort(key=extract_d_value)
+    file_paths2 = [f for f in file_paths2 if "d0" not in f]
+
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+
+    fig, axes = plt.subplots(nrows=len(file_paths1), ncols=1, figsize=(20, 6 * len(file_paths1)), sharex=True)
+
+    bar_width = 0.35  # Width of the bars
+    index = np.arange(16)  # Time minutes from 1 to 16
+
+    for i, (file_path1, file_path2) in enumerate(zip(file_paths1, file_paths2)):
+        with open(file_path1, 'r') as file:
+            next(file)  # Skip the header
+            data1 = [float(line.strip()) for line in file.readlines()]
+        
+        with open(file_path2, 'r') as file:
+            next(file)  # Skip the header
+            data2 = [float(line.strip()) for line in file.readlines()]
+        
+        means1 = [np.mean(data1[j::30]) for j in range(16)]
+        means2 = [np.mean(data2[j::30]) for j in range(16)]
+
+        # Calculate moving averages for both sets
+        moving_avg1 = np.convolve(means1, np.ones(window_size)/window_size, mode='valid')
+        moving_avg2 = np.convolve(means2, np.ones(window_size)/window_size, mode='valid')
+
+        # Valid indices for moving averages
+        valid_indices = np.arange(window_size-1, 16)  # Adjust for valid range of moving average
+
+        # Bar plot for defense data
+        axes[i].bar(index - bar_width/2, means1, bar_width, color='cyan', alpha=0.5, label='With Defense' if i == 0 else "")
+
+        # Bar plot for attack-only data
+        axes[i].bar(index + bar_width/2, means2, bar_width, color='magenta', alpha=0.5, label='Attack Only' if i == 0 else "")
+
+        # Line plot for moving averages
+        axes[i].plot(valid_indices, moving_avg1, 'b-', linewidth=2)  # Removed label
+        axes[i].plot(valid_indices, moving_avg2, 'r-', linewidth=2)  # Removed label
+
+        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+        axes[i].yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+
+        if i == 0:
+            axes[i].legend(fontsize=legend_fontsize, loc='upper left')
+
+        if i == len(file_paths1) // 2:
+            axes[i].set_ylabel('Foragers Captured', fontsize=ylabel_fontsize, labelpad=50)
+
+    axes[-1].set_xticks(index)
+    axes[-1].set_xlabel('Time (minutes)', fontsize=xlabel_fontsize, labelpad = 25)
+    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+    plt.tight_layout(pad=4.0)
+    plt.savefig(os.path.join(directory_path1, 'ForagersCapturedWithAtkOnlyOverlay.png'))
+
+def output_foragers_captured_per_min_with_atkonly_overlay_to_file(directory_path1, directory_path2, output_file, window_size=3):
+    file_paths1 = [os.path.join(directory_path1, f) for f in os.listdir(directory_path1) if f.endswith("ForagersCapturedPerMin.txt")]
+    file_paths1.sort(key=extract_d_value)
+    file_paths1 = [f for f in file_paths1 if "d0" not in f]
+
+    file_paths2 = [os.path.join(directory_path2, f) for f in os.listdir(directory_path2) if f.endswith("ForagersCapturedPerMin.txt")]
+    file_paths2.sort(key=extract_d_value)
+    file_paths2 = [f for f in file_paths2 if "d0" not in f]
+
+    with open(output_file, 'w') as f:
+        f.write("Detractor Percentage,Minute,Mean (Defense),Mean (Attack Only),Moving Avg (Defense),Moving Avg (Attack Only)\n")
+        
+        for i, (file_path1, file_path2) in enumerate(zip(file_paths1, file_paths2)):
+            with open(file_path1, 'r') as file:
+                next(file)  # Skip the header
+                data1 = [float(line.strip()) for line in file.readlines()]
+            
+            with open(file_path2, 'r') as file:
+                next(file)  # Skip the header
+                data2 = [float(line.strip()) for line in file.readlines()]
+            
+            means1 = [np.mean(data1[j::30]) for j in range(16)]
+            means2 = [np.mean(data2[j::30]) for j in range(16)]
+
+            moving_avg1 = np.convolve(means1, np.ones(window_size)/window_size, mode='valid')
+            moving_avg2 = np.convolve(means2, np.ones(window_size)/window_size, mode='valid')
+
+            valid_indices = np.arange(window_size-1, 16)  # Adjust for valid range of moving average
+
+            for minute in range(16):
+                f.write(f"{i*10+10}%,{minute+1},{means1[minute]:.2f},{means2[minute]:.2f},")
+                if minute in valid_indices:
+                    f.write(f"{moving_avg1[minute-window_size+1]:.2f},{moving_avg2[minute-window_size+1]:.2f}\n")
+                else:
+                    f.write(",,\n")
+
+
+
+############################################################################################
+'''
+plot_detractors_isolated_per_min_moving_average_bar() was used to generate the plot for Experiment 2-3 
+(figure 7) in the paper "Detection and Mitigation of Misleading Pheromone Trails in Foraging Robot Swarms"
+'''
+############################################################################################
+def plot_detractors_isolated_per_min_moving_average_bar(directory_path, window_size=3):
+    total_robots = 24
+    total_food = 288
+
+    x_tick_fontsize = 32
+    y_tick_fontsize = 32
+    xlabel_fontsize = 48
+    ylabel_fontsize = 48
+    title_fontsize = 40
+    legend_fontsize = 32
+
+    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("DetractorsIsolatedPerMin.txt")]
+    file_paths.sort(key=extract_d_value)
+    file_paths = [f for f in file_paths if "d0" not in f]
+
+    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
+    data_per_file = []
+
+    for file_path in file_paths:
+        with open(file_path, 'r') as file:
+            next(file)  # Skip the header
+            data = [float(line.strip()) for line in file.readlines()]
+            data_per_file.append(data)
+
+    aggregated_data_per_file = []
+    for data in data_per_file:
+        aggregated_data = [data[i::30] for i in range(16)]  # Adjusted to 16 minutes
+        aggregated_data_per_file.append(aggregated_data)
+
+    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
+
+    for i, aggregated_data in enumerate(aggregated_data_per_file):
+        means = [np.mean(minute_data) for minute_data in aggregated_data]
+
+        # Calculate moving average
+        moving_averages = np.convolve(means, np.ones(window_size)/window_size, mode='valid')
+
+        # Bar plot for actual data
+        axes[i].bar(range(1, 17), means, color='cyan', alpha=0.5)
+
+        # Plot moving average
+        axes[i].plot(range(window_size, 17), moving_averages, color='blue', linewidth=2)
+
+        # axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=15)
+        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
+        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
+        
+        # Format y-axis ticks to two decimal points
+        axes[i].yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
+        axes[i].set_yticks(np.arange(0.0,0.8,0.2))
+
+        if i == 2:
+            axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=50)
+
+        # Add legend only to the top subplot
+        # if i == 4:
+            # axes[i].legend([ f'{window_size}-Minute Moving Average','Actual Data'], fontsize=legend_fontsize)
+
+    axes[-1].set_xticks(range(1, 17))
+    axes[-1].set_xlabel('Time (minutes)', fontsize=xlabel_fontsize, labelpad = 25)
+    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
+
+    plt.tight_layout(pad=4.0)
+    plt.savefig(os.path.join(directory_path, 'DetractorsIsolatedBarMovingAverage.png'))
+
+
+
+
 
 
 
@@ -1771,140 +2171,6 @@ def plot_detractors_isolated_per_min_moving_average_only(directory_path, window_
 
     plt.tight_layout(pad=4.0)
     plt.savefig(os.path.join(directory_path, 'DetractorsIsolatedMovingAverageOnly.png'))
-
-def plot_detractors_isolated_per_min_moving_average_bar(directory_path, window_size=3):
-    total_robots = 24
-    total_food = 288
-
-    x_tick_fontsize = 32
-    y_tick_fontsize = 32
-    xlabel_fontsize = 48
-    ylabel_fontsize = 48
-    title_fontsize = 40
-    legend_fontsize = 32
-
-    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("DetractorsIsolatedPerMin.txt")]
-    file_paths.sort(key=extract_d_value)
-    file_paths = [f for f in file_paths if "d0" not in f]
-
-    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
-    data_per_file = []
-
-    for file_path in file_paths:
-        with open(file_path, 'r') as file:
-            next(file)  # Skip the header
-            data = [float(line.strip()) for line in file.readlines()]
-            data_per_file.append(data)
-
-    aggregated_data_per_file = []
-    for data in data_per_file:
-        aggregated_data = [data[i::30] for i in range(16)]  # Adjusted to 16 minutes
-        aggregated_data_per_file.append(aggregated_data)
-
-    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
-
-    for i, aggregated_data in enumerate(aggregated_data_per_file):
-        means = [np.mean(minute_data) for minute_data in aggregated_data]
-
-        # Calculate moving average
-        moving_averages = np.convolve(means, np.ones(window_size)/window_size, mode='valid')
-
-        # Bar plot for actual data
-        axes[i].bar(range(1, 17), means, color='cyan', alpha=0.5)
-
-        # Plot moving average
-        axes[i].plot(range(window_size, 17), moving_averages, color='blue', linewidth=2)
-
-        # axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=15)
-        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
-        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
-        
-        # Format y-axis ticks to two decimal points
-        axes[i].yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
-        axes[i].set_yticks(np.arange(0.0,0.8,0.2))
-
-        if i == 2:
-            axes[i].set_ylabel('Detractors Isolated', fontsize=ylabel_fontsize, labelpad=50)
-
-        # Add legend only to the top subplot
-        # if i == 4:
-            # axes[i].legend([ f'{window_size}-Minute Moving Average','Actual Data'], fontsize=legend_fontsize)
-
-    axes[-1].set_xticks(range(1, 17))
-    axes[-1].set_xlabel('Time (minutes)', fontsize=xlabel_fontsize, labelpad = 25)
-    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
-
-    plt.tight_layout(pad=4.0)
-    plt.savefig(os.path.join(directory_path, 'DetractorsIsolatedBarMovingAverage.png'))
-
-
-
-def plot_foragers_captured_per_min_moving_average_bar(directory_path, window_size=3):
-    total_robots = 24
-    total_food = 288
-
-    x_tick_fontsize = 32
-    y_tick_fontsize = 32
-    xlabel_fontsize = 48
-    ylabel_fontsize = 48
-    title_fontsize = 40
-    legend_fontsize = 32
-
-    file_paths = [os.path.join(directory_path, f) for f in os.listdir(directory_path) if f.endswith("ForagersCapturedPerMin.txt")]
-    file_paths.sort(key=extract_d_value)
-    file_paths = [f for f in file_paths if "d0" not in f]
-
-    det_percentages = ["10%", "20%", "30%", "40%", "50%"]
-    data_per_file = []
-
-    for file_path in file_paths:
-        with open(file_path, 'r') as file:
-            next(file)  # Skip the header
-            data = [float(line.strip()) for line in file.readlines()]
-            data_per_file.append(data)
-
-    aggregated_data_per_file = []
-    for data in data_per_file:
-        aggregated_data = [data[i::30] for i in range(16)]  # Adjusted to 16 minutes
-        aggregated_data_per_file.append(aggregated_data)
-
-    fig, axes = plt.subplots(nrows=len(aggregated_data_per_file), ncols=1, figsize=(20, 6 * len(aggregated_data_per_file)), sharex=True)
-
-    for i, aggregated_data in enumerate(aggregated_data_per_file):
-        means = [np.mean(minute_data) for minute_data in aggregated_data]
-
-        # Calculate moving average
-        moving_averages = np.convolve(means, np.ones(window_size)/window_size, mode='valid')
-
-        # Bar plot for actual data
-        axes[i].bar(range(1, 17), means, color='cyan', alpha=0.5)
-
-        # Plot moving average
-        axes[i].plot(range(window_size, 17), moving_averages, color='blue', linewidth=2)
-
-        # axes[i].set_ylabel('Foragers Captured', fontsize=ylabel_fontsize, labelpad=15)
-        axes[i].tick_params(axis='y', labelsize=y_tick_fontsize)
-        axes[i].set_title(f'Detractor Percentage: {det_percentages[i]}', fontsize=title_fontsize)
-        
-        # Format y-axis ticks to two decimal points
-        axes[i].yaxis.set_major_formatter(ticker.FormatStrFormatter('%.2f'))
-        axes[i].set_yticks(np.arange(0.0,3.25,0.75))
-
-        if i == 2:
-            axes[i].set_ylabel('Foragers Captured', fontsize=ylabel_fontsize, labelpad=50)
-        
-        # Add legend only to the top subplot
-        # if i == 4:
-            # axes[i].legend([f'{window_size}-Minute Moving Average', 'Actual Data'], fontsize=legend_fontsize)
-
-    axes[-1].set_xticks(range(1, 17))
-    axes[-1].set_xlabel('Time (minutes)', fontsize=xlabel_fontsize, labelpad = 25)
-    axes[-1].tick_params(axis='x', labelsize=x_tick_fontsize)
-
-    plt.tight_layout(pad=4.0)
-    plt.savefig(os.path.join(directory_path, 'ForagersCapturedBarMovingAverage.png'))
-
-
 
 def output_foragers_cap_per_min(directory_path):
     # Similar setup as in your plotting function
@@ -2254,6 +2520,22 @@ def extract_d_value(filename):
     else:
         raise ValueError("No 'd' value found in filename.")
 
+def extract_ncobs_value(filename):
+    """
+    Extracts the 'ncobs' value from the filename.
+
+    Args:
+    filename (str): The filename from which to extract the 'ncobs' value.
+
+    Returns:
+    float: The extracted 'ncobs' value.
+    """
+    match = re.search(r"_ncobs(\d+)", filename)
+    if match:
+        return float(match.group(1))
+    else:
+        raise ValueError("No 'ncobs' value found in filename.")
+
 def plot_experiment(flist, rdpath, total_robots, total_food):
     """
     This function plots multi-box plots with trend lines.
@@ -2336,43 +2618,29 @@ if __name__ == "__main__":
     # PlotAnalysis3()
     # PlotAnalysis4()
     # PlotAnalysis_IncreaseTrails()
-    PlotAnalysis_IncTrails_AtkDef()
+    # PlotAnalysis_IncTrails_AtkDef()
     
     # plot_resources_per_min("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
     # plot_foragers_captured_per_min("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
     # plot_detractors_isolated_per_min("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
     # plot_detractors_isolated_per_min_moving_average_only("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
+
     # plot_detractors_isolated_per_min_moving_average_bar("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
     # plot_foragers_captured_per_min_moving_average_bar("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it")
 
+    # plot_foragers_captured_per_min_with_atkonly_overlay("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it", 
+    #                                                     "./results/resultsExp10-2_atkonly_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_20it", 
+    #                                                     window_size=3)
+
+    output_foragers_captured_per_min_with_atkonly_overlay_to_file("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it", 
+                                                        "./results/resultsExp10-2_atkonly_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_20it",
+                                                        "./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/ForagersCapturedPerMinWithAtkOverlayResults.txt", 
+                                                        window_size=3)
     # PlotAnalysis_IncreaseTrails_layrate()
     # Output_IncreaseTrails_layrate("./results/analysis_layrate_MLT/results_analysis4_r24_1800_rc30it/layrate_results.txt")
 
-
+    # PlotAnalysis_VaryNumCylinderObstacles_AtkDef()
 
     # output_foragers_cap_per_min_to_file("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it", "./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/ForagersCapturedPerMinResults.txt")
     # output_detractors_iso_per_min_to_file("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it", "./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/DetractorsIsolatedPerMinResults.txt")
     # output_atkdef_to_file("./results/resultsExp10_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_30it/AttackWithDefenseResults.txt")
-
-
-
-    # os.system("./build.sh")
-
-    # quickTest()
-    # Experiment1(30)
-    # Experiment1_replot(30)
-    # visualTest()
-    # Experiment2(30)
-    # Experiment2_replot(30)
-    # Experiment3(30)
-
-    #### uncomment to print results for pre experiment (be sure to comment out above code to avoid running experiments) ####
-
-        # rd_path=f'results/results_PreExp_{30}it/'
-        # flist = []
-        # flist.append("./results/results_PreExp_30it/CPFA_density-std_R-cl_F-cl_r24_d0_rfc108_10by10_time900_iter30_AttackData.txt")
-        # flist.append("./results/results_PreExp_30it/CPFA_density-std_R-cl_F-cl_r24_d1_rfc108_10by10_time900_iter30_AttackData.txt")
-        # print(GetFoodCollected(flist, rd_path))
-
-        #### format: <cpfa_std(total food collected, std deviation)>, <cpfa_attacked(total food collected, std deviation)> ####
-

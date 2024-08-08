@@ -1,0 +1,8 @@
+nohup: ignoring input
+Directory results/resultsExp10-2_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_r24_rlpf4_rlpd1_st1800_60it/ is not empty. Do you wish to clear the directory and continue? (y/n)
+Traceback (most recent call last):
+  File "run.py", line 3027, in <module>
+    Experiment10_2(60)
+  File "run.py", line 2893, in Experiment10_2
+    if (input() != 'y'):
+OSError: [Errno 9] Bad file descriptor

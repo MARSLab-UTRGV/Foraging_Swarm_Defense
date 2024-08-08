@@ -266,6 +266,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		void ClusterFakeFoodDistribution();		// Ryan Luna 11/13/22	
 		void PowerLawFakeFoodDistribution();	// Ryan Luna 11/13/22
         bool IsOutOfBounds(argos::CVector2 p, size_t length, size_t width);
+		bool IsCollidingWithNestFoodBuffer(argos::CVector2 p);
 		bool IsCollidingWithNest(argos::CVector2 p);
 		bool IsCollidingWithNest(argos::CVector2 p, argos::Real radius);	// overloaded to handle cylinder obstacles
 		bool IsCollidingWithAtkNest(argos::CVector2 p);		// Ryan Luna 09/20/23
@@ -283,11 +284,13 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		// bool IsCollidingWithWallObstacle(argos::CVector2 p);
 		// bool IsCollidingWithLWallObstacle(argos::CVector2 p);
 		// bool IsCollidingWithUWallObstacle(argos::CVector2 p);
-		CVector3 GenCylinderObstaclePosition();
+		CVector3 GenCylinderObstaclePosition();							//DEPRECATED
 		// CVector3 GenWallObstaclePosition();
 		// CVector3 GenLWallObstaclePosition();
 		// CVector3 GenUWallObstaclePosition();
-		void DeployObstacles(size_t num_obstacles);
+		void DeployObstacles(size_t num_obstacles);						//DEPRECATED
+		void GetCylinderEntityPositionsAndRadii();
+
 		/*********************************************************/
 
 		double score;
@@ -311,6 +314,8 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		vector<size_t> foragersCapturedPerMinList;
 		vector<size_t> detractorsIsolatedPerMinList;
 		size_t detractorIsolatedCount;
+		Real NestFoodBufferRadius;
+		bool useAnnularObstacleDistribution;
 		
 
 		bool SetupPythonEnvironment();
