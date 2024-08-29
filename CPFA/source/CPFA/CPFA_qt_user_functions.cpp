@@ -61,6 +61,7 @@ void CPFA_qt_user_functions::DrawOnArena(CFloorEntity& entity) {
 	DrawNest();
 	DrawQuarantineZone();
 	DrawClusters();
+	// DrawAnnularSector();
 	// DrawCylinderObstacles();		// these do not need to be drawn as they are renedered in when generated as CCylinderEntities in the loop functions.
 
 	if(loopFunctions.DrawTargetRays == 1) DrawTargetRays();
@@ -369,6 +370,37 @@ void CPFA_qt_user_functions::DrawCylinderObstacles() {
 	for(auto it = loopFunctions.CylinderObstaclePositionList.begin(); it != loopFunctions.CylinderObstaclePositionList.end(); it++) {
 		DrawCylinder(it->first, CQuaternion(), loopFunctions.cylinderObstacleRadius, 1, CColor::GRAY50);
 	}
+}
+
+void CPFA_qt_user_functions::DrawAnnularSector() {
+	// Coordinates for the inner and outer squares
+    const Real inner_min = -1.5;
+    const Real inner_max = 1.5;
+    const Real outer_min = -2.5;
+    const Real outer_max = 2.5;
+
+    // Height of the region to ensure it is drawn above the floor
+    const Real elevation = 0.001;
+
+    // Color for the region
+    const CColor cyan(0, 255, 255, 128); // Cyan color with some transparency
+
+    // Draw the four rectangles
+    // Bottom rectangle
+    DrawBox(CVector3(0, (inner_min + outer_min) / 2, elevation), CQuaternion(),
+            CVector3(outer_max - outer_min, inner_min - outer_min, 0.001), cyan);
+
+    // Top rectangle
+    DrawBox(CVector3(0, (inner_max + outer_max) / 2, elevation), CQuaternion(),
+            CVector3(outer_max - outer_min, outer_max - inner_max, 0.001), cyan);
+
+    // Left rectangle
+    DrawBox(CVector3((inner_min + outer_min) / 2, 0, elevation), CQuaternion(),
+            CVector3(inner_min - outer_min, inner_max - inner_min, 0.001), cyan);
+
+    // Right rectangle
+    DrawBox(CVector3((inner_max + outer_max) / 2, 0, elevation), CQuaternion(),
+            CVector3(outer_max - inner_max, inner_max - inner_min, 0.001), cyan);
 }
 
 /*

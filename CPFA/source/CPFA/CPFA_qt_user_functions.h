@@ -33,6 +33,7 @@ class CPFA_qt_user_functions : public argos::CQTOpenGLUserFunctions {
 		void DrawQuarantineZone();
 		void DrawClusters();
 		void DrawCylinderObstacles();
+		void DrawAnnularSector();
 
 		CPFA_loop_functions& loopFunctions;
  

@@ -32,5 +32,5 @@ target_link_libraries(CPFA_loop_functions
                       argos3plugin_simulator_genericrobot
                       argos3plugin_simulator_qtopengl
                       ${ARGOS_QTOPENGL_LIBRARIES}
-                      ${PYTHON_LIBRARIES})
+                      ${Python3_LIBRARIES})
 

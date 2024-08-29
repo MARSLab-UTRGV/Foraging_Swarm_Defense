@@ -6,6 +6,7 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	SimTime(0),
     MaxSimTime(0),	//qilu 02/05/2021
 	CollisionTime(0), 
+	ArenaSize(10.0, 10.0, 1.0),
 	lastNumCollectedFood(0),
 	currNumCollectedFood(0),
 	TotalFoodCollected(0),		// Ryan Luna 11/17/22
@@ -85,6 +86,8 @@ CPFA_loop_functions::CPFA_loop_functions() :
 	lastMinForagerCapTotal(0),
 	detractorIsolatedCount(0),
 	NestFoodBufferRadius(0.0),
+	firstUniUpdated(false),
+	firstUnivelocity(-1),
 
 	/******* OBSTACLES ********/
 	useObstacles(false),
@@ -186,28 +189,26 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 	argos::TConfigurationNode atk_node = argos::GetNode(node, "detractor_settings");
 
 	argos::GetNodeAttribute(atk_node, "NumAtkNests",					NumAtkNests);
-	// argos::GetNodeAttribute(atk_node, "AtkNest1Position",				AtkNest1Position);
-	// argos::GetNodeAttribute(atk_node, "AtkNest2Position",				AtkNest2Position);
-	// argos::GetNodeAttribute(atk_node, "AtkNest3Position",				AtkNest3Position);
-	// argos::GetNodeAttribute(atk_node, "AtkNest4Position",				AtkNest4Position);
 	argos::GetNodeAttribute(atk_node, "AtkNestRadius",					AtkNestRadius);
 
 	uniVelocity = BotFwdSpeed;
+	LOG << "Starting uniVelocity: " << uniVelocity << endl;
 
     //Number of distributed foods ** modified ** Ryan Luna 11/13/22
-    if (FoodDistribution == 1){
+
+	if (FoodDistribution == 1){
 		if (UseFakeFoodDoS){
 			NumDistributedRealFood = ClusterWidthX*ClusterWidthY*NumberOfClusters;
 			NumDistributedFakeFood = FakeClusterWidthX*FakeClusterWidthY*NumFakeClusters;
-        	TotalDistributedFood = NumDistributedFakeFood+NumDistributedRealFood;
+			TotalDistributedFood = NumDistributedFakeFood+NumDistributedRealFood;
 		} else {
 			NumDistributedFakeFood = 0;
 			NumDistributedRealFood = ClusterWidthX*ClusterWidthY*NumberOfClusters;
 			TotalDistributedFood = NumDistributedRealFood;
 		}
-    } else {
+	} else {
 		if (UseFakeFoodDoS){
-        	NumDistributedRealFood = NumRealFood;
+			NumDistributedRealFood = NumRealFood;
 			NumDistributedFakeFood = NumFakeFood;
 			TotalDistributedFood = NumRealFood+NumFakeFood;
 		} else {
@@ -215,12 +216,11 @@ void CPFA_loop_functions::Init(argos::TConfigurationNode &node) {
 			NumDistributedFakeFood = 0;
 			TotalDistributedFood = NumDistributedRealFood;
 		}
-    }
-    
+	}    
 
 	// calculate the forage range and compensate for the robot's radius of 0.085m
 	// argos::CVector3 ArenaSize = GetSpace().GetArenaSize();
-	argos::CVector3 ArenaSize = ForagingAreaSize;
+	ArenaSize = ForagingAreaSize;
 	argos::Real rangeX = (ArenaSize.GetX() / 2.0) - 0.085 - 0.1; // ryan luna 12/08/22 ** take away 0.1 so robots avoid getting to close to the wall
 	argos::Real rangeY = (ArenaSize.GetY() / 2.0) - 0.085 - 0.1;
 	ForageRangeX.Set(-rangeX, rangeX);
@@ -410,9 +410,8 @@ void CPFA_loop_functions::PreStep() {
 		detractorsIsolatedPerMinList.push_back(detractorIsolatedCount);
 		detractorIsolatedCount = 0;
 
+		univelocityPerMinunteList.push_back(uniVelocity);
 	}
-
-
 
 	// Ryan Luna 11/10/22
 	if(GetSpace().GetSimulationClock() > ResourceDensityDelay) {
@@ -937,7 +936,8 @@ void CPFA_loop_functions::PostExperiment() {
 							<< "Total Collision Time, Random Seed Used, " 
 							<< "Total Robots Isolated, Num False Positives, " 
 							<< "Total Isolated Detractors, Total Isolated Foragers, " 
-							<< "Forager Performance, Detractor Performance, " 
+							<< "Forager Performance, Detractor Performance, "
+							<< "First 'uniVelocity' Value, "
 							<< "Final 'uniVelocity' Value" << endl;
 
 							// << "Fake Food Collected, Fake Food Collection Rate (per second), " 
@@ -953,7 +953,7 @@ void CPFA_loop_functions::PostExperiment() {
 						<< numIsolatedBots << ',' << IsoFalsePositives << ','
 						<< numIsolatedDetractors << ',' << numIsolatedForagers << ','
 						<< ForagerFoodCollected << ',' << DetractorFoodCollected << ','
-						<< uniVelocity << endl;
+						<< firstUnivelocity << ',' << uniVelocity << endl;
 						
 						// << FakeFoodCollected << ',' << FakeFoodCollected/getSimTimeInSeconds() << ','
 						// << numRealTrails << ',' << numFakeTrails << ',' << numFalsePositives << ',' << MainNest.GetZoneList().size() << endl;
@@ -1002,6 +1002,15 @@ void CPFA_loop_functions::PostExperiment() {
 		DetractorsIsolatedPerMin << detractor << endl;
 	}
 
+	ofstream UnivelocityPerMin ((FilenameHeader+"UnivelocityPerMin.txt").c_str(), ios::app);
+	LOG << "Writing to file: " << FilenameHeader+"UnivelocityPerMin.txt" << endl;
+	if (UnivelocityPerMin.tellp() == 0){
+		UnivelocityPerMin << "Univelocity Per Minute of the Simulation" << endl;
+	}
+	for (const auto& uni : univelocityPerMinunteList){
+		UnivelocityPerMin << uni << endl;
+	}
+
 	// Close Python environment if initialized
 	if (useDefense && Py_IsInitialized()) {
 		Py_Finalize(); 
@@ -1009,9 +1018,9 @@ void CPFA_loop_functions::PostExperiment() {
 	}
 }
 
-argos::CColor CPFA_loop_functions::GetFloorColor(const argos::CVector2 &c_pos_on_floor) {
-	return argos::CColor::WHITE;
-}
+// argos::CColor CPFA_loop_functions::GetFloorColor(const argos::CVector2 &c_pos_on_floor) {
+// 	return argos::CColor::WHITE;
+// }
 
 void CPFA_loop_functions::UpdatePheromoneList() {
 	// Return if this is not a tick that lands on a 0.5 second interval
@@ -1101,6 +1110,11 @@ void CPFA_loop_functions::SetFoodDistribution() {
 				break;
 			case 2:
 				PowerLawFoodDistribution();
+				break;
+			case 3:
+				LOG << "Using Static Cluster Food Distribution (For testing only. Not for running experiments...)" << endl;
+				NumberOfClusters = 8;	// manually set so we have 2 for each side of the arena
+				StaticClusterFoodDistribution();
 				break;
 			default:
 				argos::LOGERR << "ERROR: Invalid food distribution in XML file.\n";
@@ -1288,6 +1302,126 @@ void CPFA_loop_functions::RandomFakeFoodDistribution(){
 
 		Food tmp(placementPosition, Food::FoodType::FAKE);
 		FoodList.push_back(tmp);
+	}
+}
+
+void CPFA_loop_functions::StaticClusterFoodDistribution(){
+
+	/**
+	 * @brief This is a static position method for testing only. Not intended to be used for actual experiments.
+	 */
+	
+	NumberOfClusters = 8;
+
+	argos::Real     foodOffset  = 3.0 * FoodRadius;
+	size_t          foodToPlace = NumberOfClusters * ClusterWidthX * ClusterWidthY;
+	size_t          foodPlaced = 0;
+	argos::CVector2 placementPosition1a, placementPosition1b, placementPosition2a, placementPosition2b, placementPosition3a, placementPosition3b, placementPosition4a, placementPosition4b;
+
+	// LOG << "Number of clusters: " << NumberOfClusters << endl;
+	// LOG << "Cluster Width X: " << ClusterWidthX << ", Cluster Width Y: " << ClusterWidthY << endl;
+
+	NumRealFood = foodToPlace;
+
+	argos::Real arenaWidth = ArenaSize.GetX();
+	argos::Real arenaHeight = ArenaSize.GetY();
+	argos::Real distanceBuffer = 0.25;
+	argos::Real xClusterOffset = (ClusterWidthX * foodOffset) + distanceBuffer;
+	argos::Real yClusterOffset = (ClusterWidthY * foodOffset) + distanceBuffer;
+	argos::Real xOffset = foodOffset + distanceBuffer;
+	argos::Real yOffset = foodOffset + distanceBuffer;
+
+	// LOG << "Arena Width: " << arenaWidth << ", Arena Height: " << arenaHeight << endl;
+	// LOG << "X Spacing: " << xClusterOffset << ", Y Spacing: " << yClusterOffset << endl;
+
+	placementPosition1a.Set(arenaWidth/2 - xClusterOffset, yClusterOffset);
+	placementPosition1b.Set(arenaWidth/2 - xClusterOffset, -yClusterOffset);
+
+	LOG << "Placement Position 1a: " << placementPosition1a << ", Placement Position 1b: " << placementPosition1b << endl;
+
+	placementPosition2a.Set(-arenaWidth/2 + xOffset, yClusterOffset);
+	placementPosition2b.Set(-arenaWidth/2 + xOffset, -yClusterOffset);
+
+	LOG << "Placement Position 2a: " << placementPosition2a << ", Placement Position 2b: " << placementPosition2b << endl;
+
+	placementPosition3a.Set(xClusterOffset, arenaHeight/2 - yClusterOffset);
+	placementPosition3b.Set(-xClusterOffset, arenaHeight/2 - yClusterOffset);
+
+	LOG << "Placement Position 3a: " << placementPosition3a << ", Placement Position 3b: " << placementPosition3b << endl;
+
+	placementPosition4a.Set(xClusterOffset, -arenaHeight/2 + yOffset);
+	placementPosition4b.Set(-xClusterOffset, -arenaHeight/2 + yOffset);
+
+	LOG << "Placement Position 4a: " << placementPosition4a << ", Placement Position 4b: " << placementPosition4b << endl;
+
+	vector<pair<CVector2, CVector2>> xClusterPositions = {
+		{placementPosition1a, placementPosition1b},
+		{placementPosition2a, placementPosition2b}
+	};
+
+	for (auto& positionPair : xClusterPositions){
+		for(size_t i = 0; i < ClusterWidthY; i++) {
+			for(size_t j = 0; j < ClusterWidthX; j++) {
+				foodPlaced++;
+
+				Food tmp(positionPair.first, Food::FoodType::REAL);
+				FoodList.push_back(tmp);
+
+				positionPair.first.SetX(positionPair.first.GetX() + foodOffset);
+			}
+
+			positionPair.first.SetX(positionPair.first.GetX() - (ClusterWidthX * foodOffset));
+			positionPair.first.SetY(positionPair.first.GetY() - foodOffset);
+		}
+
+		for(size_t i = 0; i < ClusterWidthY; i++) {
+			for(size_t j = 0; j < ClusterWidthX; j++) {
+				foodPlaced++;
+
+				Food tmp(positionPair.second, Food::FoodType::REAL);
+				FoodList.push_back(tmp);
+
+				positionPair.second.SetX(positionPair.second.GetX() + foodOffset);
+			}
+
+			positionPair.second.SetX(positionPair.second.GetX() - (ClusterWidthX * foodOffset));
+			positionPair.second.SetY(positionPair.second.GetY() + foodOffset);
+		}
+	}
+
+	vector<pair<CVector2, CVector2>> yClusterPositions = {
+		{placementPosition3a, placementPosition3b},
+		{placementPosition4a, placementPosition4b}
+	};
+
+	for (auto& positionPair : yClusterPositions){
+		for(size_t i = 0; i < ClusterWidthX; i++) {
+			for(size_t j = 0; j < ClusterWidthY; j++) {
+				foodPlaced++;
+
+				Food tmp(positionPair.first, Food::FoodType::REAL);
+				FoodList.push_back(tmp);
+
+				positionPair.first.SetY(positionPair.first.GetY() + foodOffset);
+			}
+
+			positionPair.first.SetY(positionPair.first.GetY() - (ClusterWidthY * foodOffset));
+			positionPair.first.SetX(positionPair.first.GetX() - foodOffset);
+		}
+
+		for(size_t i = 0; i < ClusterWidthX; i++) {
+			for(size_t j = 0; j < ClusterWidthY; j++) {
+				foodPlaced++;
+
+				Food tmp(positionPair.second, Food::FoodType::REAL);
+				FoodList.push_back(tmp);
+
+				positionPair.second.SetY(positionPair.second.GetY() + foodOffset);
+			}
+
+			positionPair.second.SetY(positionPair.second.GetY() - (ClusterWidthY * foodOffset));
+			positionPair.second.SetX(positionPair.second.GetX() + foodOffset);
+		}
 	}
 }
 
@@ -2004,15 +2138,6 @@ void CPFA_loop_functions::LogReturn(std::string bot_id, Real returnTime, bool re
 
 	bool found = false; // this is for error checking
 
-	// LOG << "LogReturn called ... " << endl;
-
-	// for (auto& b_name : tmpNameStorage){
-	// 	if (b_name == bot_id){
-	// 		LOGERR << bot_id << " has returned..." << endl;
-	// 	}
-	// }
-
-	// if (bot_id == "fb22") LOG << "fb22 has returned..." << endl;
 	// loop through the traveler lists of each pheromone object looking for the bot_id (there should only be one)
 	for (size_t i = 0; i < PheromoneList.size(); i++){
 		
@@ -2025,14 +2150,6 @@ void CPFA_loop_functions::LogReturn(std::string bot_id, Real returnTime, bool re
 				if (PheromoneList[i].IsMisleading()){
 					LOGERR << "ERROR: " << bot_id << " returned from \"Misleading Trail\" at location " << PheromoneList[i].GetLocation() << endl;
 				}
-
-				// for (auto& b_name : tmpNameStorage){
-				// 	if (b_name == bot_id){
-				// 		LOGERR << bot_id << " found in traveler list of PheromoneList[" << i << "]" << endl;
-				// 	}
-				// }
-
-				// if (bot_id == "fb22") LOG << bot_id << " found in traveler list of PheromoneList[" << i << "]" << endl;
 
 				found = true;
 
@@ -2072,7 +2189,12 @@ void CPFA_loop_functions::LogReturn(std::string bot_id, Real returnTime, bool re
 					} else {
 						// update unified velocity
 						uniVelocity = d / T_actual;
-						// LOG << "travel time estimate updated (uniVelocity): " << uniVelocity << endl;
+						LOG << "travel time estimate updated (uniVelocity): " << uniVelocity << endl;
+
+						if (!firstUniUpdated){
+							firstUniUpdated = true;
+							firstUnivelocity = uniVelocity;
+						}
 					}
 
 					// update estimate travel time in pheromone object (not sure if this is still necessary as it isn't used anywhere yet)
@@ -2462,18 +2584,67 @@ CVector3 CPFA_loop_functions::GenIsoPosition(){
 
 bool CPFA_loop_functions::SetupPythonEnvironment(){
 
+	string _blue = "\033[34m";
+	string _reset = "\033[0m";
+	string _bold = "\033[1m";
+	string _green_highlight = "\033[42m";
+
 	Py_Initialize();
 	if(Py_IsInitialized()){
-		LOG << "Python version: " << Py_GetVersion() << endl;
+		cout << endl << _blue+_bold << "Python version: " << _reset+_blue << Py_GetVersion() << _reset << endl;
 	} else {
 		LOGERR << "ERROR: Python failed to initialize." << endl;
 		return 0;	
 	}
 
+	PyObject *os_module = PyImport_ImportModule("os");
+	if (!os_module){
+		LOGERR << "Error loading os module." << endl;
+		Py_Finalize();
+		return 0;
+	}
+
+	PyObject *getcwd_func = PyObject_GetAttrString(os_module, "getcwd");
+	if (!getcwd_func || !PyCallable_Check(getcwd_func)){
+		LOGERR << "Error loading getcwd function." << endl;
+		Py_XDECREF(os_module);
+		Py_Finalize();
+		return 0;
+	}
+
+	PyObject *cwd = PyObject_CallObject(getcwd_func, NULL);
+	if (!cwd){
+		LOGERR << "Error getting current working directory." << endl;
+		Py_XDECREF(getcwd_func);
+		Py_XDECREF(os_module);
+		Py_Finalize();
+		return 0;
+	}
+
+	const char *cwd_str = PyUnicode_AsUTF8(cwd);
+	if (!cwd_str){
+		LOGERR << "Error converting cwd to string." << endl;
+		Py_XDECREF(cwd);
+		Py_XDECREF(getcwd_func);
+		Py_XDECREF(os_module);
+		Py_Finalize();
+		return 0;
+	}
+
+	string current_working_directory(cwd_str);
+	current_working_directory += "/source/CPFA";
+	cout << endl << _blue+_bold << "Python working directory: " << _reset+_blue << current_working_directory << _reset << endl;
+
+	Py_XDECREF(cwd);
+	Py_XDECREF(getcwd_func);
+	Py_XDECREF(os_module);
 	
 	PyObject *sys = PyImport_ImportModule("sys");
 	PyObject *path = PyObject_GetAttrString(sys, "path");
-	PyList_Append(path, PyUnicode_FromString("/home/Ryan/Foraging_Swarm_Defense/CPFA/source/CPFA"));
+	PyObject *path_str = PyObject_Repr(path);
+	const char *path_cstr = PyUnicode_AsUTF8(path_str);
+	cout << endl << _blue+_bold << "Python libraries path: " << _reset+_blue << path_cstr << _reset << endl;
+	PyList_Append(path, PyUnicode_FromString(current_working_directory.c_str()));
 	PyObject *repr = PyObject_Repr(path);
 	const char* s = PyUnicode_AsUTF8(repr);
 	// LOG << "Python path: " << s << endl;
@@ -2482,18 +2653,20 @@ bool CPFA_loop_functions::SetupPythonEnvironment(){
 	Py_DECREF(sys);
 
 	// Load the module
-	pyFileName = PyUnicode_FromString("dbscan");
+	pyFileName = PyUnicode_FromString("DBSCAN");
 	if (pyFileName == NULL) {
-		LOG << "Error converting module name to PyUnicode" << std::endl;
+		LOGERR << "Error converting module name to PyUnicode" << std::endl;
 		Py_Finalize();
 		return 0;
 	}
+
+	cout << _blue+_bold << endl;
 
 	pyModule = PyImport_Import(pyFileName);
 	Py_DECREF(pyFileName);
 
 	if (pyModule == NULL) {
-		LOG << "Failed to load Python module" << std::endl;
+		LOGERR << "Failed to load Python module" << std::endl;
 		Py_Finalize();
 		return 0;
 	}
@@ -2506,11 +2679,13 @@ bool CPFA_loop_functions::SetupPythonEnvironment(){
 		if (PyErr_Occurred()) {
 			PyErr_Print();
 		}
-		LOG << "Failed to load Python function" << std::endl;
+		LOGERR << "Failed to load Python function" << std::endl;
 		Py_XDECREF(pyDbscan);
 		Py_Finalize();
 		return 0;
 	}
+
+	cout << _reset << endl;
 
 	return 1;
 }

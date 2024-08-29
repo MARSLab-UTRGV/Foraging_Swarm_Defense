@@ -60,7 +60,7 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		void PostStep();
 		bool IsExperimentFinished();
 		void PostExperiment();
-		argos::CColor GetFloorColor(const argos::CVector2 &c_pos_on_floor);
+		// argos::CColor GetFloorColor(const argos::CVector2 &c_pos_on_floor);
 
 		// GA Functions
 		
@@ -151,9 +151,14 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 		size_t FakeClusterWidthY;		// Ryan Luna 11/12/22
 		size_t PowerRank;
 		size_t ArenaWidth;
+		CVector3 ArenaSize;
 		size_t SimTime; 
 		Real curr_time_in_minutes; 
 		Real last_time_in_minutes; 
+
+		vector<argos::Real> univelocityPerMinunteList;
+		Real firstUnivelocity;
+		bool firstUniUpdated;
 
 		bool UseFakeFoodDoS;	// Ryan Luna 11/13/22
 		bool UseAltDistribution;
@@ -258,6 +263,9 @@ class CPFA_loop_functions : public argos::CLoopFunctions
 	private:
 
 		/* private helper functions */
+
+		void StaticClusterFoodDistribution();
+
 		void AlternateFakeFoodDistribution();
 		void RandomFoodDistribution();
 		void ClusterFoodDistribution();

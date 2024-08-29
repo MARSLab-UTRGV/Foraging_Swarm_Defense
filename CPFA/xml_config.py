@@ -770,6 +770,7 @@ class C_XML_CONFIG:
         floor = xml.createElement('floor')
         floor.setAttribute('id', 'floor')
         floor.setAttribute('pixels_per_meter', '10')
+        floor.setAttribute('grid', 'true')
         floor.setAttribute('source', 'loop_functions')
         arena.appendChild(floor)
 

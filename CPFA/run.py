@@ -140,7 +140,7 @@ def quickTest():
 
     total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
 
-    num_obs_list = [12]
+    num_obs_list = [16]
 
     # Set detractors to have a higher rate of laying pheromones
     XML.RLP_F = "4.0"
@@ -3062,6 +3062,90 @@ def Experiment10_2_atkonly(rc):
             os.system(f'argos3 -c {XML.XML_FNAME}')
 
 
+def Experiment_Univelocity_1(rc):
+
+    run_count = rc
+
+    XML = config.C_XML_CONFIG(run_count)
+    XML.VISUAL = False
+    sim_time = 1800
+    XML.MAX_SIM_TIME = sim_time
+    XML.Densify(False)  # Don't use increased density for fake food (no fake food here. set just incase)
+    total_robots = 24
+    XML.BOT_COUNT = total_robots
+    XML.setBotCount(total_robots)
+    XML.setDistribution(1) # Cluster Distribution Only
+    XML.UseFFDoS(False)
+    XML.UseQZone(False)
+    XML.RD_PATH=f'results/resultsUniExperiment_LOG_PER_MIN_DATA_RateIncrease_DEF_PRI_rVARIABLE_rlpf4_rlpd1_st{sim_time}_{run_count}it/'
+    # XML.INC_MLT = "true"
+    
+    XML.LET_DET_USE_MLT = "false"
+    XML.PRI = "true"
+    XML.ANNULAR_DIST = "true"
+
+    XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
+
+    if (not DirectoryExists(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
+    if (not DirectoryEmpty(XML.RD_PATH)):
+        print(f'Directory {XML.RD_PATH} is not empty. Do you wish to clear the directory and continue? (y/n)')
+        if (input() != 'y'):
+            print('Aborting...')
+            exit()
+        else:
+            ClearDirectory(XML.RD_PATH)
+
+    # Cluster Distribution Settings
+    XML.NUM_RCL = 8
+    XML.RCL_X = 6
+    XML.RCL_Y = 6
+
+    total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
+
+    num_robots_list = [12, 16, 20, 24, 28, 32]
+
+    # Set detractors to have a higher rate of laying pheromones
+    XML.RLP_F = "4.0"
+    XML.RLP_D = "1.0"
+
+    flist = []
+
+    XML.USE_DEF = "true"
+    XML.USE_DEF_CL = "true"
+    XML.USE_DEF_CG = "true"
+
+    for p in num_robots_list:
+        XML.setDetractorPercentage(0, True)
+        XML.USE_OBSTACLES = "true"
+        XML.USE_CYLINDERS = "true"
+        XML.NUM_CYL_OBS = 16
+        total_robots = p
+        XML.BOT_COUNT = total_robots
+        XML.setBotCount(total_robots)
+        flist.append(XML.setFname()+"AttackData.txt")
+        XML.createXML()
+        for j in range(run_count):
+            time.sleep(0.05)
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {25}%, Num Robots: {p}\n')
+            os.system(f'argos3 -c {XML.XML_FNAME}')
+
+
+
+
+
+
+
+
+
+
+
+
+def RunCustomXML(path, run_count):
+
+    for j in range(run_count):
+        time.sleep(0.05)
+        os.system(f'argos3 -c {path}')
 if __name__ == "__main__":
 
     # Experiment1(30)
@@ -3096,7 +3180,11 @@ if __name__ == "__main__":
 
     # Experiment10_2_atkonly(20)
 
-    quickTest() 
+    # quickTest()
+
+    # RunCustomXML(f'./experiments/univelocity_test/no_detractors/with_walls.xml', 1)
+
+    Experiment_Univelocity_1(1)
 
     # runtimeErrorTest()
 

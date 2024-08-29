@@ -65,9 +65,10 @@ link_libraries(${ARGOS_LDFLAGS})
 # Find the LUA package.
 find_package(Lua REQUIRED)
 
-# find python package
-find_package(PythonLibs REQUIRED)
-include_directories(${PYTHON_INCLUDE_DIRS})
+# Use FindPython3 to locate the necessary Python components
+find_package(Python3 3.10 EXACT COMPONENTS Interpreter Development REQUIRED)
+include_directories(${Python3_INCLUDE_DIRS})
+link_directories(${Python3_LIBRARIES})
 
 # Set ARGoS include directory.
 include_directories(${CMAKE_SOURCE_DIR} ${ARGOS_INCLUDE_DIRS} ${GSL_INCLUDE_DIR} ${LUA_INCLUDE_DIR} source)
@@ -98,6 +99,6 @@ target_link_libraries(cpfa_evolver CPFA_controller
 				   ${MPI_LIBRARIES}
 		   		   ${Boost_LIBRARIES}
 				   argos3core_simulator
-           ${PYTHON_LIBRARIES})
+           ${Python3_LIBRARIES})
 else()
 endif()
