@@ -120,6 +120,8 @@ def quickTest():
     XML.LET_DET_USE_MLT = "false"
     XML.XML_FNAME = "./experiments/Misleading_Trail_1.xml"
     XML.ANNULAR_DIST = "true"
+    XML.PRI = "true"
+    # XML.RANDOM_SEED = 698865
 
     if (not DirectoryExists(XML.RD_PATH)):
         print(f'Directory {XML.RD_PATH} does not exist! Creating {XML.RD_PATH}...\n')
@@ -140,7 +142,7 @@ def quickTest():
 
     total_food = XML.NUM_RCL * XML.RCL_X * XML.RCL_Y
 
-    num_obs_list = [16]
+    num_obs_list = [0]#, 4, 8, 12, 16]
 
     # Set detractors to have a higher rate of laying pheromones
     XML.RLP_F = "4.0"
@@ -153,7 +155,7 @@ def quickTest():
     XML.USE_DEF_CG = "true"
 
     for p in num_obs_list:
-        XML.setDetractorPercentage(25, True)
+        XML.setDetractorPercentage(0, True)
         XML.NUM_CYL_OBS = p
         if (p > 0):
             XML.USE_OBSTACLES = "true"
@@ -163,7 +165,7 @@ def quickTest():
         print(XML.ANNULAR_DIST)
         for j in range(run_count):
             time.sleep(0.05)
-            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {25}%, Num Cylinder Obstacles: {p}\n')
+            print(f'Iteration: {j+1}/{run_count}, Percentage Detractors: {0}%, Num Cylinder Obstacles: {p}\n')
             os.system(f'argos3 -c {XML.XML_FNAME}')
 
 
@@ -3180,11 +3182,11 @@ if __name__ == "__main__":
 
     # Experiment10_2_atkonly(20)
 
-    # quickTest()
+    quickTest()
 
     # RunCustomXML(f'./experiments/univelocity_test/no_detractors/with_walls.xml', 1)
 
-    Experiment_Univelocity_1(1)
+    # Experiment_Univelocity_1(1)
 
     # runtimeErrorTest()
 

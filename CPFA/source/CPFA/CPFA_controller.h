@@ -190,11 +190,22 @@ class CPFA_controller : public BaseController {
 		bool randomizeAtkNest;
 
 		bool letDetractorUseMLTrail;
+
+		/**
+		 * @brief If set to true, each detractor will lay a trail to each of the attack nests instead of one.
+		 * 
+		 * This was for testing only and not experimentation. By default this is false.
+		 * 
+		 * Update: We increase the number of trails laid by manipulating the lay rate.
+		 * 
+		 */
 		bool increaseMisleadingTrails;
 
 		bool reachedInformedTarget;
 
 		Real footbotRadius = 0.085;		// from argos documentation
+
+		bool isolatedHoldingFood;
 
 		unsigned int survey_count;
 		/* Pointer to the LEDs actuator */

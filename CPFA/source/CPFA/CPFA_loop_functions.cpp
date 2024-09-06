@@ -2189,7 +2189,8 @@ void CPFA_loop_functions::LogReturn(std::string bot_id, Real returnTime, bool re
 					} else {
 						// update unified velocity
 						uniVelocity = d / T_actual;
-						LOG << "travel time estimate updated (uniVelocity): " << uniVelocity << endl;
+						LOG << "travel time estimate updated by " << bot_id << " (uniVelocity): " << uniVelocity << endl;
+						if (bot_id == "fb20") LOG << "Start time: " << traveler[j].second << ", Return time: " << returnTime << endl;
 
 						if (!firstUniUpdated){
 							firstUniUpdated = true;

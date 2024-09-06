@@ -39,7 +39,8 @@ CPFA_controller::CPFA_controller() :
 	letDetractorUseMLTrail(true),
 	increaseMisleadingTrails(false),
 	safeFromIsolation(false),
-	preventReIsolation(false)
+	preventReIsolation(false),
+	isolatedHoldingFood(false)
 {
 }
 
@@ -233,6 +234,9 @@ void CPFA_controller::Isolated(){
 
 void CPFA_controller::SetAsIsolated(){
 	isIsolated = true;
+	if (isHoldingFood){
+		isolatedHoldingFood = true;
+	}
 	CPFA_state = ISOLATED;
 }
 
@@ -241,6 +245,9 @@ bool CPFA_controller::IsIsolated(){
 }
 
 void CPFA_controller::SetUnIsolated(){
+	if (safeFromIsolation){
+		LOGERR << "ERROR: SetUnIsolated() called on robot that is safe from isolation." << endl;
+	}
 	isIsolated = false;
 	SetRandomSearchLocation();
 	isInformed = false;
@@ -259,6 +266,7 @@ void CPFA_controller::SetUnIsolated(){
 		LOGERR << "ERROR: SetUnIsolated() called on detractor robot." << endl;
 	} else if (preventReIsolation){
 		safeFromIsolation = true;
+		LOG << "Robot " << GetId() << " safe from reisolation." << endl;
 	}
 }
 
@@ -676,14 +684,10 @@ void CPFA_controller::Returning() {
 				} else {
 					LoopFunctions->DetractorFoodCollected++;
 				}
-				// delete local food list		Ryan Luna 01/24/23
+				// delete local food list		Ryan Luna 01/24/23    THE FOOD LIST FOR QZONES WHEN WE WANT TO GET A CIRCLE ENCLOSING ALL THE FOOD LOCATIONS
 				ClearLocalFoodList();
 
-				/**
-				 * Always lay the pheromone trail if the food is real
-				 * 
-				 * Ryan Luna 01/25/23
-				*/
+
 				
 				if(updateFidelity) {
 
@@ -1061,6 +1065,8 @@ void CPFA_controller::SetHoldingFood() {
 			
 			if (isDetractor){
 
+				// Set the AtkNestPos to the closest nest or randomize it (this is for the detractor. When it deposits the food, it will lay a trail to the atk nest chosen here)
+
 				if (randomizeAtkNest){
 
 					Real random = RNG->Uniform(CRange<Real>(0, LoopFunctions->AtkNestPositions.size()-1));
@@ -1216,6 +1222,11 @@ bool CPFA_controller::SetTargetPheromone() {
 	for(size_t i = 0; i < LoopFunctions->PheromoneList.size(); i++) {
 		if(randomWeight < LoopFunctions->PheromoneList[i].GetWeight() && LoopFunctions->PheromoneList[i].IsActive()) {
 
+
+
+
+			/******************************************* For Foragers *************************************************************************/
+
 			if (!isDetractor || (isDetractor && letDetractorUseMLTrail)){  // if normal forager or if we are letting the detractor use misleading trails
 
 				/* We've chosen a pheromone! */
@@ -1239,6 +1250,14 @@ bool CPFA_controller::SetTargetPheromone() {
 				} 
 				/* If we pick a pheromone, break out of this loop. */
 				break;
+
+
+
+
+
+
+
+			/******************************************* For Detractors *************************************************************************/
 
 			} else if (isDetractor && !letDetractorUseMLTrail){		// if we are a detractor and we are NOT letting it use misleading trails
 
